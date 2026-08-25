@@ -14,10 +14,10 @@ object RetrofitClient {
 
     /**
      * Cấu hình Base URL:
-     * - Máy chủ Samsung Galaxy Note 10+ 24/7 (Global HTTPS): "https://72c6820b7b67e1.lhr.life/"
+     * - Máy chủ Samsung Galaxy Note 10+ 24/7 (Global HTTPS): "https://fc6e772d6ab84a.lhr.life/"
      * - Khi cắm cáp USB vào máy tính (dùng adb reverse): "http://localhost:8083/"
      */
-    var BASE_URL = "https://72c6820b7b67e1.lhr.life/"
+    var BASE_URL = "https://fc6e772d6ab84a.lhr.life/"
         private set
 
     private var currentRetrofit: Retrofit? = null
