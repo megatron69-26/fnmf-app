@@ -8,7 +8,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
-import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.ProgressBar
@@ -16,17 +15,16 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.example.nhumonglenh.data.local.AiAnalysisEntity
 import com.example.nhumonglenh.data.local.AppDatabase
-import com.example.nhumonglenh.data.local.entity.AiAnalysisEntity
-import com.example.nhumonglenh.data.local.entity.NewsEntity
-import com.example.nhumonglenh.data.local.entity.WatchlistItem
-import com.example.nhumonglenh.data.model.CandleDto
-import com.example.nhumonglenh.data.model.HoldingDto
-import com.example.nhumonglenh.data.model.MobileNewsBundleResponse
-import com.example.nhumonglenh.data.model.OrderRequest
-import com.example.nhumonglenh.data.model.OrderResponse
-import com.example.nhumonglenh.data.model.PortfolioSummaryDto
-import com.example.nhumonglenh.data.model.UiState
+import com.example.nhumonglenh.data.local.NewsEntity
+import com.example.nhumonglenh.data.local.WatchlistItem
+import com.example.nhumonglenh.data.remote.CandleDto
+import com.example.nhumonglenh.data.remote.HoldingDto
+import com.example.nhumonglenh.data.remote.MobileNewsBundleResponse
+import com.example.nhumonglenh.data.remote.OrderRequest
+import com.example.nhumonglenh.data.remote.OrderResponse
+import com.example.nhumonglenh.data.remote.PortfolioSummaryDto
 import com.example.nhumonglenh.data.remote.RetrofitClient
 import com.github.mikephil.charting.charts.CandleStickChart
 import com.github.mikephil.charting.components.XAxis
@@ -44,6 +42,9 @@ import okhttp3.Request
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import org.json.JSONObject
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.util.concurrent.TimeUnit
 
 /**
@@ -193,18 +194,18 @@ class Activity2 : AppCompatActivity() {
         currentSymbol = sym
 
         // 1. Cập nhật Tiêu đề Header & Nhãn Khối lượng
-        when (sym) {
-            "BTCUSDT", "BTC" -> {
+        when {
+            sym.contains("BTC") -> {
                 tvHeaderTitle.text = "FNMF • BTC/USDT"
                 tvQuantityLabel.text = "Khối lượng đặt lệnh (BTC):"
                 etQuantity.setText("0.005")
             }
-            "ETHUSDT", "ETH" -> {
+            sym.contains("ETH") -> {
                 tvHeaderTitle.text = "FNMF • ETH/USDT"
                 tvQuantityLabel.text = "Khối lượng đặt lệnh (ETH):"
                 etQuantity.setText("0.05")
             }
-            "XAUUSD", "XAU" -> {
+            sym.contains("XAU") -> {
                 tvHeaderTitle.text = "FNMF • XAU/USD (VÀNG)"
                 tvQuantityLabel.text = "Khối lượng đặt lệnh (Ounce):"
                 etQuantity.setText("1.0")
