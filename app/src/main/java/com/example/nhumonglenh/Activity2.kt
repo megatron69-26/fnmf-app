@@ -32,6 +32,8 @@ import com.github.mikephil.charting.data.CandleData
 import com.github.mikephil.charting.data.CandleDataSet
 import com.github.mikephil.charting.data.CandleEntry
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -49,8 +51,9 @@ import java.util.concurrent.TimeUnit
  * ACTIVITY 2 - MÀN HÌNH GIAO DỊCH CHÍNH (HYBRID ARCHITECTURE)
  * =====================================================================
  * 1. BINANCE WEBSOCKET: Truyền luồng nến sống & giá nhảy từng giây (1s Ticks)
- * 2. BACKEND KHÔI: Khớp lệnh Mua/Bán, tính toán số dư Oracle DB, AI Insights
+ * 2. BACKEND KHÔI: Khớp lệnh Mua/Bán, tính toán số dư Oracle/H2 DB, AI Insights
  * 3. ROOM DB MẠNH: Lưu trữ danh mục theo dõi và tin tức ngoại tuyến
+ * 4. REAL-TIME AUTO-SYNC LOOP: Tự động đồng bộ số dư mỗi 3 giây phục vụ Demo từ xa
  * =====================================================================
  */
 class Activity2 : AppCompatActivity() {
@@ -127,6 +130,15 @@ class Activity2 : AppCompatActivity() {
 
         // 7. Kết nối luồng dữ liệu thời gian thực Binance WebSocket (1s kline)
         connectBinanceWebSocket()
+
+        // 8. Tự động quét đồng bộ số dư ngầm mỗi 3 giây (Hỗ trợ demo thao túng từ xa)
+        startAutoSyncPortfolioLoop()
+
+        // 9. Cho phép chạm vào thẻ Tài sản để refresh tức thì
+        tvHoldings.setOnClickListener {
+            Toast.makeText(this, "Đang đồng bộ số dư mới nhất từ Server...", Toast.LENGTH_SHORT).show()
+            loadPortfolio()
+        }
     }
 
     /**
@@ -337,6 +349,50 @@ class Activity2 : AppCompatActivity() {
     }
 
     /**
+     * Vòng lặp quét ngầm tự động mỗi 3 giây để đồng bộ số dư khi thao túng từ xa
+     */
+    private fun startAutoSyncPortfolioLoop() {
+        lifecycleScope.launch {
+            while (isActive) {
+                delay(3000)
+                if (jwtToken.isNotEmpty()) {
+                    loadPortfolioSilently()
+                }
+            }
+        }
+    }
+
+    /**
+     * Tải số dư ngầm không quấy rầy UI
+     */
+    private fun loadPortfolioSilently() {
+        val authHeader = "Bearer $jwtToken"
+        RetrofitClient.apiService.getPortfolio(authHeader).enqueue(object : Callback<PortfolioSummaryDto> {
+            override fun onResponse(call: Call<PortfolioSummaryDto>, response: Response<PortfolioSummaryDto>) {
+                val p = response.body()
+                if (response.isSuccessful && p != null) {
+                    val newCash = p.cashBalanceUsd ?: userCashBalance
+                    val btcHolding = p.holdings?.find { it.symbol?.contains("BTC") == true }
+                    val newBtcQty = btcHolding?.quantity ?: 0.0
+                    val newAvgPrice = btcHolding?.avgBuyPrice ?: 0.0
+
+                    if (newCash != userCashBalance || newBtcQty != userBtcQuantity || newAvgPrice != userAvgBuyPrice) {
+                        userCashBalance = newCash
+                        userBtcQuantity = newBtcQty
+                        userAvgBuyPrice = newAvgPrice
+                        updatePortfolioDisplay()
+                        Log.d(TAG, ">>> [AUTO-SYNC] Đã cập nhật số dư mới từ Server: $$userCashBalance USD!")
+                    }
+                }
+            }
+
+            override fun onFailure(call: Call<PortfolioSummaryDto>, t: Throwable) {
+                // Im lặng khi mất mạng
+            }
+        })
+    }
+
+    /**
      * Cập nhật thẻ BTCUSDT trong Watchlist theo giá WebSocket
      */
     private fun updateWatchlistBtcPrice(price: Double) {
@@ -395,7 +451,7 @@ class Activity2 : AppCompatActivity() {
                     val order = response.body()
                     val orderMsg = order?.message ?: "Khớp lệnh $type $qty BTC thành công!"
                     Toast.makeText(this@Activity2, "✅ $orderMsg", Toast.LENGTH_LONG).show()
-                    loadPortfolio() // Tải lại số dư ví mới từ Oracle DB
+                    loadPortfolio() // Tải lại số dư ví mới từ Server
                 } else {
                     val errBody = response.errorBody()?.string() ?: ""
                     val displayErr = if (errBody.contains("không đủ")) {
@@ -416,7 +472,7 @@ class Activity2 : AppCompatActivity() {
     }
 
     /**
-     * Tải thông tin tài sản ròng từ Backend Oracle DB
+     * Tải thông tin tài sản ròng từ Backend Server
      */
     private fun loadPortfolio() {
         if (jwtToken.isEmpty()) return
