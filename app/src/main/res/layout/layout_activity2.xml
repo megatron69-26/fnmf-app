@@ -21,12 +21,13 @@
             android:paddingBottom="8dp">
 
             <TextView
+                android:id="@+id/tvHeaderTitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="FNMF TERMINAL"
+                android:text="FNMF • BTC/USDT"
                 android:textColor="#FFFFFF"
-                android:textSize="18sp"
+                android:textSize="17sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -147,6 +148,7 @@
                 android:layout_marginBottom="8dp">
 
                 <TextView
+                    android:id="@+id/tvQuantityLabel"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"

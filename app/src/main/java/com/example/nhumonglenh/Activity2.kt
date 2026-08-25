@@ -1,6 +1,5 @@
 package com.example.nhumonglenh
 
-import android.content.Context
 import android.graphics.Color
 import android.graphics.Paint
 import android.os.Bundle
@@ -9,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.ProgressBar
@@ -16,15 +16,17 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.example.nhumonglenh.data.local.AiAnalysisEntity
 import com.example.nhumonglenh.data.local.AppDatabase
-import com.example.nhumonglenh.data.local.NewsEntity
-import com.example.nhumonglenh.data.local.WatchlistItem
-import com.example.nhumonglenh.data.remote.CandleDto
-import com.example.nhumonglenh.data.remote.MobileNewsBundleResponse
-import com.example.nhumonglenh.data.remote.OrderRequest
-import com.example.nhumonglenh.data.remote.OrderResponse
-import com.example.nhumonglenh.data.remote.PortfolioSummaryDto
+import com.example.nhumonglenh.data.local.entity.AiAnalysisEntity
+import com.example.nhumonglenh.data.local.entity.NewsEntity
+import com.example.nhumonglenh.data.local.entity.WatchlistItem
+import com.example.nhumonglenh.data.model.CandleDto
+import com.example.nhumonglenh.data.model.HoldingDto
+import com.example.nhumonglenh.data.model.MobileNewsBundleResponse
+import com.example.nhumonglenh.data.model.OrderRequest
+import com.example.nhumonglenh.data.model.OrderResponse
+import com.example.nhumonglenh.data.model.PortfolioSummaryDto
+import com.example.nhumonglenh.data.model.UiState
 import com.example.nhumonglenh.data.remote.RetrofitClient
 import com.github.mikephil.charting.charts.CandleStickChart
 import com.github.mikephil.charting.components.XAxis
@@ -32,6 +34,7 @@ import com.github.mikephil.charting.data.CandleData
 import com.github.mikephil.charting.data.CandleDataSet
 import com.github.mikephil.charting.data.CandleEntry
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -41,29 +44,29 @@ import okhttp3.Request
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import org.json.JSONObject
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import java.util.concurrent.TimeUnit
 
 /**
  * =====================================================================
- * ACTIVITY 2 - MÀN HÌNH GIAO DỊCH CHÍNH (HYBRID ARCHITECTURE)
+ * ACTIVITY 2 - MÀN HÌNH GIAO DỊCH CHÍNH (HYBRID MULTI-ASSET ARCHITECTURE)
  * =====================================================================
- * 1. BINANCE WEBSOCKET: Truyền luồng nến sống & giá nhảy từng giây (1s Ticks)
- * 2. BACKEND KHÔI: Khớp lệnh Mua/Bán, tính toán số dư Oracle/H2 DB, AI Insights
- * 3. ROOM DB MẠNH: Lưu trữ danh mục theo dõi và tin tức ngoại tuyến
- * 4. REAL-TIME AUTO-SYNC LOOP: Tự động đồng bộ số dư mỗi 3 giây phục vụ Demo từ xa
+ * 1. MULTI-ASSET WATCHLIST: Chuyển đổi nến tức thì giữa BTCUSDT, ETHUSDT, XAUUSD
+ * 2. BINANCE WEBSOCKET: Truyền luồng nến sống & giá nhảy từng giây (1s Ticks)
+ * 3. BACKEND KHÔI: Khớp lệnh Mua/Bán, tính toán số dư Oracle/H2 DB, AI Insights
+ * 4. ROOM DB MẠNH: Lưu trữ danh mục theo dõi và tin tức ngoại tuyến
+ * 5. REAL-TIME AUTO-SYNC LOOP: Tự động đồng bộ số dư mỗi 3 giây phục vụ Demo từ xa
  * =====================================================================
  */
 class Activity2 : AppCompatActivity() {
 
+    private lateinit var tvHeaderTitle: TextView
+    private lateinit var tvLiveStatus: TextView
     private lateinit var candleChart: CandleStickChart
     private lateinit var pbLoading: ProgressBar
     private lateinit var tvStateMessage: TextView
     private lateinit var tvCashBalance: TextView
     private lateinit var tvHoldings: TextView
-    private lateinit var tvLiveStatus: TextView
+    private lateinit var tvQuantityLabel: TextView
     private lateinit var etQuantity: EditText
     private lateinit var btnBuy: Button
     private lateinit var btnSell: Button
@@ -77,15 +80,21 @@ class Activity2 : AppCompatActivity() {
     private val candleEntries = ArrayList<CandleEntry>()
     private var candleDataSet: CandleDataSet? = null
 
-    // Quản lý trạng thái tài sản thời gian thực
-    private var currentBtcPrice: Double = 0.0
-    private var previousBtcPrice: Double = 0.0
+    // Quản lý mã tài sản đang chọn
+    private var currentSymbol: String = "BTCUSDT"
+    private var currentAssetPrice: Double = 0.0
+    private var previousAssetPrice: Double = 0.0
     private var userCashBalance: Double = 10000.0
-    private var userBtcQuantity: Double = 0.0
-    private var userAvgBuyPrice: Double = 0.0
+    private var userHoldingsQuantity: Double = 0.0
+    private var userHoldingsAvgBuyPrice: Double = 0.0
+    private var portfolioHoldingsList: List<HoldingDto> = emptyList()
 
-    // WebSocket Client
+    // Map lưu view của từng item watchlist để highlight
+    private val watchlistViewsMap = HashMap<String, View>()
+
+    // WebSocket & Job Client
     private var binanceWebSocket: WebSocket? = null
+    private var goldSimulationJob: Job? = null
     private val okHttpClient = OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS)
         .build()
@@ -100,12 +109,14 @@ class Activity2 : AppCompatActivity() {
         Log.d(TAG, "Activity2 onCreate")
 
         // 1. Khởi tạo Views
+        tvHeaderTitle = findViewById(R.id.tvHeaderTitle)
+        tvLiveStatus = findViewById(R.id.tvLiveStatus)
         candleChart = findViewById(R.id.candleChart)
         pbLoading = findViewById(R.id.pbLoading)
         tvStateMessage = findViewById(R.id.tvStateMessage)
         tvCashBalance = findViewById(R.id.tvCashBalance)
         tvHoldings = findViewById(R.id.tvHoldings)
-        tvLiveStatus = findViewById(R.id.tvLiveStatus)
+        tvQuantityLabel = findViewById(R.id.tvQuantityLabel)
         etQuantity = findViewById(R.id.etQuantity)
         btnBuy = findViewById(R.id.btnBuy)
         btnSell = findViewById(R.id.btnSell)
@@ -119,24 +130,21 @@ class Activity2 : AppCompatActivity() {
         // 3. Cấu hình giao diện Biểu đồ Nến Dark Theme
         setupCandleChartStyle()
 
-        // 4. Tải dữ liệu Nến ban đầu từ Backend
-        loadCandleData()
-
-        // 5. Tải danh mục Watchlist & Tin tức Offline Room DB (Chạy trên Dispatchers.IO)
+        // 4. Tải dữ liệu Watchlist & Tin tức Offline Room DB
         loadLocalWatchlist()
         syncNewsToRoomDB()
+
+        // 5. Khởi động với mã mặc định BTCUSDT
+        switchMarketSymbol("BTCUSDT", isInitial = true)
 
         // 6. Cập nhật Số dư ví & Khớp lệnh Mua/Bán
         setupTradeActions()
         loadPortfolio()
 
-        // 7. Kết nối luồng dữ liệu thời gian thực Binance WebSocket (1s kline)
-        connectBinanceWebSocket()
-
-        // 8. Tự động quét đồng bộ số dư ngầm mỗi 3 giây (Hỗ trợ demo thao túng từ xa)
+        // 7. Tự động quét đồng bộ số dư ngầm mỗi 3 giây (Hỗ trợ demo thao túng từ xa)
         startAutoSyncPortfolioLoop()
 
-        // 9. Cho phép chạm vào thẻ Tài sản để refresh tức thì
+        // 8. Cho phép chạm vào thẻ Tài sản để refresh tức thì
         tvHoldings.setOnClickListener {
             Toast.makeText(this, "Đang đồng bộ số dư mới nhất từ Server...", Toast.LENGTH_SHORT).show()
             loadPortfolio()
@@ -178,28 +186,93 @@ class Activity2 : AppCompatActivity() {
     }
 
     /**
+     * Chuyển đổi mã tài sản hiển thị biểu đồ Nến (BTCUSDT, ETHUSDT, XAUUSD)
+     */
+    fun switchMarketSymbol(symbol: String, isInitial: Boolean = false) {
+        val sym = symbol.uppercase()
+        currentSymbol = sym
+
+        // 1. Cập nhật Tiêu đề Header & Nhãn Khối lượng
+        when (sym) {
+            "BTCUSDT", "BTC" -> {
+                tvHeaderTitle.text = "FNMF • BTC/USDT"
+                tvQuantityLabel.text = "Khối lượng đặt lệnh (BTC):"
+                etQuantity.setText("0.005")
+            }
+            "ETHUSDT", "ETH" -> {
+                tvHeaderTitle.text = "FNMF • ETH/USDT"
+                tvQuantityLabel.text = "Khối lượng đặt lệnh (ETH):"
+                etQuantity.setText("0.05")
+            }
+            "XAUUSD", "XAU" -> {
+                tvHeaderTitle.text = "FNMF • XAU/USD (VÀNG)"
+                tvQuantityLabel.text = "Khối lượng đặt lệnh (Ounce):"
+                etQuantity.setText("1.0")
+            }
+            else -> {
+                tvHeaderTitle.text = "FNMF • $sym"
+                tvQuantityLabel.text = "Khối lượng đặt lệnh ($sym):"
+                etQuantity.setText("1.0")
+            }
+        }
+
+        // 2. Highlight card được chọn trong Watchlist
+        highlightSelectedWatchlistItem(sym)
+
+        if (!isInitial) {
+            Toast.makeText(this, "📊 Đang mở biểu đồ nến $sym...", Toast.LENGTH_SHORT).show()
+        }
+
+        // 3. Tải dữ liệu nến từ Backend
+        loadCandleData(sym)
+
+        // 4. Đổi luồng WebSocket theo mã
+        connectWebSocketForSymbol(sym)
+
+        // 5. Cập nhật lại số lượng coin của mã đang chọn trong ví
+        updateHoldingsForCurrentSymbol()
+        updatePortfolioDisplay()
+    }
+
+    /**
+     * Highlight thẻ Watchlist đang được chọn
+     */
+    private fun highlightSelectedWatchlistItem(activeSymbol: String) {
+        for ((sym, view) in watchlistViewsMap) {
+            if (sym.equals(activeSymbol, ignoreCase = true) || 
+                (activeSymbol.contains("BTC") && sym.contains("BTC")) ||
+                (activeSymbol.contains("ETH") && sym.contains("ETH")) ||
+                (activeSymbol.contains("XAU") && sym.contains("XAU"))) {
+                view.setBackgroundColor(Color.parseColor("#2A3245"))
+            } else {
+                view.setBackgroundColor(Color.parseColor("#1E222D"))
+            }
+        }
+    }
+
+    /**
      * Tải dữ liệu nến từ Backend Khôi qua Retrofit
      */
-    private fun loadCandleData() {
+    private fun loadCandleData(symbol: String) {
         handleUiState(UiState.Loading)
 
-        RetrofitClient.apiService.getCandles("BTCUSDT", "daily").enqueue(object : Callback<List<CandleDto>> {
+        RetrofitClient.apiService.getCandles(symbol, "daily").enqueue(object : Callback<List<CandleDto>> {
             override fun onResponse(call: Call<List<CandleDto>>, response: Response<List<CandleDto>>) {
                 val candles = response.body()
                 if (response.isSuccessful && !candles.isNullOrEmpty()) {
                     handleUiState(UiState.Success())
-                    renderCandleChart(candles)
+                    renderCandleChart(candles, symbol)
                 } else {
-                    Log.w(TAG, "API nến rỗng hoặc lỗi code: ${response.code()}, dùng dữ liệu dự phòng")
+                    Log.w(TAG, "API nến rỗng hoặc lỗi code: ${response.code()}, dùng dữ liệu dự phòng cho $symbol")
                     handleUiState(UiState.Success())
-                    renderCandleChart(generateMockCandles())
+                    renderCandleChart(generateMockCandles(symbol), symbol)
                 }
             }
 
             override fun onFailure(call: Call<List<CandleDto>>, t: Throwable) {
                 Log.e(TAG, "Lỗi kết nối Retrofit: ${t.message}")
                 handleUiState(UiState.Success())
-                renderCandleChart(generateMockCandles())
+                renderCandleChart(generateMockCandles(symbol), symbol)
             }
         })
     }
@@ -207,7 +280,7 @@ class Activity2 : AppCompatActivity() {
     /**
      * Vẽ tập dữ liệu Nến lên MPAndroidChart
      */
-    private fun renderCandleChart(candles: List<CandleDto>) {
+    private fun renderCandleChart(candles: List<CandleDto>, symbol: String) {
         candleEntries.clear()
 
         for (i in candles.indices) {
@@ -221,12 +294,12 @@ class Activity2 : AppCompatActivity() {
         }
 
         if (candles.isNotEmpty()) {
-            currentBtcPrice = candles.last().close
-            previousBtcPrice = currentBtcPrice
+            currentAssetPrice = candles.last().close
+            previousAssetPrice = currentAssetPrice
             updatePortfolioDisplay()
         }
 
-        val dataSet = CandleDataSet(candleEntries, "BTC / USDT (Live 1s)").apply {
+        val dataSet = CandleDataSet(candleEntries, "$symbol (Live 1s)").apply {
             color = Color.WHITE
             shadowColor = Color.DKGRAY
             shadowWidth = 0.8f
@@ -251,16 +324,36 @@ class Activity2 : AppCompatActivity() {
     }
 
     /**
-     * Kết nối Binance Public WebSocket API để nhận từng biến động giá 1s
+     * Kết nối WebSocket / Ticker tương ứng với mã tài sản
      */
-    private fun connectBinanceWebSocket() {
+    private fun connectWebSocketForSymbol(symbol: String) {
+        // Đóng kết nối cũ
+        binanceWebSocket?.close(1000, "Switching symbol")
+        binanceWebSocket = null
+        goldSimulationJob?.cancel()
+        goldSimulationJob = null
+
+        val sym = symbol.uppercase()
+        if (sym.contains("BTC")) {
+            connectBinanceStream("btcusdt@kline_1s")
+        } else if (sym.contains("ETH")) {
+            connectBinanceStream("ethusdt@kline_1s")
+        } else if (sym.contains("XAU")) {
+            startGoldLiveSimulation()
+        }
+    }
+
+    /**
+     * Kết nối Binance Public WebSocket API
+     */
+    private fun connectBinanceStream(streamName: String) {
         val request = Request.Builder()
-            .url("wss://stream.binance.com:9443/ws/btcusdt@kline_1s")
+            .url("wss://stream.binance.com:9443/ws/$streamName")
             .build()
 
         binanceWebSocket = okHttpClient.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: okhttp3.Response) {
-                Log.d(TAG, ">>> ĐÃ KẾT NỐI THÀNH CÔNG BINANCE LIVE WEBSOCKET!")
+                Log.d(TAG, ">>> ĐÃ KẾT NỐI BINANCE LIVE STREAM: $streamName")
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
@@ -284,21 +377,39 @@ class Activity2 : AppCompatActivity() {
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: okhttp3.Response?) {
-                Log.w(TAG, "WebSocket disconnected: ${t.message}, sẽ tự động kết nối lại khi mở app.")
+                Log.w(TAG, "WebSocket disconnected: ${t.message}")
             }
         })
+    }
+
+    /**
+     * Sinh luồng giá vàng (XAU/USD) biến động thời gian thực 1s
+     */
+    private fun startGoldLiveSimulation() {
+        goldSimulationJob = lifecycleScope.launch {
+            var goldPrice = if (currentAssetPrice > 1000) currentAssetPrice else 2412.50
+            while (isActive) {
+                delay(1000)
+                val delta = (Math.random() * 0.8 - 0.4)
+                val prev = goldPrice
+                goldPrice = Math.round((goldPrice + delta) * 100.0) / 100.0
+                val high = (Math.max(prev, goldPrice) + Math.random() * 0.2).toFloat()
+                val low = (Math.min(prev, goldPrice) - Math.random() * 0.2).toFloat()
+                onLivePriceTick(prev.toFloat(), high, low, goldPrice, true)
+            }
+        }
     }
 
     /**
      * Cập nhật cây nến sống động và liên tục sinh nến mới
      */
     private fun onLivePriceTick(open: Float, high: Float, low: Float, close: Double, isClosed: Boolean) {
-        previousBtcPrice = currentBtcPrice
-        currentBtcPrice = close
+        previousAssetPrice = currentAssetPrice
+        currentAssetPrice = close
 
         // 1. Cập nhật nhãn Ticker nhấp nháy giá trực tiếp trên Header
-        val priceColor = if (currentBtcPrice >= previousBtcPrice) "#089981" else "#F23645"
-        tvLiveStatus.text = "● LIVE $${String.format("%,.2f", currentBtcPrice)}"
+        val priceColor = if (currentAssetPrice >= previousAssetPrice) "#089981" else "#F23645"
+        tvLiveStatus.text = "● LIVE $${String.format("%,.2f", currentAssetPrice)}"
         tvLiveStatus.setTextColor(Color.parseColor(priceColor))
 
         // 2. Cập nhật / Sinh nến mới trên biểu đồ
@@ -327,8 +438,8 @@ class Activity2 : AppCompatActivity() {
         // 3. Cập nhật dòng Tài sản ròng & Lời/Lỗ theo giá mới
         updatePortfolioDisplay()
 
-        // 4. Cập nhật giá BTC trong danh mục Watchlist
-        updateWatchlistBtcPrice(close)
+        // 4. Cập nhật giá trong danh mục Watchlist
+        updateWatchlistPriceDisplay(currentSymbol, close)
     }
 
     /**
@@ -339,17 +450,17 @@ class Activity2 : AppCompatActivity() {
         tvCashBalance.text = "$${String.format("%,.2f", userCashBalance)} USD"
 
         // 2. Cập nhật Tổng tài sản ròng (Tiền mặt + Giá trị Coin) và Lời/Lỗ
-        val btcHoldingsValue = userBtcQuantity * currentBtcPrice
-        val totalNetWorth = userCashBalance + btcHoldingsValue
-        val pnl = if (userBtcQuantity > 0 && userAvgBuyPrice > 0) {
-            (currentBtcPrice - userAvgBuyPrice) * userBtcQuantity
+        val assetHoldingsValue = userHoldingsQuantity * currentAssetPrice
+        val totalNetWorth = userCashBalance + assetHoldingsValue
+        val pnl = if (userHoldingsQuantity > 0 && userHoldingsAvgBuyPrice > 0) {
+            (currentAssetPrice - userHoldingsAvgBuyPrice) * userHoldingsQuantity
         } else {
             0.0
         }
 
         val pnlSign = if (pnl >= 0) "+$" else "-$"
         val pnlColor = if (pnl >= 0) "#089981" else "#F23645"
-        val holdingDetail = if (userBtcQuantity > 0) " (${String.format("%.4f", userBtcQuantity)} BTC)" else ""
+        val holdingDetail = if (userHoldingsQuantity > 0) " (${String.format("%.4f", userHoldingsQuantity)} $currentSymbol)" else ""
 
         tvHoldings.text = "Tài sản: $${String.format("%,.2f", totalNetWorth)} | Lời/Lỗ: $pnlSign${String.format("%,.2f", Math.abs(pnl))}$holdingDetail"
         tvHoldings.setTextColor(Color.parseColor(pnlColor))
@@ -379,14 +490,27 @@ class Activity2 : AppCompatActivity() {
                 val p = response.body()
                 if (response.isSuccessful && p != null) {
                     val newCash = p.cashBalanceUsd ?: userCashBalance
-                    val btcHolding = p.holdings?.find { it.symbol?.contains("BTC") == true }
-                    val newBtcQty = btcHolding?.quantity ?: 0.0
-                    val newAvgPrice = btcHolding?.avgBuyPrice ?: 0.0
+                    portfolioHoldingsList = p.holdings ?: emptyList()
+                    
+                    var changed = (newCash != userCashBalance)
+                    userCashBalance = newCash
+                    
+                    val holding = portfolioHoldingsList.find { 
+                        it.symbol?.equals(currentSymbol, ignoreCase = true) == true ||
+                        (currentSymbol.contains("BTC") && it.symbol?.contains("BTC") == true) ||
+                        (currentSymbol.contains("ETH") && it.symbol?.contains("ETH") == true) ||
+                        (currentSymbol.contains("XAU") && it.symbol?.contains("XAU") == true)
+                    }
 
-                    if (newCash != userCashBalance || newBtcQty != userBtcQuantity || newAvgPrice != userAvgBuyPrice) {
-                        userCashBalance = newCash
-                        userBtcQuantity = newBtcQty
-                        userAvgBuyPrice = newAvgPrice
+                    val newQty = holding?.quantity ?: 0.0
+                    val newAvg = holding?.avgBuyPrice ?: 0.0
+                    if (newQty != userHoldingsQuantity || newAvg != userHoldingsAvgBuyPrice) {
+                        userHoldingsQuantity = newQty
+                        userHoldingsAvgBuyPrice = newAvg
+                        changed = true
+                    }
+
+                    if (changed) {
                         updatePortfolioDisplay()
                         Log.d(TAG, ">>> [AUTO-SYNC] Đã cập nhật số dư mới từ Server: $$userCashBalance USD!")
                     }
@@ -399,13 +523,24 @@ class Activity2 : AppCompatActivity() {
         })
     }
 
+    private fun updateHoldingsForCurrentSymbol() {
+        val holding = portfolioHoldingsList.find { 
+            it.symbol?.equals(currentSymbol, ignoreCase = true) == true ||
+            (currentSymbol.contains("BTC") && it.symbol?.contains("BTC") == true) ||
+            (currentSymbol.contains("ETH") && it.symbol?.contains("ETH") == true) ||
+            (currentSymbol.contains("XAU") && it.symbol?.contains("XAU") == true)
+        }
+        userHoldingsQuantity = holding?.quantity ?: 0.0
+        userHoldingsAvgBuyPrice = holding?.avgBuyPrice ?: 0.0
+    }
+
     /**
-     * Cập nhật thẻ BTCUSDT trong Watchlist theo giá WebSocket
+     * Cập nhật thẻ giá trong Watchlist
      */
-    private fun updateWatchlistBtcPrice(price: Double) {
-        val btcCard = llWatchlistContainer.findViewWithTag<TextView>("tag_price_BTCUSDT")
-        if (btcCard != null) {
-            btcCard.text = "$${String.format("%,.1f", price)}"
+    private fun updateWatchlistPriceDisplay(symbol: String, price: Double) {
+        val card = llWatchlistContainer.findViewWithTag<TextView>("tag_price_$symbol")
+        if (card != null) {
+            card.text = "$${String.format("%,.1f", price)}"
         }
     }
 
@@ -434,29 +569,29 @@ class Activity2 : AppCompatActivity() {
 
     private fun executeTrade(type: String, qty: Double) {
         if (jwtToken.isEmpty()) {
-            Toast.makeText(this, "Đang ở chế độ Offline! Khớp lệnh $type $qty BTC thành công.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Đang ở chế độ Offline! Khớp lệnh $type $qty $currentSymbol thành công.", Toast.LENGTH_LONG).show()
             if (type == "BUY") {
-                val cost = qty * (if (currentBtcPrice > 0) currentBtcPrice else 78000.0)
+                val cost = qty * (if (currentAssetPrice > 0) currentAssetPrice else 1000.0)
                 userCashBalance -= cost
-                userBtcQuantity += qty
-                userAvgBuyPrice = currentBtcPrice
+                userHoldingsQuantity += qty
+                userHoldingsAvgBuyPrice = currentAssetPrice
             } else {
-                val revenue = qty * (if (currentBtcPrice > 0) currentBtcPrice else 78000.0)
+                val revenue = qty * (if (currentAssetPrice > 0) currentAssetPrice else 1000.0)
                 userCashBalance += revenue
-                userBtcQuantity = Math.max(0.0, userBtcQuantity - qty)
+                userHoldingsQuantity = Math.max(0.0, userHoldingsQuantity - qty)
             }
             updatePortfolioDisplay()
             return
         }
 
         val authHeader = "Bearer $jwtToken"
-        val request = OrderRequest(symbol = "BTCUSDT", type = type, quantity = qty)
+        val request = OrderRequest(symbol = currentSymbol, type = type, quantity = qty)
 
         RetrofitClient.apiService.placeOrder(authHeader, request).enqueue(object : Callback<OrderResponse> {
             override fun onResponse(call: Call<OrderResponse>, response: Response<OrderResponse>) {
                 if (response.isSuccessful) {
                     val order = response.body()
-                    val orderMsg = order?.message ?: "Khớp lệnh $type $qty BTC thành công!"
+                    val orderMsg = order?.message ?: "Khớp lệnh $type $qty $currentSymbol thành công!"
                     Toast.makeText(this@Activity2, "✅ $orderMsg", Toast.LENGTH_LONG).show()
                     loadPortfolio() // Tải lại số dư ví mới từ Server
                 } else {
@@ -464,7 +599,7 @@ class Activity2 : AppCompatActivity() {
                     val displayErr = if (errBody.contains("không đủ")) {
                         "❌ Số dư ví không đủ để đặt lệnh này!"
                     } else if (errBody.contains("không đủ số lượng")) {
-                        "❌ Số lượng BTC trong ví không đủ để bán!"
+                        "❌ Số lượng $currentSymbol trong ví không đủ để bán!"
                     } else {
                         "❌ Lỗi đặt lệnh (${response.code()})"
                     }
@@ -490,17 +625,8 @@ class Activity2 : AppCompatActivity() {
                 val p = response.body()
                 if (response.isSuccessful && p != null) {
                     userCashBalance = p.cashBalanceUsd ?: 10000.0
-                    
-                    // Tìm số lượng BTC đang sở hữu
-                    val btcHolding = p.holdings?.find { it.symbol?.contains("BTC") == true }
-                    if (btcHolding != null) {
-                        userBtcQuantity = btcHolding.quantity ?: 0.0
-                        userAvgBuyPrice = btcHolding.avgBuyPrice ?: 0.0
-                    } else {
-                        userBtcQuantity = 0.0
-                        userAvgBuyPrice = 0.0
-                    }
-                    
+                    portfolioHoldingsList = p.holdings ?: emptyList()
+                    updateHoldingsForCurrentSymbol()
                     updatePortfolioDisplay()
                 }
             }
@@ -538,7 +664,7 @@ class Activity2 : AppCompatActivity() {
     }
 
     /**
-     * Tải và hiển thị danh mục Watchlist từ Room DB
+     * Tải và hiển thị danh mục Watchlist từ Room DB với khả năng click để chuyển nến
      */
     private fun loadLocalWatchlist() {
         lifecycleScope.launch(Dispatchers.IO) {
@@ -552,6 +678,7 @@ class Activity2 : AppCompatActivity() {
 
             withContext(Dispatchers.Main) {
                 llWatchlistContainer.removeAllViews()
+                watchlistViewsMap.clear()
                 val inflater = LayoutInflater.from(this@Activity2)
                 for (item in items) {
                     val itemView = inflater.inflate(R.layout.item_watchlist, llWatchlistContainer, false)
@@ -567,9 +694,7 @@ class Activity2 : AppCompatActivity() {
                                   else "Tài sản tài chính"
                     
                     tvPrice.text = "$${String.format("%,.1f", item.price)}"
-                    if (item.symbol.contains("BTC")) {
-                        tvPrice.tag = "tag_price_BTCUSDT"
-                    }
+                    tvPrice.tag = "tag_price_${item.symbol}"
 
                     if (item.change24h >= 0) {
                         tvChange.text = "+${item.change24h}%"
@@ -579,8 +704,16 @@ class Activity2 : AppCompatActivity() {
                         tvChange.setTextColor(Color.parseColor("#F23645"))
                     }
 
+                    // SỰ KIỆN CHẠM VÀO ITEM ĐỂ CHUYỂN BIỂU ĐỒ NẾN
+                    itemView.setOnClickListener {
+                        switchMarketSymbol(item.symbol)
+                    }
+
+                    watchlistViewsMap[item.symbol] = itemView
                     llWatchlistContainer.addView(itemView)
                 }
+
+                highlightSelectedWatchlistItem(currentSymbol)
             }
         }
     }
@@ -610,38 +743,46 @@ class Activity2 : AppCompatActivity() {
                 pbLoading.visibility = View.GONE
                 candleChart.visibility = View.INVISIBLE
                 tvStateMessage.visibility = View.VISIBLE
-                tvStateMessage.text = "Không có dữ liệu hiển thị"
+                tvStateMessage.text = "Không có dữ liệu nến khả dụng"
             }
             null -> {}
         }
     }
 
-    private fun getSavedToken(): String {
-        val prefs = getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        return prefs.getString("jwt_token", "") ?: ""
-    }
-
-    private fun generateMockCandles(): List<CandleDto> {
+    /**
+     * Dữ liệu nến dự phòng cho từng mã
+     */
+    private fun generateMockCandles(symbol: String = "BTCUSDT"): List<CandleDto> {
         val list = ArrayList<CandleDto>()
-        var price = 78000.0
-        for (i in 1..30) {
-            val open = price
-            val close = open + (Math.random() - 0.48) * 300
-            val high = Math.max(open, close) + Math.random() * 150
-            val low = Math.min(open, close) - Math.random() * 150
-            list.add(CandleDto("2026-08-$i", open, high, low, close, 1500.0))
-            price = close
+        var basePrice = when {
+            symbol.contains("ETH") -> 3550.0
+            symbol.contains("XAU") -> 2410.0
+            else -> 78000.0
+        }
+
+        for (i in 0 until 30) {
+            val open = basePrice
+            val close = open + (Math.random() * (basePrice * 0.02) - (basePrice * 0.01))
+            val high = Math.max(open, close) + (Math.random() * (basePrice * 0.005))
+            val low = Math.min(open, close) - (Math.random() * (basePrice * 0.005))
+            list.add(CandleDto("2026-08-${i + 1}", open, high, low, close, 1500.0))
+            basePrice = close
         }
         return list
+    }
+
+    private fun getSavedToken(): String {
+        val prefs = getSharedPreferences("fnmf_prefs", MODE_PRIVATE)
+        return prefs.getString("jwt_token", "") ?: ""
     }
 
     override fun onDestroy() {
         super.onDestroy()
         binanceWebSocket?.close(1000, "Activity Destroyed")
-        Log.d(TAG, "Đã đóng WebSocket kết nối an toàn.")
+        goldSimulationJob?.cancel()
     }
 
     companion object {
-        private const val TAG = "Activity2_Trading"
+        private const val TAG = "FNMF_Activity2"
     }
 }
