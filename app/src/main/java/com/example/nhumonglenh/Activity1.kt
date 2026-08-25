@@ -22,9 +22,9 @@ class Activity1 : AppCompatActivity() {
         setContentView(R.layout.layout_activity1)
         Log.d(TAG, "Activity1 onCreate")
 
-        // Tự động tải địa chỉ máy chủ đã lưu (hỗ trợ chuyển đổi Note 10+ / Cloudflare 24/7)
+        // Tự động tải địa chỉ máy chủ đã lưu (mặc định trỏ thẳng vào IP Note 10+ 24/7)
         val prefs = getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        val savedServerUrl = prefs.getString("server_url", "http://localhost:8083/") ?: "http://localhost:8083/"
+        val savedServerUrl = prefs.getString("server_url", RetrofitClient.BASE_URL) ?: RetrofitClient.BASE_URL
         RetrofitClient.updateBaseUrl(savedServerUrl)
 
         val etEmail = findViewById<EditText>(R.id.etEmail)
