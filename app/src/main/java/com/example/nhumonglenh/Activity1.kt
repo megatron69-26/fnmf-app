@@ -19,54 +19,66 @@ class Activity1 : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        supportActionBar?.hide()
         setContentView(R.layout.layout_activity1)
         Log.d(TAG, "Activity1 onCreate")
 
-        // Tự động tải địa chỉ máy chủ đã lưu (mặc định trỏ thẳng vào IP Note 10+ 24/7)
-        val prefs = getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        val savedServerUrl = prefs.getString("server_url", RetrofitClient.BASE_URL) ?: RetrofitClient.BASE_URL
-        RetrofitClient.updateBaseUrl(savedServerUrl)
-
+        val etServerUrl = findViewById<EditText>(R.id.etServerUrl)
         val etEmail = findViewById<EditText>(R.id.etEmail)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
 
-        // Gợi ý sẵn tài khoản mặc định
+        // 1. Tải Server URL đã lưu (mặc định trỏ vào Note 10+ Wi-Fi IP)
+        val prefs = getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
+        val savedServerUrl = prefs.getString("server_url", "http://10.174.64.59:8083/") ?: "http://10.174.64.59:8083/"
+        
+        etServerUrl.setText(savedServerUrl)
         etEmail.setText("khoi.pro@fnmf.com")
 
         btnLogin.setOnClickListener {
+            var serverUrl = etServerUrl.text.toString().trim()
+            if (serverUrl.isEmpty()) {
+                serverUrl = "http://10.174.64.59:8083/"
+            }
+            if (!serverUrl.endsWith("/")) {
+                serverUrl += "/"
+            }
+
             val email = etEmail.text.toString().trim()
             if (email.isEmpty()) {
                 Toast.makeText(this, "Vui lòng nhập Email!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            btnLogin.isEnabled = false
-            btnLogin.text = "Đang đăng nhập..."
+            // Lưu server_url và cập nhật Retrofit Base URL
+            prefs.edit().putString("server_url", serverUrl).apply()
+            RetrofitClient.updateBaseUrl(serverUrl)
 
-            // Gọi API xác thực từ Backend Khôi
+            btnLogin.isEnabled = false
+            btnLogin.text = "Đang kết nối Server..."
+
+            // Gọi API xác thực từ Backend Note 10+
             val request = LoginRequest(email = email, password = "mypassword123")
             RetrofitClient.apiService.login(request).enqueue(object : Callback<AuthResponse> {
                 override fun onResponse(call: Call<AuthResponse>, response: Response<AuthResponse>) {
                     btnLogin.isEnabled = true
-                    btnLogin.text = "Đăng Nhập"
+                    btnLogin.text = "ĐĂNG NHẬP VÀO SÀN"
 
                     val token = response.body()?.token
                     if (response.isSuccessful && !token.isNullOrEmpty()) {
                         saveToken(token)
-                        Toast.makeText(this@Activity1, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@Activity1, "✅ Đăng nhập kết nối Note 10+ thành công!", Toast.LENGTH_SHORT).show()
                         navigateToTradingScreen()
                     } else {
-                        // Nếu server chưa bật hoặc sai pass -> Vẫn cho phép vào chế độ Offline Demo
-                        Toast.makeText(this@Activity1, "Chế độ Offline Demo (Không cần mạng)", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@Activity1, "Chế độ Offline Demo (Không kết nối được server)", Toast.LENGTH_SHORT).show()
                         navigateToTradingScreen()
                     }
                 }
 
                 override fun onFailure(call: Call<AuthResponse>, t: Throwable) {
                     btnLogin.isEnabled = true
-                    btnLogin.text = "Đăng Nhập"
-                    Log.e(TAG, "Lỗi kết nối server: ${t.message}")
-                    Toast.makeText(this@Activity1, "Vào chế độ Offline / Demo!", Toast.LENGTH_SHORT).show()
+                    btnLogin.text = "ĐĂNG NHẬP VÀO SÀN"
+                    Log.e(TAG, "Lỗi kết nối login: ${t.message}")
+                    Toast.makeText(this@Activity1, "Chế độ Offline Demo: ${t.message}", Toast.LENGTH_SHORT).show()
                     navigateToTradingScreen()
                 }
             })
@@ -79,7 +91,7 @@ class Activity1 : AppCompatActivity() {
     }
 
     private fun navigateToTradingScreen() {
-        val intent = Intent(this@Activity1, Activity2::class.java)
+        val intent = Intent(this, Activity2::class.java)
         startActivity(intent)
         finish()
     }

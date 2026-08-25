@@ -10,11 +10,49 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="FNMF LOGIN"
-        android:textColor="#FFFFFF"
-        android:textSize="36sp"
+        android:text="FNMF TERMINAL"
+        android:textColor="#00F0FF"
+        android:textSize="32sp"
         android:textStyle="bold"
-        android:layout_marginBottom="40dp"/>
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="24/7 Mobile Trading &amp; Financial Engine"
+        android:textColor="#787B86"
+        android:textSize="13sp"
+        android:layout_marginBottom="32dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="MÁY CHỦ BACKEND (SERVER IP):"
+        android:textColor="#089981"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp"/>
+
+    <EditText
+        android:id="@+id/etServerUrl"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="http://10.174.64.59:8083/"
+        android:textColorHint="#4E5467"
+        android:textColor="#00F0FF"
+        android:background="#1E222D"
+        android:padding="12dp"
+        android:textSize="13sp"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="TÀI KHOẢN ĐĂNG NHẬP:"
+        android:textColor="#787B86"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp"/>
 
     <EditText
         android:id="@+id/etEmail"
@@ -25,13 +63,14 @@
         android:textColor="#FFFFFF"
         android:background="#1E222D"
         android:padding="12dp"
-        android:layout_marginBottom="16dp"/>
+        android:layout_marginBottom="24dp"/>
 
     <Button
         android:id="@+id/btnLogin"
         android:layout_width="match_parent"
         android:layout_height="55dp"
-        android:text="Đăng Nhập"
+        android:text="ĐĂNG NHẬP VÀO SÀN"
         android:backgroundTint="#2962FF"
+        android:textStyle="bold"
         android:textColor="#FFFFFF"/>
 </LinearLayout>
