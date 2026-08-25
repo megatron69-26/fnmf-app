@@ -73,8 +73,9 @@
                 android:visibility="gone"/>
         </FrameLayout>
 
-        <!-- Khu vực Ví (Danh mục tài sản đang nắm giữ) -->
+        <!-- Khu vực Ví (Số dư tiền mặt & Tổng tài sản ròng) -->
         <LinearLayout
+            android:id="@+id/llPortfolioContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
@@ -82,10 +83,38 @@
             android:padding="12dp"
             android:layout_marginTop="10dp">
 
+            <!-- 1. Số dư tiền mặt khả dụng (Đối chiếu) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="💵 SỐ DƯ TIỀN MẶT KHẢ DỤNG:"
+                    android:textColor="#787B86"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvCashBalance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="$10,000.00 USD"
+                    android:textColor="#00F0FF"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- 2. Tổng tài sản ròng & Lời lỗ -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="TỔNG TÀI SẢN (PORTFOLIO)"
+                android:text="💎 TỔNG TÀI SẢN (TIỀN MẶT + COIN):"
                 android:textColor="#787B86"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -94,9 +123,9 @@
                 android:id="@+id/tvHoldings"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Tài sản: $10,000.00 | Đang lời: +$0.00"
+                android:text="Tài sản: $10,000.00 | Lời/Lỗ: +$0.00"
                 android:textColor="#089981"
-                android:textSize="15sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 android:layout_marginTop="2dp" />
         </LinearLayout>

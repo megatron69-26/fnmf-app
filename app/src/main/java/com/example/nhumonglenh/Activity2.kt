@@ -61,6 +61,7 @@ class Activity2 : AppCompatActivity() {
     private lateinit var candleChart: CandleStickChart
     private lateinit var pbLoading: ProgressBar
     private lateinit var tvStateMessage: TextView
+    private lateinit var tvCashBalance: TextView
     private lateinit var tvHoldings: TextView
     private lateinit var tvLiveStatus: TextView
     private lateinit var etQuantity: EditText
@@ -102,6 +103,7 @@ class Activity2 : AppCompatActivity() {
         candleChart = findViewById(R.id.candleChart)
         pbLoading = findViewById(R.id.pbLoading)
         tvStateMessage = findViewById(R.id.tvStateMessage)
+        tvCashBalance = findViewById(R.id.tvCashBalance)
         tvHoldings = findViewById(R.id.tvHoldings)
         tvLiveStatus = findViewById(R.id.tvLiveStatus)
         etQuantity = findViewById(R.id.etQuantity)
@@ -333,6 +335,10 @@ class Activity2 : AppCompatActivity() {
      * Tính toán động Tổng tài sản và PnL theo giá thị trường thời gian thực
      */
     private fun updatePortfolioDisplay() {
+        // 1. Cập nhật Số dư tiền mặt khả dụng
+        tvCashBalance.text = "$${String.format("%,.2f", userCashBalance)} USD"
+
+        // 2. Cập nhật Tổng tài sản ròng (Tiền mặt + Giá trị Coin) và Lời/Lỗ
         val btcHoldingsValue = userBtcQuantity * currentBtcPrice
         val totalNetWorth = userCashBalance + btcHoldingsValue
         val pnl = if (userBtcQuantity > 0 && userAvgBuyPrice > 0) {
@@ -343,8 +349,9 @@ class Activity2 : AppCompatActivity() {
 
         val pnlSign = if (pnl >= 0) "+$" else "-$"
         val pnlColor = if (pnl >= 0) "#089981" else "#F23645"
+        val holdingDetail = if (userBtcQuantity > 0) " (${String.format("%.4f", userBtcQuantity)} BTC)" else ""
 
-        tvHoldings.text = "Tài sản: $${String.format("%,.2f", totalNetWorth)} | Lời/Lỗ: $pnlSign${String.format("%,.2f", Math.abs(pnl))}"
+        tvHoldings.text = "Tài sản: $${String.format("%,.2f", totalNetWorth)} | Lời/Lỗ: $pnlSign${String.format("%,.2f", Math.abs(pnl))}$holdingDetail"
         tvHoldings.setTextColor(Color.parseColor(pnlColor))
     }
 
