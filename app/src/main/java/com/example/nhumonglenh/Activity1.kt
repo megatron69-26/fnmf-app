@@ -12,6 +12,7 @@ import com.example.nhumonglenh.data.remote.AuthResponse
 import com.example.nhumonglenh.data.remote.LoginRequest
 import com.example.nhumonglenh.data.remote.RegisterRequest
 import com.example.nhumonglenh.data.remote.RetrofitClient
+import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -42,9 +43,10 @@ class Activity1 : AppCompatActivity() {
         // 1. Tải cấu hình Server URL đã lưu
         val prefs = getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
         val savedServerUrl = prefs.getString("server_url", "http://10.174.64.59:8083/") ?: "http://10.174.64.59:8083/"
+        val savedUsername = prefs.getString("saved_username", "khoi.pro@fnmf.com") ?: "khoi.pro@fnmf.com"
         
         etServerUrl.setText(savedServerUrl)
-        etUsername.setText("khoi.pro@fnmf.com")
+        etUsername.setText(savedUsername)
         etPassword.setText("mypassword123")
 
         // 2. Xử lý ĐĂNG NHẬP
@@ -61,6 +63,8 @@ class Activity1 : AppCompatActivity() {
                 Toast.makeText(this, "Vui lòng nhập Mật khẩu!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+
+            prefs.edit().putString("saved_username", username).apply()
 
             btnLogin.isEnabled = false
             btnLogin.text = "Đang đăng nhập..."
@@ -107,6 +111,11 @@ class Activity1 : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            if (username.equals("khoi.pro@fnmf.com", ignoreCase = true)) {
+                Toast.makeText(this, "⚠️ Tài khoản 'khoi.pro@fnmf.com' đã tồn tại! Hãy nhập tên mới (VD: trader1, hung, manh...) để đăng ký.", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+
             btnRegister.isEnabled = false
             btnRegister.text = "Đang tạo tài khoản & cấp ví..."
 
@@ -118,13 +127,29 @@ class Activity1 : AppCompatActivity() {
 
                     val token = response.body()?.token
                     if (response.isSuccessful && !token.isNullOrEmpty()) {
+                        prefs.edit().putString("saved_username", username).apply()
                         saveToken(token)
-                        Toast.makeText(this@Activity1, "🎉 Đăng ký thành công! Đã cấp ví $10,000 USD!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@Activity1, "🎉 Đăng ký thành công! Đã cấp ví $10,000 USD cho '$username'!", Toast.LENGTH_LONG).show()
                         navigateToTradingScreen()
                     } else {
-                        val errMsg = response.errorBody()?.string() ?: "Tài khoản '$username' đã tồn tại!"
-                        val displayMsg = if (errMsg.contains("tồn tại")) "❌ Tên đăng nhập '$username' đã có người dùng!" else "❌ Đăng ký thất bại: $errMsg"
-                        Toast.makeText(this@Activity1, displayMsg, Toast.LENGTH_LONG).show()
+                        val rawErr = response.errorBody()?.string() ?: ""
+                        var cleanErr = "Tài khoản '$username' đã tồn tại!"
+                        try {
+                            val json = JSONObject(rawErr)
+                            if (json.has("message")) {
+                                cleanErr = json.getString("message")
+                            } else if (json.has("error")) {
+                                cleanErr = json.getString("error")
+                            }
+                        } catch (e: Exception) {
+                            if (rawErr.isNotBlank()) cleanErr = rawErr
+                        }
+
+                        if (cleanErr.contains("tồn tại", ignoreCase = true)) {
+                            cleanErr = "Tên đăng nhập '$username' đã có người sử dụng! Vui lòng chọn tên khác."
+                        }
+
+                        Toast.makeText(this@Activity1, "❌ $cleanErr", Toast.LENGTH_LONG).show()
                     }
                 }
 
