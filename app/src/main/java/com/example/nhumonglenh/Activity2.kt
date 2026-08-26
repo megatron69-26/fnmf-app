@@ -220,6 +220,15 @@ class Activity2 : AppCompatActivity() {
         // 2. Highlight card được chọn trong Watchlist
         highlightSelectedWatchlistItem(sym)
 
+        // Reset giá cơ sở ban đầu theo mã
+        currentAssetPrice = when {
+            sym.contains("ETH") -> 3550.0
+            sym.contains("XAU") -> 2500.0
+            else -> 78000.0
+        }
+        previousAssetPrice = currentAssetPrice
+        tvLiveStatus.text = "● LIVE $${String.format("%,.2f", currentAssetPrice)}"
+
         if (!isInitial) {
             Toast.makeText(this, "📊 Đang mở biểu đồ nến $sym...", Toast.LENGTH_SHORT).show()
         }
@@ -227,7 +236,7 @@ class Activity2 : AppCompatActivity() {
         // 3. Tải dữ liệu nến từ Backend
         loadCandleData(sym)
 
-        // 4. Đổi luồng WebSocket theo mã
+        // 4. Đổi luồng WebSocket theo mã (BTC, ETH, XAU qua Binance PAXG Gold)
         connectWebSocketForSymbol(sym)
 
         // 5. Cập nhật lại số lượng coin của mã đang chọn trong ví
@@ -335,12 +344,11 @@ class Activity2 : AppCompatActivity() {
         goldSimulationJob = null
 
         val sym = symbol.uppercase()
-        if (sym.contains("BTC")) {
-            connectBinanceStream("btcusdt@kline_1s")
-        } else if (sym.contains("ETH")) {
-            connectBinanceStream("ethusdt@kline_1s")
-        } else if (sym.contains("XAU")) {
-            startGoldLiveSimulation()
+        when {
+            sym.contains("BTC") -> connectBinanceStream("btcusdt@kline_1s")
+            sym.contains("ETH") -> connectBinanceStream("ethusdt@kline_1s")
+            sym.contains("XAU") -> connectBinanceStream("paxgusdt@kline_1s") // Binance Paxos Gold (Real Gold Live Stream!)
+            else -> connectBinanceStream("btcusdt@kline_1s")
         }
     }
 
