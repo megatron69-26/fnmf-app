@@ -18,6 +18,10 @@ interface ApiService {
     @POST("/api/auth/login")
     fun login(@Body request: LoginRequest): Call<AuthResponse>
 
+    // 1.1. Đăng ký tài khoản mới & Khởi tạo ví $10,000
+    @POST("/api/auth/register")
+    fun register(@Body request: RegisterRequest): Call<AuthResponse>
+
     // 2. Lấy dữ liệu 30 nến OHLCV để vẽ biểu đồ MPAndroidChart
     @GET("/api/market/candles")
     fun getCandles(

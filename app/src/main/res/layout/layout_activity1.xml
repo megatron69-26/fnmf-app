@@ -12,9 +12,9 @@
         android:layout_height="wrap_content"
         android:text="FNMF TERMINAL"
         android:textColor="#00F0FF"
-        android:textSize="32sp"
+        android:textSize="30sp"
         android:textStyle="bold"
-        android:layout_marginBottom="8dp"/>
+        android:layout_marginBottom="6dp"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -22,8 +22,9 @@
         android:text="24/7 Mobile Trading &amp; Financial Engine"
         android:textColor="#787B86"
         android:textSize="13sp"
-        android:layout_marginBottom="32dp"/>
+        android:layout_marginBottom="24dp"/>
 
+    <!-- 1. MÁY CHỦ IP -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -36,41 +37,78 @@
     <EditText
         android:id="@+id/etServerUrl"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="46dp"
         android:hint="http://10.174.64.59:8083/"
         android:textColorHint="#4E5467"
         android:textColor="#00F0FF"
         android:background="#1E222D"
-        android:padding="12dp"
+        android:padding="10dp"
         android:textSize="13sp"
-        android:layout_marginBottom="16dp"/>
+        android:layout_marginBottom="12dp"/>
 
+    <!-- 2. USERNAME -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="TÀI KHOẢN ĐĂNG NHẬP:"
+        android:text="TÊN ĐĂNG NHẬP / USERNAME:"
         android:textColor="#787B86"
         android:textSize="11sp"
         android:textStyle="bold"
         android:layout_marginBottom="4dp"/>
 
     <EditText
-        android:id="@+id/etEmail"
+        android:id="@+id/etUsername"
         android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:hint="Email"
-        android:textColorHint="#787B86"
+        android:layout_height="48dp"
+        android:hint="Nhập username (VD: khoi, trader1)"
+        android:textColorHint="#4E5467"
         android:textColor="#FFFFFF"
         android:background="#1E222D"
-        android:padding="12dp"
-        android:layout_marginBottom="24dp"/>
+        android:padding="10dp"
+        android:textSize="14sp"
+        android:layout_marginBottom="12dp"/>
 
+    <!-- 3. PASSWORD -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="MẬT KHẨU / PASSWORD:"
+        android:textColor="#787B86"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp"/>
+
+    <EditText
+        android:id="@+id/etPassword"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="Nhập mật khẩu"
+        android:textColorHint="#4E5467"
+        android:textColor="#FFFFFF"
+        android:inputType="textPassword"
+        android:background="#1E222D"
+        android:padding="10dp"
+        android:textSize="14sp"
+        android:layout_marginBottom="20dp"/>
+
+    <!-- 4. NÚT ĐĂNG NHẬP -->
     <Button
         android:id="@+id/btnLogin"
         android:layout_width="match_parent"
-        android:layout_height="55dp"
+        android:layout_height="50dp"
         android:text="ĐĂNG NHẬP VÀO SÀN"
         android:backgroundTint="#2962FF"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="10dp"/>
+
+    <!-- 5. NÚT ĐĂNG KÝ MỚI -->
+    <Button
+        android:id="@+id/btnRegister"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:text="✨ ĐĂNG KÝ TÀI KHOẢN (TẶNG $10,000 VÍ)"
+        android:backgroundTint="#089981"
         android:textStyle="bold"
         android:textColor="#FFFFFF"/>
 </LinearLayout>

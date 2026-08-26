@@ -1,7 +1,12 @@
 package com.example.nhumonglenh.data.remote
 
 data class LoginRequest(
-    val email: String,
+    val username: String,
+    val password: String
+)
+
+data class RegisterRequest(
+    val username: String,
     val password: String
 )
 

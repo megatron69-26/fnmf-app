@@ -10,11 +10,21 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.nhumonglenh.data.remote.AuthResponse
 import com.example.nhumonglenh.data.remote.LoginRequest
+import com.example.nhumonglenh.data.remote.RegisterRequest
 import com.example.nhumonglenh.data.remote.RetrofitClient
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
+/**
+ * =====================================================================
+ * ACTIVITY 1 - MÀN HÌNH ĐĂNG NHẬP & ĐĂNG KÝ (AUTH ENTRYPOINT)
+ * =====================================================================
+ * 1. ĐĂNG NHẬP (LOGIN): Dùng Username & Password
+ * 2. ĐĂNG KÝ (REGISTER): Chỉ cần Username & Password -> Tự cấp ví $10,000 USD
+ * 3. SERVER CONFIG: Cho phép chỉnh sửa và lưu Server IP Note 10+ linh hoạt
+ * =====================================================================
+ */
 class Activity1 : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,40 +34,38 @@ class Activity1 : AppCompatActivity() {
         Log.d(TAG, "Activity1 onCreate")
 
         val etServerUrl = findViewById<EditText>(R.id.etServerUrl)
-        val etEmail = findViewById<EditText>(R.id.etEmail)
+        val etUsername = findViewById<EditText>(R.id.etUsername)
+        val etPassword = findViewById<EditText>(R.id.etPassword)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
+        val btnRegister = findViewById<Button>(R.id.btnRegister)
 
-        // 1. Tải Server URL đã lưu (mặc định trỏ vào Note 10+ Wi-Fi IP)
+        // 1. Tải cấu hình Server URL đã lưu
         val prefs = getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
         val savedServerUrl = prefs.getString("server_url", "http://10.174.64.59:8083/") ?: "http://10.174.64.59:8083/"
         
         etServerUrl.setText(savedServerUrl)
-        etEmail.setText("khoi.pro@fnmf.com")
+        etUsername.setText("khoi.pro@fnmf.com")
+        etPassword.setText("mypassword123")
 
+        // 2. Xử lý ĐĂNG NHẬP
         btnLogin.setOnClickListener {
-            var serverUrl = etServerUrl.text.toString().trim()
-            if (serverUrl.isEmpty()) {
-                serverUrl = "http://10.174.64.59:8083/"
-            }
-            if (!serverUrl.endsWith("/")) {
-                serverUrl += "/"
-            }
+            val serverUrl = prepareServerUrl(etServerUrl.text.toString().trim(), prefs)
+            val username = etUsername.text.toString().trim()
+            val password = etPassword.text.toString().trim()
 
-            val email = etEmail.text.toString().trim()
-            if (email.isEmpty()) {
-                Toast.makeText(this, "Vui lòng nhập Email!", Toast.LENGTH_SHORT).show()
+            if (username.isEmpty()) {
+                Toast.makeText(this, "Vui lòng nhập Tên đăng nhập!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (password.isEmpty()) {
+                Toast.makeText(this, "Vui lòng nhập Mật khẩu!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            // Lưu server_url và cập nhật Retrofit Base URL
-            prefs.edit().putString("server_url", serverUrl).apply()
-            RetrofitClient.updateBaseUrl(serverUrl)
-
             btnLogin.isEnabled = false
-            btnLogin.text = "Đang kết nối Server..."
+            btnLogin.text = "Đang đăng nhập..."
 
-            // Gọi API xác thực từ Backend Note 10+
-            val request = LoginRequest(email = email, password = "mypassword123")
+            val request = LoginRequest(username = username, password = password)
             RetrofitClient.apiService.login(request).enqueue(object : Callback<AuthResponse> {
                 override fun onResponse(call: Call<AuthResponse>, response: Response<AuthResponse>) {
                     btnLogin.isEnabled = true
@@ -69,8 +77,8 @@ class Activity1 : AppCompatActivity() {
                         Toast.makeText(this@Activity1, "✅ Đăng nhập kết nối Note 10+ thành công!", Toast.LENGTH_SHORT).show()
                         navigateToTradingScreen()
                     } else {
-                        Toast.makeText(this@Activity1, "Chế độ Offline Demo (Không kết nối được server)", Toast.LENGTH_SHORT).show()
-                        navigateToTradingScreen()
+                        val errMsg = response.body()?.message ?: "Tài khoản hoặc mật khẩu không chính xác!"
+                        Toast.makeText(this@Activity1, "❌ $errMsg", Toast.LENGTH_LONG).show()
                     }
                 }
 
@@ -78,11 +86,69 @@ class Activity1 : AppCompatActivity() {
                     btnLogin.isEnabled = true
                     btnLogin.text = "ĐĂNG NHẬP VÀO SÀN"
                     Log.e(TAG, "Lỗi kết nối login: ${t.message}")
-                    Toast.makeText(this@Activity1, "Chế độ Offline Demo: ${t.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@Activity1, "⚠️ Chế độ Offline: Không kết nối được Server (${t.message})", Toast.LENGTH_SHORT).show()
                     navigateToTradingScreen()
                 }
             })
         }
+
+        // 3. Xử lý ĐĂNG KÝ TÀI KHOẢN MỚI (CHỈ CẦN USERNAME & PASSWORD)
+        btnRegister.setOnClickListener {
+            val serverUrl = prepareServerUrl(etServerUrl.text.toString().trim(), prefs)
+            val username = etUsername.text.toString().trim()
+            val password = etPassword.text.toString().trim()
+
+            if (username.isEmpty()) {
+                Toast.makeText(this, "Vui lòng nhập Tên đăng nhập muốn tạo!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (password.length < 4) {
+                Toast.makeText(this, "Mật khẩu phải có ít nhất 4 ký tự!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            btnRegister.isEnabled = false
+            btnRegister.text = "Đang tạo tài khoản & cấp ví..."
+
+            val request = RegisterRequest(username = username, password = password)
+            RetrofitClient.apiService.register(request).enqueue(object : Callback<AuthResponse> {
+                override fun onResponse(call: Call<AuthResponse>, response: Response<AuthResponse>) {
+                    btnRegister.isEnabled = true
+                    btnRegister.text = "✨ ĐĂNG KÝ TÀI KHOẢN (TẶNG $10,000 VÍ)"
+
+                    val token = response.body()?.token
+                    if (response.isSuccessful && !token.isNullOrEmpty()) {
+                        saveToken(token)
+                        Toast.makeText(this@Activity1, "🎉 Đăng ký thành công! Đã cấp ví $10,000 USD!", Toast.LENGTH_LONG).show()
+                        navigateToTradingScreen()
+                    } else {
+                        val errMsg = response.errorBody()?.string() ?: "Tài khoản '$username' đã tồn tại!"
+                        val displayMsg = if (errMsg.contains("tồn tại")) "❌ Tên đăng nhập '$username' đã có người dùng!" else "❌ Đăng ký thất bại: $errMsg"
+                        Toast.makeText(this@Activity1, displayMsg, Toast.LENGTH_LONG).show()
+                    }
+                }
+
+                override fun onFailure(call: Call<AuthResponse>, t: Throwable) {
+                    btnRegister.isEnabled = true
+                    btnRegister.text = "✨ ĐĂNG KÝ TÀI KHOẢN (TẶNG $10,000 VÍ)"
+                    Log.e(TAG, "Lỗi kết nối register: ${t.message}")
+                    Toast.makeText(this@Activity1, "❌ Không thể kết nối tới Server: ${t.message}", Toast.LENGTH_LONG).show()
+                }
+            })
+        }
+    }
+
+    private fun prepareServerUrl(rawUrl: String, prefs: android.content.SharedPreferences): String {
+        var serverUrl = rawUrl
+        if (serverUrl.isEmpty()) {
+            serverUrl = "http://10.174.64.59:8083/"
+        }
+        if (!serverUrl.endsWith("/")) {
+            serverUrl += "/"
+        }
+        prefs.edit().putString("server_url", serverUrl).apply()
+        RetrofitClient.updateBaseUrl(serverUrl)
+        return serverUrl
     }
 
     private fun saveToken(token: String) {
@@ -97,6 +163,6 @@ class Activity1 : AppCompatActivity() {
     }
 
     companion object {
-        private const val TAG = "Activity1_Login"
+        private const val TAG = "Activity1_Auth"
     }
 }
