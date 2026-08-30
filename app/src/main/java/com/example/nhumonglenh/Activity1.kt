@@ -42,7 +42,7 @@ class Activity1 : AppCompatActivity() {
 
         // 1. Tải cấu hình Server URL đã lưu
         val prefs = getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        val savedServerUrl = prefs.getString("server_url", "http://10.174.64.59:8083/") ?: "http://10.174.64.59:8083/"
+        val savedServerUrl = prefs.getString("server_url", "http://10.174.64.109:8083/") ?: "http://10.174.64.109:8083/"
         val savedUsername = prefs.getString("saved_username", "khoi.pro@fnmf.com") ?: "khoi.pro@fnmf.com"
         
         etServerUrl.setText(savedServerUrl)
@@ -166,7 +166,7 @@ class Activity1 : AppCompatActivity() {
     private fun prepareServerUrl(rawUrl: String, prefs: android.content.SharedPreferences): String {
         var serverUrl = rawUrl
         if (serverUrl.isEmpty()) {
-            serverUrl = "http://10.174.64.59:8083/"
+            serverUrl = "http://10.174.64.109:8083/"
         }
         if (!serverUrl.endsWith("/")) {
             serverUrl += "/"
