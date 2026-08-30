@@ -37,8 +37,15 @@ data class HoldingDto(
 
 data class ForecastResponse(
     val symbol: String?,
-    val predictedPrice: Double?,
-    val confidence: Double?,
-    val advice: String?,
-    val timestamp: String?
+    val assetName: String?,
+    val currentPrice: Double?,
+    val trendPrediction: String?,
+    val timeframe: String?,
+    val supportLevel: Double?,
+    val resistanceLevel: Double?,
+    val recommendation: String?,
+    val confidenceScore: Int?,
+    val keyDrivers: List<String>?,
+    val technicalOutlook: String?,
+    val fundamentalOutlook: String?
 )
