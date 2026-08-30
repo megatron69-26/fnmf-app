@@ -45,4 +45,16 @@ interface ApiService {
     fun getPortfolio(
         @Header("Authorization") token: String
     ): Call<PortfolioSummaryDto>
+
+    // 6. Lấy lịch sử giao dịch
+    @GET("/api/trade/history")
+    fun getOrderHistory(
+        @Header("Authorization") token: String
+    ): Call<List<OrderResponse>>
+
+    // 7. Lấy dự báo AI
+    @GET("/api/forecast/predict")
+    fun getForecast(
+        @Query("symbol") symbol: String
+    ): Call<ForecastResponse>
 }

@@ -34,3 +34,11 @@ data class HoldingDto(
     val currentPrice: Double?,
     val unrealizedPnL: Double?
 )
+
+data class ForecastResponse(
+    val symbol: String?,
+    val predictedPrice: Double?,
+    val confidence: Double?,
+    val advice: String?,
+    val timestamp: String?
+)

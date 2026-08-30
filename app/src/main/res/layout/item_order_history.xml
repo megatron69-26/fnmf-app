@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:background="#1E222D"
+    android:layout_marginBottom="4dp">
+
+    <TextView
+        android:id="@+id/tvOrderSymbol"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:text="BTCUSDT"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvOrderType"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="BUY"
+        android:textColor="#089981"
+        android:textStyle="bold"
+        android:paddingEnd="12dp"/>
+
+    <TextView
+        android:id="@+id/tvOrderQty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0.5"
+        android:textColor="#D1D4DC" />
+</LinearLayout>
