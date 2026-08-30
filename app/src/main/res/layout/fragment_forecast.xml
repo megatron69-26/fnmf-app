@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -129,8 +129,8 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="PHÂN TÍCH KỸ THUẬT"
-                    android:textColor="#787B86"
+                    android:text="KẾ HOẠCH GIAO DỊCH (Action Plan)"
+                    android:textColor="#F5C518"
                     android:textSize="12sp"
                     android:textStyle="bold"/>
                 <TextView
@@ -141,12 +141,12 @@
                     android:textColor="#D1D4DC"
                     android:textSize="14sp"
                     android:layout_marginTop="4dp"
-                    android:layout_marginBottom="12dp"/>
+                    android:layout_marginBottom="16dp"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="PHÂN TÍCH VĨ MÔ"
-                    android:textColor="#787B86"
+                    android:text="TÂM LÝ THỊ TRƯỜNG (Market Sentiment)"
+                    android:textColor="#2962FF"
                     android:textSize="12sp"
                     android:textStyle="bold"/>
                 <TextView
