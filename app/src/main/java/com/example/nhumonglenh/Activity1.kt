@@ -23,7 +23,7 @@ import retrofit2.Response
  * =====================================================================
  * 1. ĐĂNG NHẬP (LOGIN): Dùng Username & Password
  * 2. ĐĂNG KÝ (REGISTER): Chỉ cần Username & Password -> Tự cấp ví $10,000 USD
- * 3. SERVER CONFIG: Cho phép chỉnh sửa và lưu Server IP Note 10+ linh hoạt
+ * 3. SERVER CONFIG: Cho phép chỉnh sửa và lưu Server IP Laptop linh hoạt
  * =====================================================================
  */
 class Activity1 : AppCompatActivity() {
@@ -78,7 +78,7 @@ class Activity1 : AppCompatActivity() {
                     val token = response.body()?.token
                     if (response.isSuccessful && !token.isNullOrEmpty()) {
                         saveToken(token)
-                        Toast.makeText(this@Activity1, "✅ Đăng nhập kết nối Note 10+ thành công!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@Activity1, "✅ Đăng nhập kết nối Laptop thành công!", Toast.LENGTH_SHORT).show()
                         navigateToTradingScreen()
                     } else {
                         val errMsg = response.body()?.message ?: "Tài khoản hoặc mật khẩu không chính xác!"

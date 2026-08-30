@@ -35,7 +35,7 @@ object RetrofitClient {
         .build()
 
     /**
-     * Cập nhật địa chỉ Server mới khi chuyển sang Note 10+ hoặc Cloudflare
+     * Cập nhật địa chỉ Server mới khi chuyển sang Laptop Khôi hoặc Cloudflare
      */
     fun updateBaseUrl(newUrl: String) {
         val formatted = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
