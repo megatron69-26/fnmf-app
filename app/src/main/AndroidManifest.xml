@@ -32,6 +32,7 @@
             android:name=".Activity2"
             android:exported="false" />
 
-        <activity android:name=".ui.news.NewsDetailActivity" android:exported="false" />`n    </application>
+        <activity android:name=".ui.news.NewsDetailActivity" android:exported="false" />
+    </application>
 
 </manifest>

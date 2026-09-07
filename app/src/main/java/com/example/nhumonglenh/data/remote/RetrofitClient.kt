@@ -17,7 +17,7 @@ object RetrofitClient {
      * - Máy chủ Laptop Khôi (Wi-Fi LAN IP): "http://10.174.64.109:8083/"
      * - Khi cắm cáp USB vào máy tính (dùng adb reverse): "http://localhost:8083/"
      */
-    var BASE_URL = "http://10.174.64.109:8083/"
+    var BASE_URL = "http://172.18.97.109:8083/"
         private set
 
     private var currentRetrofit: Retrofit? = null

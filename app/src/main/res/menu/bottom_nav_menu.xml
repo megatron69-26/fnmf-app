@@ -8,5 +8,9 @@
         android:id="@+id/nav_forecast"
         android:icon="@android:drawable/ic_menu_compass"
         android:title="Forecast" />
-    <item android:id="@+id/nav_news" android:icon="@android:drawable/ic_menu_recent_history" android:title="News" />`n</menu>
+    <item
+        android:id="@+id/nav_news"
+        android:icon="@android:drawable/ic_menu_recent_history"
+        android:title="News" />
+</menu>
 
