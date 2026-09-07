@@ -726,10 +726,14 @@ class TradingFragment : Fragment() {
                 val inflater = LayoutInflater.from(requireActivity())
                 for (item in items) {
                     val itemView = inflater.inflate(R.layout.item_watchlist, llWatchlistContainer, false)
-                    val tvSymbol = itemView.findViewById<TextView>(R.id.tvWatchlistSymbol)
-                    val tvName = itemView.findViewById<TextView>(R.id.tvWatchlistName)
-                    val tvPrice = itemView.findViewById<TextView>(R.id.tvWatchlistPrice)
-                    val tvChange = itemView.findViewById<TextView>(R.id.tvWatchlistChange)
+                    val tvSymbol = itemView.findViewById<TextView>(R.id.tvSymbol)
+                    val tvName = itemView.findViewById<TextView>(R.id.tvFullName)
+                    val tvPrice = itemView.findViewById<TextView>(R.id.tvPrice)
+                    val tvChange = itemView.findViewById<TextView>(R.id.tvChangePercent)
+                    val tvCoinIcon = itemView.findViewById<TextView>(R.id.tvCoinIcon)
+
+                    val cleanSym = item.symbol.replace("/", "").replace("USDT", "").replace("USD", "")
+                    tvCoinIcon?.text = if (cleanSym.isNotEmpty()) cleanSym.take(3).uppercase() else item.symbol.take(2).uppercase()
 
                     tvSymbol.text = item.symbol
                     tvName.text = if (item.symbol.contains("BTC")) "Bitcoin / Tether"

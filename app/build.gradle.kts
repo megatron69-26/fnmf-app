@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
@@ -14,8 +14,8 @@ android {
         applicationId = "com.example.nhumonglenh"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 7
+        versionName = "1.1.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -44,21 +44,23 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
 
-    // 1. Room Database (Há»£p nháº¥t dá»¯ liá»‡u offline cá»§a Máº¡nh & HÃ¹ng)
+    // 1. Room Database (Hợp nhất dữ liệu offline của Mạnh & Hùng)
     val roomVersion = "2.6.1"
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     annotationProcessor("androidx.room:room-compiler:$roomVersion")
 
-    // 2. ThÆ° viá»‡n Váº½ biá»ƒu Ä‘á»“ náº¿n thá»i gian thá»±c
+    // 2. Thư viện Vẽ biểu đồ nến thời gian thực
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 
-    // 3. ThÆ° viá»‡n Káº¿t ná»‘i Máº¡ng REST API (Retrofit2 & OkHttp)
+    // 3. Thư viện Kết nối Mạng REST API (Retrofit2 & OkHttp)
     val retrofitVersion = "2.11.0"
     implementation("com.squareup.retrofit2:retrofit:$retrofitVersion")
     implementation("com.squareup.retrofit2:converter-gson:$retrofitVersion")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // 4. Coroutines hỗ trợ xử lý luồng ngầm
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

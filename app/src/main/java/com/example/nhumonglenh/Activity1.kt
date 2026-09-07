@@ -42,12 +42,8 @@ class Activity1 : AppCompatActivity() {
 
         // 1. Tải cấu hình Server URL đã lưu
         val prefs = getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        val oldServerUrl = prefs.getString("server_url", null)
-        val savedServerUrl = if (oldServerUrl.isNullOrBlank() || oldServerUrl.contains("10.174.64.109")) {
-            "http://172.18.97.109:8083/"
-        } else {
-            oldServerUrl
-        }
+        val savedServerUrl = com.example.nhumonglenh.data.remote.NetworkConfig.getServerUrl(this)
+        RetrofitClient.updateBaseUrl(savedServerUrl)
         val savedUsername = prefs.getString("saved_username", "khoi.pro@fnmf.com") ?: "khoi.pro@fnmf.com"
         
         etServerUrl.setText(savedServerUrl)

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/nav_trading"
@@ -12,5 +12,9 @@
         android:id="@+id/nav_news"
         android:icon="@android:drawable/ic_menu_recent_history"
         android:title="News" />
+    <item
+        android:id="@+id/nav_watchlist"
+        android:icon="@android:drawable/ic_menu_agenda"
+        android:title="Watchlist" />
 </menu>
 

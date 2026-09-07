@@ -57,4 +57,8 @@ interface ApiService {
     fun getForecast(
         @Query("symbol") symbol: String
     ): Call<ForecastResponse>
+
+    // 8. Lấy bảng giá thị trường cho Watchlist
+    @GET("/api/market/prices")
+    fun getMarketPrices(): Call<List<MarketPriceDto>>
 }

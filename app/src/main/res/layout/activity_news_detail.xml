@@ -46,14 +46,14 @@
                 android:layout_marginStart="10dp"
                 android:textSize="13sp"
                 android:textColor="#666666"
-                tools:text="85% tin cáº­y" />
+                tools:text="85% tin cậy" />
         </LinearLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="TÃ³m táº¯t AI"
+            android:text="Tóm tắt AI"
             android:textSize="15sp"
             android:textStyle="bold"
             android:textColor="#333333" />
@@ -70,7 +70,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
-            android:text="Äiá»ƒm chÃ­nh"
+            android:text="Điểm chính"
             android:textSize="15sp"
             android:textStyle="bold"
             android:textColor="#333333" />
@@ -89,6 +89,6 @@
             android:layout_marginTop="20dp"
             android:textSize="12sp"
             android:textColor="#999999"
-            tools:text="Nguá»“n: CNBC â€¢ 01/09/2026" />
+            tools:text="Nguồn: CNBC • 01/09/2026" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

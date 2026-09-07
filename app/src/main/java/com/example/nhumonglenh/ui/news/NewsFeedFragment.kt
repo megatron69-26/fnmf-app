@@ -11,11 +11,11 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.nhumonglenh.databinding.FragmentNewsBinding
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import retrofit2.HttpException
+import java.io.IOException
 
 class NewsFeedFragment : Fragment() {
 
@@ -51,31 +51,43 @@ class NewsFeedFragment : Fragment() {
     }
 
     private fun fetchNews(adapter: NewsAdapter, appContext: Context) {
+        binding.pbNewsLoading.visibility = View.VISIBLE
+        binding.tvNewsError.visibility = View.GONE
+        binding.rvNews.visibility = View.GONE
+
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val result = runCatching { ApiClient.service(appContext).syncNews().data }
-            val news = result.getOrElse { loadMockNewsSafely(appContext) }
 
             withContext(Dispatchers.Main) {
-                adapter.submit(news)
-                result.exceptionOrNull()?.let { error ->
-                    Toast.makeText(
-                        appContext,
-                        "Không gọi được News backend; đang dùng dữ liệu offline (${error.javaClass.simpleName}).",
-                        Toast.LENGTH_LONG
-                    ).show()
+                if (_binding == null) return@withContext
+                binding.pbNewsLoading.visibility = View.GONE
+
+                if (result.isSuccess) {
+                    val news = result.getOrNull() ?: emptyList()
+                    if (news.isNotEmpty()) {
+                        binding.rvNews.visibility = View.VISIBLE
+                        binding.tvNewsError.visibility = View.GONE
+                        adapter.submit(news)
+                    } else {
+                        binding.rvNews.visibility = View.GONE
+                        binding.tvNewsError.visibility = View.VISIBLE
+                        binding.tvNewsError.text = "Không có tin tức nào được trả về từ Server."
+                    }
+                } else {
+                    val error = result.exceptionOrNull()
+                    val errorDetail = when (error) {
+                        is HttpException -> "Lỗi HTTP ${error.code()}: ${error.message()}"
+                        is IOException -> "Không thể kết nối tới Server (${error.message})"
+                        else -> error?.localizedMessage ?: "Lỗi không xác định"
+                    }
+                    adapter.submit(emptyList())
+                    binding.rvNews.visibility = View.GONE
+                    binding.tvNewsError.visibility = View.VISIBLE
+                    binding.tvNewsError.text = "⚠️ $errorDetail\n(Không dùng dữ liệu giả offline)"
+                    Toast.makeText(appContext, "News Backend: $errorDetail", Toast.LENGTH_LONG).show()
                 }
             }
         }
-    }
-
-    private fun loadMockNewsSafely(context: Context): List<News> {
-        return runCatching {
-            val json = context.assets.open("news_mock.json")
-                .bufferedReader()
-                .use { it.readText() }
-            val type = object : TypeToken<List<News>>() {}.type
-            Gson().fromJson<List<News>>(json, type).orEmpty()
-        }.getOrElse { emptyList() }
     }
 
     override fun onDestroyView() {

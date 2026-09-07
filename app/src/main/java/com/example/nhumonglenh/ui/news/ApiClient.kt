@@ -1,4 +1,4 @@
-﻿package com.example.nhumonglenh.ui.news
+package com.example.nhumonglenh.ui.news
 
 import android.content.Context
 import android.net.Uri
@@ -51,14 +51,10 @@ object ApiClient {
     }
 
     private fun newsBaseUrl(context: Context): String {
-        if (isAndroidEmulator()) return "http://10.0.2.2:8083/"
-
-        val prefs = context.getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        val tradingUrl = prefs.getString("server_url", null)
-        val host = runCatching { Uri.parse(tradingUrl).host }.getOrNull()
-            ?.takeIf { it.isNotBlank() }
-            ?: DEFAULT_LAPTOP_HOST
-        return "http://$host:8083/"
+        val url = com.example.nhumonglenh.data.remote.NetworkConfig.getServerUrl(context)
+        com.example.nhumonglenh.data.remote.RetrofitClient.updateBaseUrl(url)
+        return url
     }
-}
 
+
+}
