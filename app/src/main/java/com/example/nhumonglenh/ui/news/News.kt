@@ -1,4 +1,4 @@
-﻿package com.example.nhumonglenh.ui.news
+package com.example.nhumonglenh.ui.news
 
 data class News(
     val id: String,
@@ -9,6 +9,7 @@ data class News(
     val imageUrl: String,
     val sentiment: String,        // "bullish" | "bearish" | "neutral"
     val confidence: Int,         // 0..100
-    val bulletPoints: List<String>
+    val bulletPoints: List<String>,
+    val author: String? = null,
+    val link: String? = null
 )
-

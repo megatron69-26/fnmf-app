@@ -1,13 +1,14 @@
-﻿package com.example.nhumonglenh.ui.news
+package com.example.nhumonglenh.ui.news
 
+import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.example.nhumonglenh.ui.news.News
 import com.example.nhumonglenh.databinding.ItemNewsBinding
 
 class NewsAdapter(
@@ -34,7 +35,21 @@ class NewsAdapter(
         holder.b.tvTitle.text = n.title
         holder.b.tvSummary.text = n.summary
         holder.b.tvSource.text = n.source
-        holder.b.tvConfidence.text = "${n.confidence}% tin cáº­y"
+        holder.b.tvConfidence.text = "${n.confidence}% tin cậy"
+
+        // Ngày đăng
+        holder.b.tvDate.text = n.publishedAt
+
+        // Tác giả
+        holder.b.tvAuthor.text = "Tác giả: " + (n.author ?: "Ẩn danh")
+
+        // Link bài báo
+        holder.b.tvLink.setOnClickListener {
+            if (!n.link.isNullOrEmpty()) {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(n.link))
+                it.context.startActivity(intent)
+            }
+        }
 
         val (label, color) = when (n.sentiment) {
             "bullish" -> "BULLISH" to Color.parseColor("#2E7D32")
@@ -44,7 +59,7 @@ class NewsAdapter(
         holder.b.tvSentiment.text = label
         holder.b.tvSentiment.setBackgroundColor(color)
 
-        // Bullet points Ä‘á»™ng
+        // Bullet points động
         holder.b.bulletContainer.removeAllViews()
         n.bulletPoints.take(3).forEach { point ->
             val row = LinearLayout(holder.itemView.context).apply {
@@ -56,7 +71,7 @@ class NewsAdapter(
                 ).apply { topMargin = 4 }
             }
             val dot = TextView(holder.itemView.context).apply {
-                text = "â€¢"
+                text = "•"
                 textSize = 12f
                 setTextColor(Color.parseColor("#888888"))
             }
@@ -82,5 +97,3 @@ class NewsAdapter(
 
     override fun getItemCount() = items.size
 }
-
-

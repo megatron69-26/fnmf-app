@@ -17,6 +17,16 @@
         android:orientation="vertical"
         android:padding="14dp">
 
+        <!-- Ngày đăng -->
+        <TextView
+            android:id="@+id/tvDate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:textSize="11sp"
+            android:textColor="#777777"
+            tools:text="20260907T090409" />
+
         <TextView
             android:id="@+id/tvTitle"
             android:layout_width="match_parent"
@@ -70,7 +80,7 @@
                 android:layout_marginStart="8dp"
                 android:textSize="11sp"
                 android:textColor="#777777"
-                tools:text="85% tin cáº­y" />
+                tools:text="85% tin cậy" />
 
             <View
                 android:layout_width="0dp"
@@ -85,5 +95,27 @@
                 android:textColor="#999999"
                 tools:text="CNBC" />
         </LinearLayout>
+
+        <!-- Tác giả -->
+        <TextView
+            android:id="@+id/tvAuthor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textSize="11sp"
+            android:textColor="#555555"
+            tools:text="Tác giả: MarketBeat" />
+
+        <!-- Link bài báo -->
+        <TextView
+            android:id="@+id/tvLink"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="11sp"
+            android:textColor="#2962FF"
+            android:textStyle="bold"
+            android:text="READ REPORT" />
+
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

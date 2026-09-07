@@ -1,12 +1,9 @@
-﻿package com.example.nhumonglenh.ui.news
+package com.example.nhumonglenh.ui.news
 
 import android.graphics.Color
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import com.example.nhumonglenh.ui.news.News
 import com.example.nhumonglenh.databinding.ActivityNewsDetailBinding
 
 class NewsDetailActivity : AppCompatActivity() {
@@ -27,8 +24,8 @@ class NewsDetailActivity : AppCompatActivity() {
 
         b.tvDetailTitle.text = title
         b.tvDetailSummary.text = summary
-        b.tvDetailSource.text = "Nguá»“n: $source"
-        b.tvDetailConfidence.text = "$confidence% tin cáº­y"
+        b.tvDetailSource.text = "Nguồn: $source"
+        b.tvDetailConfidence.text = "$confidence% tin cậy"
 
         val (label, color) = when (sentiment) {
             "bullish" -> "BULLISH" to Color.parseColor("#2E7D32")
@@ -38,10 +35,10 @@ class NewsDetailActivity : AppCompatActivity() {
         b.tvDetailSentiment.text = label
         b.tvDetailSentiment.setBackgroundColor(color)
 
-        // ThÃªm cÃ¡c gáº¡ch Ä‘áº§u dÃ²ng
+        // Thêm các gạch đầu dòng
         for (bullet in bullets) {
             val tv = TextView(this).apply {
-                text = "â€¢  $bullet"
+                text = "•  $bullet"
                 textSize = 14f
                 setTextColor(0xFF555555.toInt())
                 setPadding(0, 8, 0, 8)
@@ -59,4 +56,3 @@ class NewsDetailActivity : AppCompatActivity() {
         const val EXTRA_BULLETS = "extra_bullets"
     }
 }
-
