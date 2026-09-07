@@ -14,10 +14,10 @@ object RetrofitClient {
 
     /**
      * Cấu hình Base URL:
-     * - Máy chủ Laptop Khôi (Wi-Fi LAN IP): "http://10.174.64.109:8083/"
+     * - Máy chủ Laptop Khôi (Wi-Fi LAN IP): "http://172.18.97.109:8083/"
      * - Khi cắm cáp USB vào máy tính (dùng adb reverse): "http://localhost:8083/"
      */
-    var BASE_URL = "http://10.174.64.109:8083/"
+    var BASE_URL = "http://172.18.97.109:8083/"
         private set
 
     private var currentRetrofit: Retrofit? = null
@@ -47,7 +47,7 @@ object RetrofitClient {
     
     private var manhRetrofit: Retrofit? = null
     private var manhApiService: ApiService? = null
-    var MANH_BASE_URL = "http://10.0.2.2:3000/"
+    var MANH_BASE_URL = "http://172.18.97.109:3000/"
     val manhApi: ApiService
         get() {
             if (manhApiService == null) {
