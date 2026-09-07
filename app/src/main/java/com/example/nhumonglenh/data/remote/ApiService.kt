@@ -1,4 +1,4 @@
-package com.example.nhumonglenh.data.remote
+﻿package com.example.nhumonglenh.data.remote
 
 import retrofit2.Call
 import retrofit2.http.Body
@@ -30,7 +30,7 @@ interface ApiService {
     ): Call<List<CandleDto>>
 
     // 3. Đồng bộ Tin tức & AI Analysis để nạp vào Room DB (Phần của Mạnh)
-    @GET("/api/mobile/news/sync")
+    @GET("/api/news/sync")
     fun syncNews(@Query("limit") limit: Int = 10): Call<List<MobileNewsBundleResponse>>
 
     // 4. Đặt lệnh Mua/Bán Paper Trading (Khớp lệnh $10,000 vốn ảo)

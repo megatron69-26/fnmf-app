@@ -1,4 +1,4 @@
-package com.example.nhumonglenh.data.remote
+﻿package com.example.nhumonglenh.data.remote
 
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -44,6 +44,22 @@ object RetrofitClient {
         currentApiService = null
     }
 
+    
+    private var manhRetrofit: Retrofit? = null
+    private var manhApiService: ApiService? = null
+    var MANH_BASE_URL = "http://10.0.2.2:3000/"
+    val manhApi: ApiService
+        get() {
+            if (manhApiService == null) {
+                manhRetrofit = Retrofit.Builder()
+                    .baseUrl(MANH_BASE_URL)
+                    .client(okHttpClient)
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .build()
+                manhApiService = manhRetrofit!!.create(ApiService::class.java)
+            }
+            return manhApiService!!
+        }
     val apiService: ApiService
         get() {
             if (currentApiService == null) {

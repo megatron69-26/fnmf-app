@@ -1,4 +1,4 @@
-package com.example.nhumonglenh
+﻿package com.example.nhumonglenh
 
 import android.graphics.Color
 import android.graphics.Paint
@@ -685,7 +685,7 @@ class TradingFragment : Fragment() {
      * Đồng bộ Tin tức từ Backend về nạp vào Room DB (Phần của Mạnh)
      */
     private fun syncNewsToRoomDB() {
-        RetrofitClient.apiService.syncNews(5).enqueue(object : Callback<List<MobileNewsBundleResponse>> {
+        RetrofitClient.manhApi.syncNews(5).enqueue(object : Callback<List<MobileNewsBundleResponse>> {
             override fun onResponse(call: Call<List<MobileNewsBundleResponse>>, response: Response<List<MobileNewsBundleResponse>>) {
                 val list = response.body()
                 if (response.isSuccessful && !list.isNullOrEmpty()) {
