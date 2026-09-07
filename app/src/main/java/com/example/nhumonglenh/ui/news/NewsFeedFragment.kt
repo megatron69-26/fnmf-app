@@ -43,6 +43,8 @@ class NewsFeedFragment : Fragment() {
                 putExtra(NewsDetailActivity.EXTRA_SENTIMENT, news.sentiment)
                 putExtra(NewsDetailActivity.EXTRA_CONFIDENCE, news.confidence)
                 putExtra(NewsDetailActivity.EXTRA_BULLETS, news.bulletPoints.toTypedArray())
+                putExtra(NewsDetailActivity.EXTRA_AUTHOR, news.author)
+                putExtra(NewsDetailActivity.EXTRA_LINK, news.link)
             }
             startActivity(intent)
         }

@@ -90,5 +90,54 @@
             android:textSize="12sp"
             android:textColor="#999999"
             tools:text="Nguồn: CNBC • 01/09/2026" />
+
+        <TextView
+            android:id="@+id/tvDetailAuthor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textSize="12sp"
+            android:textColor="#666666"
+            tools:text="Tác giả: MarketBeat" />
+
+        <!-- Phân cách -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#E0E0E0"
+            android:layout_marginTop="18dp"
+            android:layout_marginBottom="14dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔗 Đường dẫn kiểm chứng bài báo gốc:"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="#333333" />
+
+        <TextView
+            android:id="@+id/tvDetailLink"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textSize="12sp"
+            android:textColor="#1976D2"
+            android:textStyle="bold"
+            android:background="#EEF4FF"
+            android:padding="12dp"
+            tools:text="https://uk.finance.yahoo.com/news/..." />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOpenArticle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="24dp"
+            android:text="MỞ BÀI BÁO GỐC TRÊN TRÌNH DUYỆT"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#1976D2" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

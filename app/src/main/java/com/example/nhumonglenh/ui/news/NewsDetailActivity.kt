@@ -22,10 +22,40 @@ class NewsDetailActivity : AppCompatActivity() {
         val confidence = intent.getIntExtra(EXTRA_CONFIDENCE, 0)
         val bullets = intent.getStringArrayExtra(EXTRA_BULLETS) ?: arrayOf()
 
+        val author = intent.getStringExtra(EXTRA_AUTHOR) ?: ""
+        val link = intent.getStringExtra(EXTRA_LINK) ?: ""
+
         b.tvDetailTitle.text = title
         b.tvDetailSummary.text = summary
         b.tvDetailSource.text = "Nguồn: $source"
         b.tvDetailConfidence.text = "$confidence% tin cậy"
+
+        if (author.isNotBlank()) {
+            b.tvDetailAuthor.text = "Tác giả: $author"
+            b.tvDetailAuthor.visibility = android.view.View.VISIBLE
+        } else {
+            b.tvDetailAuthor.visibility = android.view.View.GONE
+        }
+
+        if (link.isNotBlank()) {
+            b.tvDetailLink.text = link
+            b.tvDetailLink.visibility = android.view.View.VISIBLE
+            b.btnOpenArticle.visibility = android.view.View.VISIBLE
+
+            val openBrowser = android.view.View.OnClickListener {
+                try {
+                    val browserIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link))
+                    startActivity(browserIntent)
+                } catch (e: Exception) {
+                    android.widget.Toast.makeText(this, "Không thể mở trình duyệt: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+            b.btnOpenArticle.setOnClickListener(openBrowser)
+            b.tvDetailLink.setOnClickListener(openBrowser)
+        } else {
+            b.tvDetailLink.visibility = android.view.View.GONE
+            b.btnOpenArticle.visibility = android.view.View.GONE
+        }
 
         val (label, color) = when (sentiment) {
             "bullish" -> "BULLISH" to Color.parseColor("#2E7D32")
@@ -54,5 +84,7 @@ class NewsDetailActivity : AppCompatActivity() {
         const val EXTRA_SENTIMENT = "extra_sentiment"
         const val EXTRA_CONFIDENCE = "extra_confidence"
         const val EXTRA_BULLETS = "extra_bullets"
+        const val EXTRA_AUTHOR = "extra_author"
+        const val EXTRA_LINK = "extra_link"
     }
 }

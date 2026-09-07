@@ -41,14 +41,22 @@ class NewsAdapter(
         holder.b.tvDate.text = n.publishedAt
 
         // Tác giả
-        holder.b.tvAuthor.text = "Tác giả: " + (n.author ?: "Ẩn danh")
+        val authorName = if (!n.author.isNullOrBlank()) n.author else (if (n.source.isNotBlank()) n.source else "Tổng hợp")
+        holder.b.tvAuthor.text = "Tác giả: $authorName"
 
-        // Link bài báo
-        holder.b.tvLink.setOnClickListener {
-            if (!n.link.isNullOrEmpty()) {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(n.link))
-                it.context.startActivity(intent)
+        // Link bài báo ở đít thẻ
+        if (!n.link.isNullOrBlank()) {
+            holder.b.layoutLinkContainer.visibility = android.view.View.VISIBLE
+            holder.b.tvLink.text = n.link
+            holder.b.layoutLinkContainer.setOnClickListener {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(n.link))
+                    it.context.startActivity(intent)
+                } catch (_: Exception) {
+                }
             }
+        } else {
+            holder.b.layoutLinkContainer.visibility = android.view.View.GONE
         }
 
         val (label, color) = when (n.sentiment) {

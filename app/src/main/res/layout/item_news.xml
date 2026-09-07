@@ -96,26 +96,55 @@
                 tools:text="CNBC" />
         </LinearLayout>
 
+        <!-- Phân cách nhẹ -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#EEEEEE"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="8dp" />
+
         <!-- Tác giả -->
         <TextView
             android:id="@+id/tvAuthor"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
             android:textSize="11sp"
-            android:textColor="#555555"
+            android:textColor="#666666"
             tools:text="Tác giả: MarketBeat" />
 
-        <!-- Link bài báo -->
-        <TextView
-            android:id="@+id/tvLink"
-            android:layout_width="wrap_content"
+        <!-- Link bài báo kiểm chứng ở đít thẻ -->
+        <LinearLayout
+            android:id="@+id/layoutLinkContainer"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="11sp"
-            android:textColor="#2962FF"
-            android:textStyle="bold"
-            android:text="READ REPORT" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="6dp"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="8dp"
+            android:background="#F0F4FF">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔗 Báo gốc: "
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#1976D2" />
+
+            <TextView
+                android:id="@+id/tvLink"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="11sp"
+                android:textColor="#1976D2"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="middle"
+                tools:text="https://uk.finance.yahoo.com/news/..." />
+        </LinearLayout>
 
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
