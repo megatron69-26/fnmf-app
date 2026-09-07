@@ -1,4 +1,4 @@
-package com.example.nhumonglenh
+﻿package com.example.nhumonglenh
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -29,6 +29,7 @@ class Activity2 : AppCompatActivity() {
                     loadFragment(ForecastFragment())
                     true
                 }
+                R.id.nav_news -> { loadFragment(com.example.nhumonglenh.ui.news.NewsFeedFragment()); true }
                 else -> false
             }
         }
@@ -40,3 +41,5 @@ class Activity2 : AppCompatActivity() {
             .commit()
     }
 }
+
+

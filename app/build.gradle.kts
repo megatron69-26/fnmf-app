@@ -1,9 +1,12 @@
-plugins {
+﻿plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
 
 android {
+    buildFeatures {
+        viewBinding = true
+    }
     namespace = "com.example.nhumonglenh"
     compileSdk = 35
 
@@ -41,16 +44,16 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
 
-    // 1. Room Database (Hợp nhất dữ liệu offline của Mạnh & Hùng)
+    // 1. Room Database (Há»£p nháº¥t dá»¯ liá»‡u offline cá»§a Máº¡nh & HÃ¹ng)
     val roomVersion = "2.6.1"
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     annotationProcessor("androidx.room:room-compiler:$roomVersion")
 
-    // 2. Thư viện Vẽ biểu đồ nến thời gian thực
+    // 2. ThÆ° viá»‡n Váº½ biá»ƒu Ä‘á»“ náº¿n thá»i gian thá»±c
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 
-    // 3. Thư viện Kết nối Mạng REST API (Retrofit2 & OkHttp)
+    // 3. ThÆ° viá»‡n Káº¿t ná»‘i Máº¡ng REST API (Retrofit2 & OkHttp)
     val retrofitVersion = "2.11.0"
     implementation("com.squareup.retrofit2:retrofit:$retrofitVersion")
     implementation("com.squareup.retrofit2:converter-gson:$retrofitVersion")
