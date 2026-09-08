@@ -1,11 +1,22 @@
 package com.example.nhumonglenh
 
+import android.content.Context
+import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.view.View
+import android.widget.Button
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.example.nhumonglenh.ui.news.NewsFeedFragment
+import com.example.nhumonglenh.ui.profile.WalletProfileFragment
 import com.example.nhumonglenh.ui.watchlist.WatchlistFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.button.MaterialButton
 
 class Activity2 : AppCompatActivity() {
 
@@ -15,6 +26,7 @@ class Activity2 : AppCompatActivity() {
         private const val TAG_FORECAST = "TAG_FORECAST"
         private const val TAG_NEWS = "TAG_NEWS"
         private const val TAG_WATCHLIST = "TAG_WATCHLIST"
+        private const val TAG_PROFILE = "TAG_PROFILE"
     }
 
     private lateinit var bottomNav: BottomNavigationView
@@ -30,6 +42,22 @@ class Activity2 : AppCompatActivity() {
 
         bottomNav = findViewById(R.id.bottom_navigation)
 
+        val tvHeaderUser = findViewById<TextView>(R.id.tv_header_user)
+        val btnLogout = findViewById<MaterialButton>(R.id.btn_logout)
+
+        val prefs = getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
+        val savedUser = prefs.getString("saved_username", "") ?: ""
+        if (savedUser.isNotBlank()) {
+            tvHeaderUser.text = savedUser
+            tvHeaderUser.visibility = View.VISIBLE
+        } else {
+            tvHeaderUser.visibility = View.GONE
+        }
+
+        btnLogout.setOnClickListener {
+            showLogoutConfirmationDialog()
+        }
+
         if (savedInstanceState == null) {
             val initialFragment = TradingFragment()
             tradingFragment = initialFragment
@@ -41,7 +69,7 @@ class Activity2 : AppCompatActivity() {
                 .commit()
         } else {
             // 1. Xây dựng lại fragmentMap từ các Fragment đã được FragmentManager khôi phục
-            val navIds = listOf(R.id.nav_trading, R.id.nav_forecast, R.id.nav_news, R.id.nav_watchlist)
+            val navIds = listOf(R.id.nav_trading, R.id.nav_forecast, R.id.nav_news, R.id.nav_watchlist, R.id.nav_profile)
             for (navId in navIds) {
                 val tag = getTagForNavId(navId)
                 val restoredFrag = supportFragmentManager.findFragmentByTag(tag)
@@ -92,6 +120,7 @@ class Activity2 : AppCompatActivity() {
             R.id.nav_forecast -> TAG_FORECAST
             R.id.nav_news -> TAG_NEWS
             R.id.nav_watchlist -> TAG_WATCHLIST
+            R.id.nav_profile -> TAG_PROFILE
             else -> "TAG_$itemId"
         }
     }
@@ -112,6 +141,7 @@ class Activity2 : AppCompatActivity() {
                 R.id.nav_forecast -> ForecastFragment()
                 R.id.nav_news -> NewsFeedFragment()
                 R.id.nav_watchlist -> WatchlistFragment()
+                R.id.nav_profile -> WalletProfileFragment()
                 else -> return
             }
             fragmentMap[itemId] = target
@@ -130,5 +160,52 @@ class Activity2 : AppCompatActivity() {
     fun switchToTradingSymbol(symbol: String) {
         bottomNav.selectedItemId = R.id.nav_trading
         tradingFragment?.switchMarketSymbol(symbol)
+    }
+
+    /**
+     * Hiển thị hộp thoại xác nhận Đăng xuất với bảng màu TradingView
+     */
+    fun showLogoutConfirmationDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_logout_confirmation, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        val btnCancel = dialogView.findViewById<Button>(R.id.btn_cancel_logout)
+        val btnConfirm = dialogView.findViewById<Button>(R.id.btn_confirm_logout)
+
+        btnCancel.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        btnConfirm.setOnClickListener {
+            dialog.dismiss()
+            performLogout()
+        }
+
+        dialog.show()
+    }
+
+    /**
+     * Thực hiện đăng xuất:
+     * - Xóa jwt_token khỏi fnmf_prefs
+     * - Giữ nguyên server_url và saved_username
+     * - Quay về Activity1
+     * - Finish Activity2 để không back trở lại khi chưa đăng nhập
+     */
+    private fun performLogout() {
+        val prefs = getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
+        prefs.edit().remove("jwt_token").apply()
+
+        Toast.makeText(this, "Đã đăng xuất tài khoản!", Toast.LENGTH_SHORT).show()
+
+        val intent = Intent(this, Activity1::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+        finish()
     }
 }

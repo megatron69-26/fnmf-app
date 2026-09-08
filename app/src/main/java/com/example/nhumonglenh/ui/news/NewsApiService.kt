@@ -1,4 +1,4 @@
-﻿package com.example.nhumonglenh.ui.news
+package com.example.nhumonglenh.ui.news
 
 import retrofit2.http.GET
 

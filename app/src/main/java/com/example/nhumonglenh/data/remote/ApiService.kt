@@ -22,6 +22,12 @@ interface ApiService {
     @POST("/api/auth/register")
     fun register(@Body request: RegisterRequest): Call<AuthResponse>
 
+    // 1.2. Lấy thông tin tài khoản người dùng hiện tại & số dư ví
+    @GET("/api/auth/me")
+    fun getProfile(
+        @Header("Authorization") token: String
+    ): Call<AuthResponse>
+
     // 2. Lấy dữ liệu 30 nến OHLCV để vẽ biểu đồ MPAndroidChart
     @GET("/api/market/candles")
     fun getCandles(

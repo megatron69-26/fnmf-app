@@ -13,4 +13,6 @@
     <color name="tv_red">#F23645</color>
     <color name="tv_text_primary">#D1D4DC</color>
     <color name="tv_text_secondary">#787B86</color>
+    <color name="tv_blue">#2962FF</color>
+    <color name="tv_yellow">#F39C12</color>
 </resources>

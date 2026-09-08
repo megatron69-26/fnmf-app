@@ -1,5 +1,7 @@
 package com.example.nhumonglenh.data.remote
 
+import com.google.gson.annotations.SerializedName
+
 data class OrderRequest(
     val symbol: String,
     val type: String, // "BUY" hoặc "SELL"
@@ -7,14 +9,18 @@ data class OrderRequest(
 )
 
 data class OrderResponse(
-    val transactionId: Long?,
-    val symbol: String?,
-    val type: String?,
-    val price: Double?,
-    val quantity: Double?,
-    val totalAmount: Double?,
-    val remainingBalance: Double?,
-    val message: String?
+    @SerializedName(value = "transactionId", alternate = ["id"])
+    val transactionId: Long? = null,
+    val symbol: String? = null,
+    val type: String? = null,
+    val price: Double? = null,
+    val quantity: Double? = null,
+    val totalAmount: Double? = null,
+    val remainingBalance: Double? = null,
+    val message: String? = null,
+    val walletId: Long? = null,
+    @SerializedName(value = "executedAt", alternate = ["createdAt"])
+    val executedAt: String? = null
 )
 
 data class PortfolioSummaryDto(

@@ -44,11 +44,13 @@ class Activity1 : AppCompatActivity() {
         val prefs = getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
         val savedServerUrl = com.example.nhumonglenh.data.remote.NetworkConfig.getServerUrl(this)
         RetrofitClient.updateBaseUrl(savedServerUrl)
-        val savedUsername = prefs.getString("saved_username", "khoi.pro@fnmf.com") ?: "khoi.pro@fnmf.com"
+        val savedUsername = prefs.getString("saved_username", "") ?: ""
         
         etServerUrl.setText(savedServerUrl)
-        etUsername.setText(savedUsername)
-        etPassword.setText("mypassword123")
+        if (savedUsername.isNotBlank()) {
+            etUsername.setText(savedUsername)
+        }
+        // Ô password mặc định để trống theo yêu cầu bảo mật
 
         // 2. Xử lý ĐĂNG NHẬP
         btnLogin.setOnClickListener {

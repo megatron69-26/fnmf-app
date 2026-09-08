@@ -1,4 +1,4 @@
-﻿package com.example.nhumonglenh.ui.news
+package com.example.nhumonglenh.ui.news
 
 data class NewsResponse(
     val status: String,

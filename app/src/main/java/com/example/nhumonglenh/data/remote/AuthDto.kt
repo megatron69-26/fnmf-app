@@ -13,8 +13,25 @@ data class RegisterRequest(
     val fullName: String = username
 )
 
+data class UserDto(
+    val id: Long? = null,
+    val email: String? = null,
+    val fullName: String? = null,
+    val avatarUrl: String? = null,
+    val createdAt: String? = null
+)
+
+data class WalletDto(
+    val id: Long? = null,
+    val userId: Long? = null,
+    val balanceUsd: Double? = null,
+    val initialBalance: Double? = null
+)
+
 data class AuthResponse(
-    val token: String?,
-    val tokenType: String?,
-    val message: String?
+    val token: String? = null,
+    val tokenType: String? = null,
+    val user: UserDto? = null,
+    val wallet: WalletDto? = null,
+    val message: String? = null
 )

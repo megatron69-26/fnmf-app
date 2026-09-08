@@ -1,4 +1,4 @@
-﻿package com.example.nhumonglenh
+package com.example.nhumonglenh
 
 import android.os.Bundle
 import android.util.Log

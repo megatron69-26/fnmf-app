@@ -14,8 +14,8 @@ object RetrofitClient {
 
     /**
      * Cấu hình Base URL:
-     * - Máy chủ Laptop Khôi (Wi-Fi LAN IP): "http://10.174.64.109:8083/"
-     * - Khi cắm cáp USB vào máy tính (dùng adb reverse): "http://localhost:8083/"
+     * - Máy chủ Laptop Khôi (Wi-Fi LAN IP): http://10.174.64.109:8083/
+     * - Khi cắm cáp USB vào máy tính (dùng adb reverse): http://localhost:8083/
      */
     var BASE_URL = "http://172.18.97.109:8083/"
         private set
@@ -23,8 +23,9 @@ object RetrofitClient {
     private var currentRetrofit: Retrofit? = null
     private var currentApiService: ApiService? = null
 
+    // Bảo mật: Sử dụng Level.BASIC để chỉ log HTTP method/URL/status, không log headers (Authorization/JWT) hoặc request/response body chứa mật khẩu
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
+        level = HttpLoggingInterceptor.Level.BASIC
     }
 
     private val okHttpClient = OkHttpClient.Builder()

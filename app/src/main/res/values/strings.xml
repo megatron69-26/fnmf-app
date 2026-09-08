@@ -1,3 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">NHUMONGLENH</string>
+
+    <!-- Navigation & Titles -->
+    <string name="nav_title_trading">Trading</string>
+    <string name="nav_title_forecast">Forecast</string>
+    <string name="nav_title_news">News</string>
+    <string name="nav_title_watchlist">Watchlist</string>
+    <string name="nav_title_profile">Ví &amp; Hồ sơ</string>
+    <string name="wallet_profile_title">Hồ sơ &amp; Ví tài sản (FNMF)</string>
+
+    <!-- Profile section -->
+    <string name="profile_info_header">THÔNG TIN TÀI KHOẢN</string>
+    <string name="profile_fullname_label">Họ và tên:</string>
+    <string name="profile_email_label">Email:</string>
+    <string name="profile_user_id_label">Mã User:</string>
+    <string name="profile_status_label">Trạng thái:</string>
+    <string name="profile_status_active">Hoạt động 24/7</string>
+
+    <!-- Portfolio section -->
+    <string name="portfolio_header">TỔNG TÀI SẢN &amp; VÍ ĐẦU TƯ</string>
+    <string name="portfolio_net_worth_label">Tổng tài sản ròng:</string>
+    <string name="portfolio_cash_balance_label">Số dư tiền mặt khả dụng:</string>
+    <string name="portfolio_initial_balance_label">Vốn ảo ban đầu:</string>
+    <string name="portfolio_pnl_label">Tổng Lời / Lỗ (PnL):</string>
+
+    <!-- Holdings section -->
+    <string name="holdings_header">DANH MỤC ĐANG NẮM GIỮ (HOLDINGS)</string>
+    <string name="holdings_empty">Chưa có tài sản nào trong danh mục sở hữu.</string>
+
+    <!-- Transactions section -->
+    <string name="transactions_header">LỊCH SỬ KHỚP LỆNH GẦN ĐÂY</string>
+    <string name="transactions_empty">Chưa có lịch sử giao dịch nào.</string>
+    <string name="transaction_buy">MUA</string>
+    <string name="transaction_sell">BÁN</string>
+    <string name="transaction_topup">NẠP TIỀN</string>
+    <string name="transaction_grant">CẤP TÀI SẢN</string>
+    <string name="unknown_time">Chưa rõ thời gian</string>
+    <string name="portfolio_unavailable">Chưa tải được ví</string>
+
+    <!-- System info & Logout -->
+    <string name="system_info_header">HỆ THỐNG &amp; CÀI ĐẶT</string>
+    <string name="app_version_label">Phiên bản ứng dụng: v1.1.8</string>
+    <string name="server_url_label">Máy chủ kết nối: %1$s</string>
+    <string name="btn_logout">ĐĂNG XUẤT TÀI KHOẢN</string>
+
+    <!-- Dialog Logout -->
+    <string name="logout_dialog_title">XÁC NHẬN ĐĂNG XUẤT</string>
+    <string name="logout_dialog_message">Bạn có chắc chắn muốn đăng xuất khỏi hệ thống FNMF không? Phiên làm việc hiện tại sẽ kết thúc.</string>
+    <string name="logout_btn_cancel">HỦY</string>
+    <string name="logout_btn_confirm">ĐĂNG XUẤT</string>
+    <string name="logout_success">Đã đăng xuất tài khoản!</string>
+
+    <!-- State & Errors -->
+    <string name="loading_data">Đang tải dữ liệu từ máy chủ...</string>
+    <string name="btn_retry">Thử lại</string>
+    <string name="btn_refresh">Làm mới</string>
+    <string name="offline_badge">● Chế độ Ngoại tuyến (Offline)</string>
+    <string name="network_error_msg">Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng hoặc bật Server!</string>
+    <string name="server_error_msg">Máy chủ phản hồi lỗi. Vui lòng thử lại sau!</string>
+    <string name="session_expired_msg">Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!</string>
+    <string name="no_data">Chưa có dữ liệu</string>
 </resources>
