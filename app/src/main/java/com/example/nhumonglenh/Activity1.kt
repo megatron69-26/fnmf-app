@@ -207,8 +207,7 @@ class Activity1 : AppCompatActivity() {
     }
 
     private fun saveToken(token: String) {
-        val prefs = getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString("jwt_token", token).apply()
+        com.example.nhumonglenh.data.local.AuthSessionManager.saveToken(this, token)
     }
 
     private fun navigateToTradingScreen() {

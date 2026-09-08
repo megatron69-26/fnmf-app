@@ -2,9 +2,11 @@ package com.example.nhumonglenh.data.remote
 
 import retrofit2.Call
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 /**
@@ -58,13 +60,32 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Call<List<OrderResponse>>
 
-    // 7. Lấy dự báo AI
-    @GET("/api/forecast/predict")
+    // 7. Lấy dự báo AI (Khớp 100% với endpoint Backend /api/forecast/{symbol})
+    @GET("/api/forecast/{symbol}")
     fun getForecast(
-        @Query("symbol") symbol: String
+        @Path("symbol") symbol: String,
+        @Query("timeframe") timeframe: String = "24H_7D"
     ): Call<ForecastResponse>
 
     // 8. Lấy bảng giá thị trường cho Watchlist
     @GET("/api/market/prices")
     fun getMarketPrices(): Call<List<MarketPriceDto>>
+
+    // 9. Watchlist Cloud CRUD (Đồng bộ danh mục theo dõi trên Cloud CSDL)
+    @GET("/api/watchlist")
+    fun getWatchlist(
+        @Header("Authorization") token: String
+    ): Call<List<WatchlistItemDto>>
+
+    @POST("/api/watchlist")
+    fun addToWatchlist(
+        @Header("Authorization") token: String,
+        @Body request: WatchlistRequest
+    ): Call<WatchlistItemDto>
+
+    @DELETE("/api/watchlist/{symbol}")
+    fun removeFromWatchlist(
+        @Header("Authorization") token: String,
+        @Path("symbol") symbol: String
+    ): Call<Map<String, String>>
 }

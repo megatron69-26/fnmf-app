@@ -14,7 +14,8 @@ import com.example.nhumonglenh.R
  */
 class WatchlistAdapter(
     private var items: List<WatchlistUiModel>,
-    private val onClick: (WatchlistUiModel) -> Unit
+    private val onClick: (WatchlistUiModel) -> Unit,
+    private val onLongClick: ((WatchlistUiModel) -> Unit)? = null
 ) : RecyclerView.Adapter<WatchlistAdapter.ViewHolder>() {
 
     private val iconColors = listOf(
@@ -64,13 +65,17 @@ class WatchlistAdapter(
         holder.tvFullName.text = item.fullName
 
         // 3. Giá
-        holder.tvPrice.text = formatPrice(item.price)
+        holder.tvPrice.text = item.price?.let { formatPrice(it) } ?: "—"
 
         // 4. % thay đổi
-        val changeStr = if (item.changePercent >= 0) {
-            "+%.2f%%".format(item.changePercent)
+        val changeStr = if (item.changePercent != null) {
+            if (item.changePercent >= 0) {
+                "+%.2f%%".format(item.changePercent)
+            } else {
+                "%.2f%%".format(item.changePercent)
+            }
         } else {
-            "%.2f%%".format(item.changePercent)
+            "—"
         }
         holder.tvChangePercent.text = changeStr
 
@@ -81,19 +86,28 @@ class WatchlistAdapter(
                 holder.tvChangePercent.background = this
             }
 
-        if (item.changePercent >= 0) {
-            badgeBg.setColor(0xFF089981.toInt()) // xanh lá TradingView
-        } else {
-            badgeBg.setColor(0xFFF23645.toInt()) // đỏ TradingView
+        val badgeColor = when {
+            item.changePercent == null -> 0xFF787B86.toInt() // xám trung tính
+            item.changePercent >= 0 -> 0xFF089981.toInt() // xanh lá TradingView
+            else -> 0xFFF23645.toInt() // đỏ TradingView
         }
+        badgeBg.setColor(badgeColor)
 
         // 5. Click chuyển sang biểu đồ nến
         holder.itemView.setOnClickListener {
             onClick(item)
         }
+
+        // 6. Long click để xóa khỏi Watchlist
+        holder.itemView.setOnLongClickListener {
+            onLongClick?.invoke(item)
+            true
+        }
     }
 
     override fun getItemCount(): Int = items.size
+
+    fun getItems(): List<WatchlistUiModel> = items
 
     fun updateData(newItems: List<WatchlistUiModel>) {
         items = newItems

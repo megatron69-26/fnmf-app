@@ -1,7 +1,7 @@
 package com.example.nhumonglenh
 
+import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,15 +16,19 @@ import retrofit2.Callback
 import retrofit2.Response
 
 class ForecastFragment : Fragment() {
-    private lateinit var tvResult: TextView
-    private lateinit var pbLoading: ProgressBar
-    private lateinit var llContent: LinearLayout
-    private lateinit var tvRecommendation: TextView
-    private lateinit var tvConfidence: TextView
-    private lateinit var tvSupport: TextView
-    private lateinit var tvResistance: TextView
-    private lateinit var tvTechOutlook: TextView
-    private lateinit var tvFundOutlook: TextView
+
+    private var tvResult: TextView? = null
+    private var pbLoading: ProgressBar? = null
+    private var llContent: LinearLayout? = null
+    private var tvRecommendation: TextView? = null
+    private var tvConfidence: TextView? = null
+    private var tvSupport: TextView? = null
+    private var tvResistance: TextView? = null
+    private var tvTechOutlook: TextView? = null
+    private var tvFundOutlook: TextView? = null
+    private var activeCall: Call<ForecastResponse>? = null
+
+    private var currentSymbol: String = "BTCUSDT"
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -45,45 +49,81 @@ class ForecastFragment : Fragment() {
         tvTechOutlook = view.findViewById(R.id.tvTechOutlook)
         tvFundOutlook = view.findViewById(R.id.tvFundOutlook)
 
-        loadForecast("BTCUSDT")
+        loadForecast(currentSymbol)
     }
 
-    private fun loadForecast(symbol: String) {
-        pbLoading.visibility = View.VISIBLE
-        tvResult.visibility = View.GONE
-        llContent.visibility = View.GONE
-        
-        RetrofitClient.apiService.getForecast(symbol).enqueue(object : Callback<ForecastResponse> {
+    fun loadForecast(symbol: String) {
+        currentSymbol = symbol
+        val pb = pbLoading ?: return
+        val res = tvResult ?: return
+        val content = llContent ?: return
+
+        pb.visibility = View.VISIBLE
+        res.visibility = View.GONE
+        content.visibility = View.GONE
+
+        activeCall?.cancel()
+        val call = RetrofitClient.apiService.getForecast(symbol, "24H_7D")
+        activeCall = call
+
+        call.enqueue(object : Callback<ForecastResponse> {
             override fun onResponse(call: Call<ForecastResponse>, response: Response<ForecastResponse>) {
-                pbLoading.visibility = View.GONE
-                if (response.isSuccessful && response.body() != null) {
-                    val forecast = response.body()!!
-                    llContent.visibility = View.VISIBLE
-                    tvRecommendation.text = forecast.recommendation ?: "N/A"
-                    tvConfidence.text = "Độ tin cậy: " + (forecast.confidenceScore ?: 0) + "%"
-                    tvSupport.text = String.format("%,.2f", forecast.supportLevel ?: 0.0)
-                    tvResistance.text = String.format("%,.2f", forecast.resistanceLevel ?: 0.0)
-                    tvTechOutlook.text = forecast.technicalOutlook ?: "Đang cập nhật..."
-                    tvFundOutlook.text = forecast.fundamentalOutlook ?: "Đang cập nhật..."
-                    
-                    if (forecast.recommendation?.contains("BUY") == true) {
-                        tvRecommendation.setTextColor(android.graphics.Color.parseColor("#089981"))
-                    } else if (forecast.recommendation?.contains("SELL") == true) {
-                        tvRecommendation.setTextColor(android.graphics.Color.parseColor("#F23645"))
-                    } else {
-                        tvRecommendation.setTextColor(android.graphics.Color.parseColor("#D1D4DC"))
+                if (call.isCanceled || !isAdded || view == null) return
+                pbLoading?.visibility = View.GONE
+
+                val forecast = response.body()
+                if (response.isSuccessful && forecast != null) {
+                    llContent?.visibility = View.VISIBLE
+                    tvRecommendation?.text = forecast.recommendation ?: "N/A"
+                    val confidence = forecast.confidenceScore ?: 0
+                    tvConfidence?.text = "Độ tin cậy: $confidence%"
+                    tvSupport?.text = String.format("%,.2f", forecast.supportLevel ?: 0.0)
+                    tvResistance?.text = String.format("%,.2f", forecast.resistanceLevel ?: 0.0)
+                    tvTechOutlook?.text = forecast.technicalOutlook ?: "Đang cập nhật..."
+                    tvFundOutlook?.text = forecast.fundamentalOutlook ?: "Đang cập nhật..."
+
+                    when {
+                        forecast.recommendation?.contains("BUY") == true ->
+                            tvRecommendation?.setTextColor(Color.parseColor("#089981"))
+                        forecast.recommendation?.contains("SELL") == true ->
+                            tvRecommendation?.setTextColor(Color.parseColor("#F23645"))
+                        else ->
+                            tvRecommendation?.setTextColor(Color.parseColor("#D1D4DC"))
                     }
                 } else {
-                    tvResult.visibility = View.VISIBLE
-                    tvResult.text = "Failed to load forecast: " + response.code()
+                    tvResult?.visibility = View.VISIBLE
+                    val errorMsg = when (response.code()) {
+                        422 -> "Mã tài sản '$symbol' chưa được hỗ trợ dự báo AI."
+                        503 -> "Dữ liệu thị trường tạm thời không khả dụng. Vui lòng thử lại sau."
+                        else -> "Không thể tải dự báo AI (Mã lỗi: ${response.code()})"
+                    }
+                    tvResult?.text = errorMsg
+                    tvResult?.setTextColor(Color.parseColor("#F23645"))
                 }
             }
 
             override fun onFailure(call: Call<ForecastResponse>, t: Throwable) {
-                pbLoading.visibility = View.GONE
-                tvResult.visibility = View.VISIBLE
-                tvResult.text = "Error: " + t.message
+                if (call.isCanceled || !isAdded || view == null) return
+                pbLoading?.visibility = View.GONE
+                tvResult?.visibility = View.VISIBLE
+                tvResult?.text = "Lỗi kết nối máy chủ: ${t.localizedMessage ?: t.message}"
+                tvResult?.setTextColor(Color.parseColor("#F23645"))
             }
         })
+    }
+
+    override fun onDestroyView() {
+        activeCall?.cancel()
+        activeCall = null
+        tvResult = null
+        pbLoading = null
+        llContent = null
+        tvRecommendation = null
+        tvConfidence = null
+        tvSupport = null
+        tvResistance = null
+        tvTechOutlook = null
+        tvFundOutlook = null
+        super.onDestroyView()
     }
 }

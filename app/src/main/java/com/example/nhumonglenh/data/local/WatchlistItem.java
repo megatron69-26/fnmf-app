@@ -1,6 +1,7 @@
 package com.example.nhumonglenh.data.local;
 
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
 @Entity(tableName = "watchlist_table")
@@ -10,16 +11,24 @@ public class WatchlistItem {
     private int id;
 
     private String symbol;
-    private double price;
-    private double change24h;
+    private Double price;
+    private Double change24h;
+    private String userEmail = "";
 
     public WatchlistItem() {
     }
 
-    public WatchlistItem(String symbol, double price, double change24h) {
+    @Ignore
+    public WatchlistItem(String symbol, Double price, Double change24h) {
+        this(symbol, price, change24h, "");
+    }
+
+    @Ignore
+    public WatchlistItem(String symbol, Double price, Double change24h, String userEmail) {
         this.symbol = symbol;
         this.price = price;
         this.change24h = change24h;
+        this.userEmail = userEmail != null ? userEmail : "";
     }
 
     public int getId() {
@@ -38,19 +47,27 @@ public class WatchlistItem {
         this.symbol = symbol;
     }
 
-    public double getPrice() {
+    public Double getPrice() {
         return price;
     }
 
-    public void setPrice(double price) {
+    public void setPrice(Double price) {
         this.price = price;
     }
 
-    public double getChange24h() {
+    public Double getChange24h() {
         return change24h;
     }
 
-    public void setChange24h(double change24h) {
+    public void setChange24h(Double change24h) {
         this.change24h = change24h;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
     }
 }

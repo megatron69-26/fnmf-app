@@ -2,10 +2,13 @@ package com.example.nhumonglenh.data.remote
 
 import com.google.gson.annotations.SerializedName
 
+import java.math.BigDecimal
+
 data class OrderRequest(
     val symbol: String,
     val type: String, // "BUY" hoặc "SELL"
-    val quantity: Double
+    val quantity: BigDecimal,
+    val clientOrderId: String? = null // UUID chống trùng lặp lệnh
 )
 
 data class OrderResponse(
@@ -53,5 +56,23 @@ data class ForecastResponse(
     val confidenceScore: Int?,
     val keyDrivers: List<String>?,
     val technicalOutlook: String?,
-    val fundamentalOutlook: String?
+    val fundamentalOutlook: String?,
+    val fromCache: Boolean? = false,
+    val createdAt: String? = null
+)
+
+data class WatchlistItemDto(
+    val id: Long? = null,
+    val symbol: String,
+    val name: String? = null,
+    val category: String? = null,
+    val currentPrice: Double? = null,
+    val change24h: Double? = null,
+    val displayOrder: Int? = null,
+    val createdAt: String? = null
+)
+
+data class WatchlistRequest(
+    val symbol: String,
+    val displayOrder: Int? = 1
 )

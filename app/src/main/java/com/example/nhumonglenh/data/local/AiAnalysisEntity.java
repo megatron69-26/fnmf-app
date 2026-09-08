@@ -1,7 +1,9 @@
 package com.example.nhumonglenh.data.local;
 
+import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.ForeignKey;
+import androidx.room.Ignore;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
@@ -13,44 +15,43 @@ import androidx.room.PrimaryKey;
         childColumns = "newsId",
         onDelete = ForeignKey.CASCADE
     ),
-    indices = {@Index("newsId")}
+    indices = {@Index(value = "newsId", unique = true)}
 )
 public class AiAnalysisEntity {
 
-    @PrimaryKey(autoGenerate = true)
-    private int analysisId;
-
+    @PrimaryKey
+    @NonNull
     private String newsId;
+
     private String summary;
     private String sentiment;
     private int confidenceScore;
     private String reason;
 
     public AiAnalysisEntity() {
+        this.newsId = "";
     }
 
-    public AiAnalysisEntity(int analysisId, String newsId, String summary, String sentiment, int confidenceScore, String reason) {
-        this.analysisId = analysisId;
-        this.newsId = newsId;
+    @Ignore
+    public AiAnalysisEntity(@NonNull String newsId, String summary, String sentiment, int confidenceScore, String reason) {
+        this.newsId = newsId != null ? newsId : "";
         this.summary = summary;
         this.sentiment = sentiment;
         this.confidenceScore = confidenceScore;
         this.reason = reason;
     }
 
-    public int getAnalysisId() {
-        return analysisId;
+    @Ignore
+    public AiAnalysisEntity(int unusedAnalysisId, @NonNull String newsId, String summary, String sentiment, int confidenceScore, String reason) {
+        this(newsId, summary, sentiment, confidenceScore, reason);
     }
 
-    public void setAnalysisId(int analysisId) {
-        this.analysisId = analysisId;
-    }
-
+    @NonNull
     public String getNewsId() {
         return newsId;
     }
 
-    public void setNewsId(String newsId) {
+    public void setNewsId(@NonNull String newsId) {
         this.newsId = newsId;
     }
 

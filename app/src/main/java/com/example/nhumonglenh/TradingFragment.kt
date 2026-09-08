@@ -740,8 +740,8 @@ class TradingFragment : Fragment() {
     }
 
     private fun getSavedToken(): String {
-        val prefs = context?.getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        return prefs?.getString("jwt_token", "") ?: ""
+        val ctx = context ?: return ""
+        return com.example.nhumonglenh.data.local.AuthSessionManager.getToken(ctx)
     }
 
     private fun formatSymbolDisplay(sym: String): String = OrderTicketBottomSheet.formatSymbolDisplay(sym)

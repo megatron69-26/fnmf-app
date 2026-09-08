@@ -58,35 +58,37 @@ class NewsFeedFragment : Fragment() {
         binding.rvNews.visibility = View.GONE
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            val result = runCatching { ApiClient.service(appContext).syncNews().data }
+            val repository = com.example.nhumonglenh.data.repository.NewsRepository.getInstance(appContext)
+            val result = repository.getNews()
 
             withContext(Dispatchers.Main) {
                 if (_binding == null) return@withContext
                 binding.pbNewsLoading.visibility = View.GONE
 
-                if (result.isSuccess) {
-                    val news = result.getOrNull() ?: emptyList()
-                    if (news.isNotEmpty()) {
+                when (result) {
+                    is com.example.nhumonglenh.data.repository.NewsRepository.NewsResult.SyncSuccess -> {
                         binding.rvNews.visibility = View.VISIBLE
                         binding.tvNewsError.visibility = View.GONE
-                        adapter.submit(news)
-                    } else {
+                        adapter.submit(result.news)
+                    }
+                    is com.example.nhumonglenh.data.repository.NewsRepository.NewsResult.CacheFallback -> {
+                        binding.rvNews.visibility = View.VISIBLE
+                        binding.tvNewsError.visibility = View.VISIBLE
+                        binding.tvNewsError.text = "⚠️ Chế độ ngoại tuyến: Hiển thị tin tức đã lưu trong Room DB (${result.reason})"
+                        adapter.submit(result.news)
+                    }
+                    is com.example.nhumonglenh.data.repository.NewsRepository.NewsResult.CacheWriteFailure -> {
                         binding.rvNews.visibility = View.GONE
                         binding.tvNewsError.visibility = View.VISIBLE
-                        binding.tvNewsError.text = "Không có tin tức nào được trả về từ Server."
+                        binding.tvNewsError.text = "⚠️ Lỗi lưu trữ cục bộ: Không thể đồng bộ tin tức vào Room DB (${result.error.localizedMessage})"
+                        adapter.submit(emptyList())
                     }
-                } else {
-                    val error = result.exceptionOrNull()
-                    val errorDetail = when (error) {
-                        is HttpException -> "Lỗi HTTP ${error.code()}: ${error.message()}"
-                        is IOException -> "Không thể kết nối tới Server (${error.message})"
-                        else -> error?.localizedMessage ?: "Lỗi không xác định"
+                    is com.example.nhumonglenh.data.repository.NewsRepository.NewsResult.Empty -> {
+                        binding.rvNews.visibility = View.GONE
+                        binding.tvNewsError.visibility = View.VISIBLE
+                        binding.tvNewsError.text = "⚠️ ${result.message}\n(Không có tin tức khả dụng)"
+                        adapter.submit(emptyList())
                     }
-                    adapter.submit(emptyList())
-                    binding.rvNews.visibility = View.GONE
-                    binding.tvNewsError.visibility = View.VISIBLE
-                    binding.tvNewsError.text = "⚠️ $errorDetail\n(Không dùng dữ liệu giả offline)"
-                    Toast.makeText(appContext, "News Backend: $errorDetail", Toast.LENGTH_LONG).show()
                 }
             }
         }

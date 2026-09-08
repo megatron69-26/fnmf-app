@@ -37,6 +37,9 @@ class OrderTicketBottomSheet : BottomSheetDialogFragment() {
     private var activeOrderCall: Call<OrderResponse>? = null
     var onOrderSuccessListener: ((OrderResponse) -> Unit)? = null
 
+    // Idempotency: Giữ nguyên clientOrderId giữa các lần retry lỗi mạng qua OrderIdempotencyManager
+    private val idempotencyManager = OrderIdempotencyManager()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
@@ -46,6 +49,22 @@ class OrderTicketBottomSheet : BottomSheetDialogFragment() {
             availableCash = it.getDouble(ARG_AVAILABLE_CASH, 0.0)
             ownedQuantity = it.getDouble(ARG_OWNED_QUANTITY, 0.0)
         }
+        if (savedInstanceState != null) {
+            idempotencyManager.restoreState(
+                savedInstanceState.getString(KEY_ACTIVE_CLIENT_ORDER_ID),
+                savedInstanceState.getString(KEY_LAST_SUBMITTED_SYMBOL),
+                savedInstanceState.getString(KEY_LAST_SUBMITTED_ORDER_TYPE),
+                savedInstanceState.getString(KEY_LAST_SUBMITTED_QUANTITY)
+            )
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(KEY_ACTIVE_CLIENT_ORDER_ID, idempotencyManager.activeClientOrderId)
+        outState.putString(KEY_LAST_SUBMITTED_SYMBOL, idempotencyManager.lastSubmittedSymbol)
+        outState.putString(KEY_LAST_SUBMITTED_ORDER_TYPE, idempotencyManager.lastSubmittedOrderType)
+        outState.putString(KEY_LAST_SUBMITTED_QUANTITY, idempotencyManager.lastSubmittedQuantityString)
     }
 
     override fun onCreateView(
@@ -177,25 +196,38 @@ class OrderTicketBottomSheet : BottomSheetDialogFragment() {
         if (isSubmitting) return
 
         val b = binding ?: return
-        val qty = b.etOrderQuantity.text?.toString()?.trim()?.toDoubleOrNull()
+        val rawQtyStr = b.etOrderQuantity.text?.toString()?.trim() ?: ""
+        val parsedBigDecimal = try {
+            if (rawQtyStr.isNotBlank()) java.math.BigDecimal(rawQtyStr) else null
+        } catch (e: Exception) {
+            null
+        }
+
+        // Chính sách CSDL NUMERIC(18,6): Từ chối nếu sau khi chuẩn hóa vượt quá 6 chữ số thập phân
+        if (parsedBigDecimal != null && parsedBigDecimal.stripTrailingZeros().scale() > 6) {
+            b.tvOrderErrorMessage.text = "Khối lượng giao dịch tối đa 6 chữ số thập phân"
+            b.tvOrderErrorMessage.visibility = View.VISIBLE
+            return
+        }
+
+        // Double chỉ dùng cho tính toán / preview UI, không dùng làm giá trị authoritative gửi server
+        val qtyForUiPreview = parsedBigDecimal?.toDouble()
         val result = OrderCalculator.validateOrder(
             orderType = orderType,
-            quantity = qty,
+            quantity = qtyForUiPreview,
             currentPrice = currentPrice,
             availableCash = availableCash,
             ownedQuantity = ownedQuantity
         )
 
-        if (!result.isValid || qty == null) {
+        if (!result.isValid || parsedBigDecimal == null || qtyForUiPreview == null) {
             b.tvOrderErrorMessage.text = result.errorMessage ?: getString(R.string.order_ticket_err_invalid_qty)
             b.tvOrderErrorMessage.visibility = View.VISIBLE
             return
         }
 
         val ctx = context ?: return
-        val prefs = ctx.getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        val token = prefs.getString("jwt_token", "") ?: ""
-        val authHeader = AuthHeaderFactory.createBearerHeader(token)
+        val authHeader = com.example.nhumonglenh.data.local.AuthSessionManager.getAuthHeader(ctx)
 
         if (authHeader == null) {
             // Không có token thật -> báo lỗi hết hạn phiên, KHÔNG tạo mock order giả
@@ -213,7 +245,14 @@ class OrderTicketBottomSheet : BottomSheetDialogFragment() {
         b.pbOrderSubmitting.visibility = View.VISIBLE
         b.tvOrderErrorMessage.visibility = View.GONE
 
-        val request = OrderRequest(symbol = symbol, type = orderType, quantity = qty)
+        // Giá trị số authoritative chuẩn hóa bằng BigDecimal
+        val authoritativeQuantity = parsedBigDecimal.stripTrailingZeros()
+
+        // Idempotency: Quản lý clientOrderId qua OrderIdempotencyManager trực tiếp từ BigDecimal authoritative
+        val clientOrderId = idempotencyManager.resolveClientOrderId(symbol, orderType, authoritativeQuantity)
+
+        // Truyền chính xác authoritativeQuantity (BigDecimal) vào OrderRequest, không chuyển sang Double
+        val request = OrderRequest(symbol = symbol, type = orderType, quantity = authoritativeQuantity, clientOrderId = clientOrderId)
 
         activeOrderCall?.cancel()
         val call = RetrofitClient.apiService.placeOrder(authHeader, request)
@@ -221,6 +260,7 @@ class OrderTicketBottomSheet : BottomSheetDialogFragment() {
 
         call.enqueue(object : Callback<OrderResponse> {
             override fun onResponse(call: Call<OrderResponse>, response: Response<OrderResponse>) {
+                activeOrderCall = null
                 if (call.isCanceled || !isAdded || _binding == null) return
 
                 isSubmitting = false
@@ -229,11 +269,13 @@ class OrderTicketBottomSheet : BottomSheetDialogFragment() {
 
                 val body = response.body()
                 if (response.isSuccessful && body != null) {
+                    idempotencyManager.reset()
+
                     val resultBundle = Bundle().apply {
                         putBoolean(KEY_ORDER_SUCCESS, true)
                         putString(KEY_ORDER_TYPE, orderType)
                         putString(KEY_SYMBOL, symbol)
-                        putDouble(KEY_ORDER_QUANTITY, body.quantity ?: qty)
+                        putDouble(KEY_ORDER_QUANTITY, body.quantity ?: qtyForUiPreview)
                         putString(KEY_SUCCESS_MESSAGE, body.message)
                     }
                     setFragmentResult(REQUEST_KEY_ORDER, resultBundle)
@@ -248,11 +290,17 @@ class OrderTicketBottomSheet : BottomSheetDialogFragment() {
                     currentBinding.btnOrderConfirm.isEnabled = true
                     currentBinding.btnOrderCancel.isEnabled = true
 
+                    if (response.code() == 400 || response.code() == 409) {
+                        // Lỗi 400 (tham số không hợp lệ) hoặc 409 (conflict) -> reset để lần sau tạo clientOrderId mới
+                        idempotencyManager.reset()
+                    }
+
                     val errBody = response.errorBody()?.string()
                     val backendMsg = OrderCalculator.parseBackendErrorMessage(errBody)
                     val displayErr = when (response.code()) {
                         401, 403 -> getString(R.string.session_expired_msg)
                         400 -> backendMsg ?: getString(R.string.order_error_generic)
+                        409 -> backendMsg ?: "Yêu cầu đặt lệnh bị xung đột tham số (Idempotency conflict). Vui lòng thử lại."
                         in 500..599 -> getString(R.string.server_error_msg)
                         else -> backendMsg ?: "${getString(R.string.order_error_generic)} (${response.code()})"
                     }
@@ -262,6 +310,7 @@ class OrderTicketBottomSheet : BottomSheetDialogFragment() {
             }
 
             override fun onFailure(call: Call<OrderResponse>, t: Throwable) {
+                activeOrderCall = null
                 if (call.isCanceled || !isAdded || _binding == null) return
 
                 isSubmitting = false
@@ -285,6 +334,10 @@ class OrderTicketBottomSheet : BottomSheetDialogFragment() {
         _binding = null
     }
 
+    fun getIdempotencyManager(): OrderIdempotencyManager = idempotencyManager
+
+    fun getActiveClientOrderId(): String? = idempotencyManager.activeClientOrderId
+
     companion object {
         const val TAG = "OrderTicketBottomSheet"
         const val REQUEST_KEY_ORDER = "REQUEST_KEY_ORDER"
@@ -299,6 +352,11 @@ class OrderTicketBottomSheet : BottomSheetDialogFragment() {
         private const val ARG_CURRENT_PRICE = "ARG_CURRENT_PRICE"
         private const val ARG_AVAILABLE_CASH = "ARG_AVAILABLE_CASH"
         private const val ARG_OWNED_QUANTITY = "ARG_OWNED_QUANTITY"
+
+        private const val KEY_ACTIVE_CLIENT_ORDER_ID = "KEY_ACTIVE_CLIENT_ORDER_ID"
+        private const val KEY_LAST_SUBMITTED_SYMBOL = "KEY_LAST_SUBMITTED_SYMBOL"
+        private const val KEY_LAST_SUBMITTED_ORDER_TYPE = "KEY_LAST_SUBMITTED_ORDER_TYPE"
+        private const val KEY_LAST_SUBMITTED_QUANTITY = "KEY_LAST_SUBMITTED_QUANTITY"
 
         fun formatSymbolDisplay(sym: String): String {
             return when {

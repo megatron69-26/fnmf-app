@@ -19,4 +19,24 @@ public interface WatchlistDao {
 
     @Query("SELECT * FROM watchlist_table ORDER BY id DESC")
     List<WatchlistItem> getAllWatchlist();
+
+    @Query("SELECT * FROM watchlist_table WHERE userEmail = :userEmail ORDER BY id DESC")
+    List<WatchlistItem> getWatchlistByUser(String userEmail);
+
+    @Query("DELETE FROM watchlist_table WHERE userEmail = :userEmail AND symbol = :symbol")
+    void deleteByUserAndSymbol(String userEmail, String symbol);
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertAll(List<WatchlistItem> items);
+
+    @Query("DELETE FROM watchlist_table WHERE userEmail = :userEmail")
+    void clearByUser(String userEmail);
+
+    @androidx.room.Transaction
+    default void clearAndInsertAll(String userEmail, List<WatchlistItem> items) {
+        clearByUser(userEmail);
+        if (items != null && !items.isEmpty()) {
+            insertAll(items);
+        }
+    }
 }

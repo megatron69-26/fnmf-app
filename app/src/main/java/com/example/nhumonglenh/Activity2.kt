@@ -198,8 +198,7 @@ class Activity2 : AppCompatActivity() {
      * - Finish Activity2 để không back trở lại khi chưa đăng nhập
      */
     private fun performLogout() {
-        val prefs = getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        prefs.edit().remove("jwt_token").apply()
+        com.example.nhumonglenh.data.local.AuthSessionManager.clearSession(this)
 
         Toast.makeText(this, "Đã đăng xuất tài khoản!", Toast.LENGTH_SHORT).show()
 

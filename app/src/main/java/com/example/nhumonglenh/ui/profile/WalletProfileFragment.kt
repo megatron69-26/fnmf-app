@@ -118,8 +118,7 @@ class WalletProfileFragment : Fragment() {
     private fun triggerDataLoad(forceRefresh: Boolean) {
         if (isNavigatingToAuth) return
         val currentActivity = activity ?: return
-        val prefs = currentActivity.getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        val token = prefs.getString("jwt_token", "") ?: ""
+        val token = com.example.nhumonglenh.data.local.AuthSessionManager.getToken(currentActivity)
 
         if (token.isBlank()) {
             handleUnauthorized()
@@ -303,15 +302,6 @@ class WalletProfileFragment : Fragment() {
         isNavigatingToAuth = true
 
         val currentActivity = activity ?: return
-        val prefs = currentActivity.getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        prefs.edit().remove("jwt_token").apply()
-
-        Toast.makeText(requireContext(), getString(R.string.session_expired_msg), Toast.LENGTH_LONG).show()
-
-        val intent = Intent(currentActivity, Activity1::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        startActivity(intent)
-        currentActivity.finish()
+        com.example.nhumonglenh.data.local.AuthSessionManager.handleUnauthorized(currentActivity)
     }
 }

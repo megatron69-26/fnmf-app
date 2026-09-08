@@ -14,11 +14,27 @@ public interface NewsDao {
     void insertNews(NewsEntity news);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertAllNews(List<NewsEntity> newsList);
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertAIAnalysis(AiAnalysisEntity analysis);
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertAllAIAnalysis(List<AiAnalysisEntity> analysisList);
 
     @Query("SELECT * FROM news_table ORDER BY publishedAt DESC")
     List<NewsEntity> getAllNews();
 
     @Query("SELECT * FROM ai_analysis_table WHERE newsId = :newsId LIMIT 1")
     AiAnalysisEntity getCachedAIAnalysis(String newsId);
+
+    @androidx.room.Transaction
+    default void upsertAllNewsWithAnalysis(List<NewsEntity> newsList, List<AiAnalysisEntity> analysisList) {
+        if (newsList != null && !newsList.isEmpty()) {
+            insertAllNews(newsList);
+        }
+        if (analysisList != null && !analysisList.isEmpty()) {
+            insertAllAIAnalysis(analysisList);
+        }
+    }
 }

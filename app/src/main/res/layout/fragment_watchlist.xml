@@ -21,7 +21,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Watchlist (Thị trường)"
+            android:text="Watchlist (Theo dõi)"
             android:textColor="@color/tv_text_primary"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -33,7 +33,20 @@
             android:text="● LIVE"
             android:textColor="#089981"
             android:textSize="12sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:layout_marginEnd="12dp" />
+
+        <Button
+            android:id="@+id/btnAddWatchlist"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="+ Thêm"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:background="@drawable/bg_percent_badge" />
 
     </LinearLayout>
 
