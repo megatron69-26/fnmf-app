@@ -61,4 +61,51 @@
     <string name="server_error_msg">Máy chủ phản hồi lỗi. Vui lòng thử lại sau!</string>
     <string name="session_expired_msg">Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!</string>
     <string name="no_data">Chưa có dữ liệu</string>
+
+    <!-- Trading Module & Chart -->
+    <string name="trading_timeframe_default">1D • Live 1s</string>
+    <string name="trading_action_buy">MUA</string>
+    <string name="trading_action_sell">BÁN</string>
+    <string name="trading_available_cash_format">Tiền khả dụng: %1$s</string>
+    <string name="trading_asset_holding_format">Đang giữ: %1$s %2$s</string>
+    <string name="trading_no_holding_format">Đang giữ: 0 %1$s</string>
+    <string name="trading_live_badge">● LIVE</string>
+    <string name="trading_offline_badge">● OFFLINE</string>
+    <string name="trading_chart_empty">Chưa có dữ liệu nến cho mã này</string>
+
+    <!-- Order Ticket BottomSheet -->
+    <string name="order_ticket_title_buy">LỆNH MUA</string>
+    <string name="order_ticket_title_sell">LỆNH BÁN</string>
+    <string name="order_ticket_market_price_label">Giá thị trường:</string>
+    <string name="order_ticket_available_cash_label">Tiền mặt khả dụng:</string>
+    <string name="order_ticket_owned_qty_label">Số lượng đang sở hữu:</string>
+    <string name="order_ticket_qty_label">Khối lượng đặt lệnh (%1$s)</string>
+    <string name="order_ticket_qty_hint">0.00</string>
+    <string name="order_ticket_est_value_label">Giá trị lệnh ước tính:</string>
+    <string name="order_ticket_remaining_cash_label">Tiền dự kiến còn lại:</string>
+    <string name="order_ticket_remaining_asset_label">Tài sản dự kiến còn lại:</string>
+    <string name="order_ticket_btn_cancel">HỦY</string>
+    <string name="order_ticket_btn_confirm_buy">XÁC NHẬN MUA</string>
+    <string name="order_ticket_btn_confirm_sell">XÁC NHẬN BÁN</string>
+    <string name="order_ticket_quick_25">25%</string>
+    <string name="order_ticket_quick_50">50%</string>
+    <string name="order_ticket_quick_75">75%</string>
+    <string name="order_ticket_quick_100">100%</string>
+    <string name="order_ticket_err_invalid_qty">Khối lượng phải là số hữu hạn lớn hơn 0</string>
+    <string name="order_ticket_err_insufficient_cash">Số dư tiền mặt khả dụng không đủ để đặt lệnh</string>
+    <string name="order_ticket_err_insufficient_asset">Số lượng tài sản trong ví không đủ để bán</string>
+    <string name="trading_holding_label_format">ĐANG NẮM GIỮ (%1$s)</string>
+    <string name="trading_offline_cached_badge">OFFLINE • DỮ LIỆU CŨ</string>
+    <string name="trading_toast_switch_symbol">Đang mở biểu đồ %1$s...</string>
+    <string name="trading_toast_syncing_balance">Đang đồng bộ số dư mới nhất từ máy chủ...</string>
+    <string name="trading_err_no_candles">Không thể tải dữ liệu nến từ máy chủ</string>
+    <string name="order_ticket_err_body_null">Máy chủ phản hồi dữ liệu rỗng, không thể xác nhận lệnh</string>
+    <string name="order_ticket_executing">Đang gửi lệnh tới hệ thống...</string>
+    <string name="order_success_format">Khớp lệnh %1$s %2$s %3$s thành công</string>
+    <string name="order_error_generic">Không thể thực hiện lệnh, vui lòng thử lại</string>
+    <string name="trading_connecting_badge">● ĐANG KẾT NỐI</string>
+    <string name="trading_waiting_price_badge">● CHỜ GIÁ</string>
+    <string name="trading_no_live_badge">DỮ LIỆU BACKEND</string>
+    <string name="trading_gold_paxg_reference">Vàng Thế Giới (Tham chiếu PAXG)</string>
+    <string name="trading_err_data_not_ready">Dữ liệu giá hoặc số dư chưa sẵn sàng để đặt lệnh</string>
 </resources>

@@ -1,243 +1,265 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#131722"
-    android:fitsSystemWindows="true"
-    android:fillViewport="true">
+    android:background="@color/tv_bg"
+    android:orientation="vertical">
 
+    <!-- Top Instrument Header Bar -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="8dp">
 
-        <!-- Top Header Bar -->
+        <!-- Symbol Name + Badges -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingBottom="8dp">
+            android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/tvHeaderTitle"
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="FNMF • BTC/USDT"
-                android:textColor="#FFFFFF"
-                android:textSize="17sp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvHeaderSymbol"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="BTC/USDT"
+                    android:textColor="@color/white"
+                    android:textSize="19sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvHeaderFullName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Bitcoin / Tether"
+                    android:textColor="@color/tv_text_secondary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Timeframe indicator badge -->
+            <TextView
+                android:id="@+id/tvTimeframeBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_pill_badge"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp"
+                android:text="@string/trading_timeframe_default"
+                android:textColor="@color/tv_text_secondary"
+                android:textSize="11sp"
                 android:textStyle="bold" />
 
+            <!-- Live/Offline status badge -->
             <TextView
                 android:id="@+id/tvLiveStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="● LIVE $78,180"
-                android:textColor="#089981"
-                android:textSize="12sp"
-                android:textStyle="bold"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_pill_badge"
                 android:paddingHorizontal="8dp"
                 android:paddingVertical="4dp"
-                android:background="#1E222D" />
+                android:text="@string/trading_live_badge"
+                android:textColor="@color/tv_green"
+                android:textSize="11sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Khu vực Chart Nến & UI State -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="320dp"
-            android:background="#1E222D"
-            android:padding="4dp">
-
-            <com.github.mikephil.charting.charts.CandleStickChart
-                android:id="@+id/candleChart"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
-
-            <!-- Trạng thái Loading -->
-            <ProgressBar
-                android:id="@+id/pbLoading"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:visibility="gone"/>
-
-            <!-- Trạng thái Error / Empty -->
-            <TextView
-                android:id="@+id/tvStateMessage"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:textColor="#F23645"
-                android:textStyle="bold"
-                android:visibility="gone"/>
-        </FrameLayout>
-
-        <!-- Khu vực Ví (Số dư tiền mặt & Tổng tài sản ròng) -->
+        <!-- Current Live Price & % Change -->
         <LinearLayout
-            android:id="@+id/llPortfolioContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="#1E222D"
-            android:padding="12dp"
-            android:layout_marginTop="10dp">
+            android:layout_marginTop="6dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <!-- 1. Số dư tiền mặt khả dụng (Đối chiếu) -->
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/tvCurrentPrice"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="4dp">
+                android:text="—"
+                tools:text="$78,000.00"
+                android:textColor="@color/white"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvPriceChange"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/bg_percent_badge"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:text="—"
+                tools:text="+2.50%"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Chart-first: Responsive Candlestick Chart Area -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/tv_surface">
+
+        <com.github.mikephil.charting.charts.CandleStickChart
+            android:id="@+id/candleChart"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Loading State -->
+        <ProgressBar
+            android:id="@+id/pbLoading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
+        <!-- Error / Empty State Message -->
+        <TextView
+            android:id="@+id/tvStateMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:textColor="@color/tv_red"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <!-- Compact Account Strip -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardAccountStrip"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="6dp"
+        app:cardBackgroundColor="@color/tv_surface"
+        app:cardCornerRadius="8dp"
+        app:strokeColor="@color/tv_border"
+        app:strokeWidth="1dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp">
+
+            <!-- Available Cash -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
 
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="💵 SỐ DƯ TIỀN MẶT KHẢ DỤNG:"
-                    android:textColor="#787B86"
-                    android:textSize="11sp"
+                    android:text="TIỀN KHẢ DỤNG"
+                    android:textColor="@color/tv_text_secondary"
+                    android:textSize="10sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tvCashBalance"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="$10,000.00 USD"
-                    android:textColor="#00F0FF"
+                    android:layout_marginTop="2dp"
+                    android:text="—"
+                    tools:text="$10,000.00 USD"
+                    android:textColor="@color/tv_cyan"
                     android:textSize="13sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- 2. Tổng tài sản ròng & Lời lỗ -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="💎 TỔNG TÀI SẢN (TIỀN MẶT + COIN):"
-                android:textColor="#787B86"
-                android:textSize="11sp"
-                android:textStyle="bold" />
+            <View
+                android:layout_width="1dp"
+                android:layout_height="24dp"
+                android:layout_marginHorizontal="8dp"
+                android:background="@color/tv_border" />
 
-            <TextView
-                android:id="@+id/tvHoldings"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Tài sản: $10,000.00 | Lời/Lỗ: +$0.00"
-                android:textColor="#089981"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:layout_marginTop="2dp" />
-        </LinearLayout>
-
-        <!-- Khu vực Khối lượng & Mua/Bán nhanh -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="#1E222D"
-            android:padding="12dp"
-            android:layout_marginTop="10dp">
-
+            <!-- Asset Holdings -->
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="8dp">
+                android:layout_weight="1"
+                android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/tvQuantityLabel"
-                    android:layout_width="0dp"
+                    android:id="@+id/tvHoldingsLabel"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Khối lượng đặt lệnh (BTC):"
-                    android:textColor="#D1D4DC"
-                    android:textSize="13sp" />
+                    android:text="ĐANG NẮM GIỮ"
+                    android:textColor="@color/tv_text_secondary"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
 
-                <EditText
-                    android:id="@+id/etQuantity"
-                    android:layout_width="100dp"
-                    android:layout_height="40dp"
-                    android:background="#131722"
-                    android:textColor="#FFFFFF"
-                    android:text="0.005"
-                    android:textSize="14sp"
-                    android:gravity="center"
-                    android:inputType="numberDecimal"
-                    android:paddingHorizontal="6dp"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/btnSell"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="48dp"
-                    android:text="BÁN (SELL)"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold"
-                    android:backgroundTint="#F23645"
-                    android:layout_marginEnd="6dp"/>
-
-                <Button
-                    android:id="@+id/btnBuy"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="48dp"
-                    android:text="MUA (BUY)"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold"
-                    android:backgroundTint="#089981"
-                    android:layout_marginStart="6dp"/>
+                <TextView
+                    android:id="@+id/tvHoldings"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="—"
+                    tools:text="0.0000 BTC"
+                    android:textColor="@color/tv_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
-        <!-- Khu vực Watchlist (Danh mục theo dõi) -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="DANH MỤC THEO DÕI (WATCHLIST)"
-            android:textColor="#787B86"
-            android:textSize="12sp"
+    <!-- Sticky Buy/Sell Actions (Fixed Bottom) -->
+    <LinearLayout
+        android:id="@+id/llStickyActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="12dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSell"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/tv_red"
+            android:text="@string/trading_action_sell"
+            android:textColor="@color/white"
+            android:textSize="15sp"
             android:textStyle="bold"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="6dp"/>
+            app:cornerRadius="8dp" />
 
-        <!-- Container chứa các item Watchlist tùy chỉnh -->
-        <LinearLayout
-            android:id="@+id/llWatchlistContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="LỊCH SỬ GIAO DỊCH"
-            android:textColor="#787B86"
-            android:textSize="12sp"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnBuy"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/tv_green"
+            android:text="@string/trading_action_buy"
+            android:textColor="@color/white"
+            android:textSize="15sp"
             android:textStyle="bold"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="6dp"/>
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvOrderHistory"
-            android:layout_width="match_parent"
-            android:layout_height="200dp"
-            android:layout_marginTop="8dp" />
-
-        <!-- ListView fallback -->
-        <ListView
-            android:id="@+id/lvWatchlist"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:visibility="gone" />
-
+            app:cornerRadius="8dp" />
     </LinearLayout>
-</ScrollView>
+
+</LinearLayout>
