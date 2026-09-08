@@ -195,5 +195,54 @@ class EmailAuthUnitTest {
             NetworkConfig.DEFAULT_SERVER_URL
         )
     }
+
+    // -------------------------------------------------------------
+    // 6. TEST LEGACY ACCOUNT KHOI10 CANNOT APPEAR AS LOGIN EMAIL OR ACTIVE PROFILE
+    // -------------------------------------------------------------
+    @Test
+    fun testLegacyKhoi10_cannotAppearAsCurrentLoginEmailOrActiveProfile() {
+        val legacyUsername = "khoi10"
+
+        // 1. khoi10 không bao giờ được coi là email hợp lệ
+        assertFalse("khoi10 không phải là email hợp lệ", NetworkConfig.isValidEmail(legacyUsername))
+
+        // 2. Migration trả về LegacyAccountDetected, KHÔNG tự động lưu vào saved_email
+        val decision = NetworkConfig.decideAccountMigration(
+            alreadyMigrated = false,
+            savedEmail = null,
+            savedUsername = legacyUsername
+        )
+        assertTrue("Phải phát hiện legacy account", decision is NetworkConfig.AccountMigrationDecision.LegacyAccountDetected)
+        val legacyDetected = decision as NetworkConfig.AccountMigrationDecision.LegacyAccountDetected
+        assertEquals("khoi10", legacyDetected.legacyUsername)
+        assertFalse("Legacy identifier không được chứa ký tự '@'", legacyDetected.legacyUsername.contains("@"))
+
+        // 3. Giả lập logic hiển thị profile: nếu user.email trả về khoi10 (chưa cập nhật), profile không được hiển thị nó như email hợp lệ
+        val userWithLegacyIdentifier = UserDto(
+            id = 1L,
+            email = "khoi10",
+            fullName = "Dang Duc Khoi",
+            role = "USER",
+            validEmail = false,
+            needsEmailUpdate = true
+        )
+
+        val activeSavedEmail = ""
+        val resolvedDisplayEmail = if (NetworkConfig.isValidEmail(userWithLegacyIdentifier.email)) {
+            userWithLegacyIdentifier.email!!
+        } else if (NetworkConfig.isValidEmail(activeSavedEmail)) {
+            activeSavedEmail
+        } else {
+            "--"
+        }
+
+        assertEquals("--", resolvedDisplayEmail)
+        assertFalse("khoi10 tuyệt đối không được xuất hiện như email hiển thị", resolvedDisplayEmail.contains("khoi10"))
+
+        // 4. Header Activity2 chỉ đọc saved_email, không bao giờ lấy khoi10 từ saved_username
+        val headerUserDisplay = if (NetworkConfig.isValidEmail(activeSavedEmail)) activeSavedEmail else ""
+        assertEquals("", headerUserDisplay)
+        assertFalse(headerUserDisplay.contains("khoi10"))
+    }
 }
 

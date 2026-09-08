@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.nhumonglenh.Activity1
 import com.example.nhumonglenh.Activity2
 import com.example.nhumonglenh.R
+import com.example.nhumonglenh.data.remote.NetworkConfig
 import com.example.nhumonglenh.data.remote.RetrofitClient
 import com.example.nhumonglenh.data.repository.WalletProfileCombinedData
 import com.example.nhumonglenh.data.repository.WalletProfileRepository
@@ -181,13 +182,19 @@ class WalletProfileFragment : Fragment() {
         lastUpdatedFormatted: String
     ) {
         val currentActivity = activity ?: return
-        val prefs = currentActivity.getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        val savedUser = prefs.getString("saved_email", null) ?: prefs.getString("saved_username", "") ?: ""
+        val prefs = currentActivity.getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
+        val savedEmail = prefs.getString(NetworkConfig.KEY_SAVED_EMAIL, "") ?: ""
 
         // 1. Thông tin tài khoản
         val user = data.authResponse?.user
-        val fullName = user?.fullName ?: savedUser.ifEmpty { getString(R.string.no_data) }
-        val email = user?.email ?: savedUser.ifEmpty { getString(R.string.no_data) }
+        val fullName = user?.fullName ?: savedEmail.ifEmpty { getString(R.string.no_data) }
+        val email = if (NetworkConfig.isValidEmail(user?.email)) {
+            user?.email!!
+        } else if (NetworkConfig.isValidEmail(savedEmail)) {
+            savedEmail
+        } else {
+            getString(R.string.no_data)
+        }
         val userId = user?.id?.let { "#$it" } ?: getString(R.string.no_data)
 
         b.tvProfileFullname.text = fullName

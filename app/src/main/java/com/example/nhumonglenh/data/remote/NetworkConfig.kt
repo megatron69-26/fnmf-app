@@ -120,6 +120,7 @@ object NetworkConfig {
 
     const val KEY_SAVED_EMAIL = "saved_email"
     const val KEY_SAVED_USERNAME = "saved_username"
+    const val KEY_LEGACY_ACCOUNT_IDENTIFIER = "legacy_account_identifier"
     const val KEY_EMAIL_MIGRATION_DONE = "email_migration_done"
 
     private val EMAIL_PATTERN = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
@@ -177,12 +178,18 @@ object NetworkConfig {
      * Di chuyển SharedPreferences từ saved_username sang saved_email.
      * Chạy duy nhất một lần.
      * - Nếu saved_username là email hợp lệ: normalize sang saved_email và xoá saved_username.
-     * - Nếu saved_username là legacy (như khoi10): KHÔNG tự bịa email, KHÔNG autofill, trả về kết quả để hiển thị cảnh báo.
+     * - Nếu saved_username là legacy (như khoi10): lưu riêng vào key legacy_account_identifier chỉ để hiển thị cảnh báo chuyển đổi, sau đó xóa saved_username.
+     * - Tuyệt đối KHÔNG tự tạo email giả.
      */
     fun migrateSavedAccount(prefs: SharedPreferences): EmailMigrationResult {
         val alreadyMigrated = prefs.getBoolean(KEY_EMAIL_MIGRATION_DONE, false)
         val savedEmail = prefs.getString(KEY_SAVED_EMAIL, null)
         val savedUsername = prefs.getString(KEY_SAVED_USERNAME, null)
+
+        // Dọn dẹp triệt để saved_username nếu đã migrate trước đó nhưng còn sót
+        if (alreadyMigrated && !savedUsername.isNullOrBlank()) {
+            prefs.edit().remove(KEY_SAVED_USERNAME).apply()
+        }
 
         return when (val decision = decideAccountMigration(alreadyMigrated, savedEmail, savedUsername)) {
             is AccountMigrationDecision.UseExistingSavedEmail -> {
@@ -190,7 +197,10 @@ object NetworkConfig {
             }
             is AccountMigrationDecision.NoActionNeeded -> {
                 if (!alreadyMigrated) {
-                    prefs.edit().putBoolean(KEY_EMAIL_MIGRATION_DONE, true).apply()
+                    prefs.edit()
+                        .remove(KEY_SAVED_USERNAME)
+                        .putBoolean(KEY_EMAIL_MIGRATION_DONE, true)
+                        .apply()
                 }
                 if (!savedEmail.isNullOrBlank()) {
                     EmailMigrationResult.Migrated(savedEmail)
@@ -208,6 +218,8 @@ object NetworkConfig {
             }
             is AccountMigrationDecision.LegacyAccountDetected -> {
                 prefs.edit()
+                    .putString(KEY_LEGACY_ACCOUNT_IDENTIFIER, decision.legacyUsername)
+                    .remove(KEY_SAVED_USERNAME)
                     .putBoolean(KEY_EMAIL_MIGRATION_DONE, true)
                     .apply()
                 EmailMigrationResult.LegacyAccountNeedsUpdate(decision.legacyUsername)

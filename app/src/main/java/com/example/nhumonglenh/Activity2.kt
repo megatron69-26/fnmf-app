@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import com.example.nhumonglenh.data.remote.NetworkConfig
 import com.example.nhumonglenh.ui.news.NewsFeedFragment
 import com.example.nhumonglenh.ui.profile.WalletProfileFragment
 import com.example.nhumonglenh.ui.watchlist.WatchlistFragment
@@ -45,10 +46,10 @@ class Activity2 : AppCompatActivity() {
         val tvHeaderUser = findViewById<TextView>(R.id.tv_header_user)
         val btnLogout = findViewById<MaterialButton>(R.id.btn_logout)
 
-        val prefs = getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        val savedUser = prefs.getString("saved_email", null) ?: prefs.getString("saved_username", "") ?: ""
-        if (savedUser.isNotBlank()) {
-            tvHeaderUser.text = savedUser
+        val prefs = getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
+        val savedEmail = prefs.getString(NetworkConfig.KEY_SAVED_EMAIL, "") ?: ""
+        if (savedEmail.isNotBlank()) {
+            tvHeaderUser.text = savedEmail
             tvHeaderUser.visibility = View.VISIBLE
         } else {
             tvHeaderUser.visibility = View.GONE

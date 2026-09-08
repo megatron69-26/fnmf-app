@@ -63,8 +63,16 @@ class Activity1 : AppCompatActivity() {
             }
             NetworkConfig.EmailMigrationResult.AlreadyMigrated -> {
                 val saved = prefs.getString(NetworkConfig.KEY_SAVED_EMAIL, "") ?: ""
+                val legacyIdentifier = prefs.getString(NetworkConfig.KEY_LEGACY_ACCOUNT_IDENTIFIER, "") ?: ""
                 if (saved.isNotBlank()) {
                     etEmail.setText(saved)
+                } else if (legacyIdentifier.isNotBlank()) {
+                    etEmail.setText("")
+                    Toast.makeText(
+                        this,
+                        "⚠️ Tài khoản legacy '$legacyIdentifier' cần được Admin cập nhật sang Email thật trên hệ thống Cloud!",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
             NetworkConfig.EmailMigrationResult.NoSavedAccount -> {
