@@ -46,7 +46,7 @@ class Activity2 : AppCompatActivity() {
         val btnLogout = findViewById<MaterialButton>(R.id.btn_logout)
 
         val prefs = getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        val savedUser = prefs.getString("saved_username", "") ?: ""
+        val savedUser = prefs.getString("saved_email", null) ?: prefs.getString("saved_username", "") ?: ""
         if (savedUser.isNotBlank()) {
             tvHeaderUser.text = savedUser
             tvHeaderUser.visibility = View.VISIBLE

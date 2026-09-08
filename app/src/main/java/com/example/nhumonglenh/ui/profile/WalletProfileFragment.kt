@@ -182,7 +182,7 @@ class WalletProfileFragment : Fragment() {
     ) {
         val currentActivity = activity ?: return
         val prefs = currentActivity.getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        val savedUser = prefs.getString("saved_username", "") ?: ""
+        val savedUser = prefs.getString("saved_email", null) ?: prefs.getString("saved_username", "") ?: ""
 
         // 1. Thông tin tài khoản
         val user = data.authResponse?.user

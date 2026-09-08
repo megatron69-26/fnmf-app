@@ -36,7 +36,7 @@ class Activity1 : AppCompatActivity() {
         Log.d(TAG, "Activity1 onCreate")
 
         val etServerUrl = findViewById<EditText>(R.id.etServerUrl)
-        val etUsername = findViewById<EditText>(R.id.etUsername)
+        val etEmail = findViewById<EditText>(R.id.etEmail)
         val etPassword = findViewById<EditText>(R.id.etPassword)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
         val btnRegister = findViewById<Button>(R.id.btnRegister)
@@ -45,22 +45,46 @@ class Activity1 : AppCompatActivity() {
         val prefs = getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
         val savedServerUrl = NetworkConfig.getOrMigrateServerUrl(prefs)
         RetrofitClient.updateBaseUrl(savedServerUrl)
-        val savedUsername = prefs.getString("saved_username", "") ?: ""
-        
         etServerUrl.setText(savedServerUrl)
-        if (savedUsername.isNotBlank()) {
-            etUsername.setText(savedUsername)
+
+        // Di chuyển SharedPreferences từ saved_username sang saved_email (chạy đúng 1 lần)
+        when (val migration = NetworkConfig.migrateSavedAccount(prefs)) {
+            is NetworkConfig.EmailMigrationResult.Migrated -> {
+                etEmail.setText(migration.email)
+            }
+            is NetworkConfig.EmailMigrationResult.LegacyAccountNeedsUpdate -> {
+                // Tài khoản legacy (như khoi10): KHÔNG autofill, hiển thị cảnh báo
+                etEmail.setText("")
+                Toast.makeText(
+                    this,
+                    "⚠️ Tài khoản legacy '${migration.legacyUsername}' cần được Admin cập nhật sang Email thật trên hệ thống Cloud!",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            NetworkConfig.EmailMigrationResult.AlreadyMigrated -> {
+                val saved = prefs.getString(NetworkConfig.KEY_SAVED_EMAIL, "") ?: ""
+                if (saved.isNotBlank()) {
+                    etEmail.setText(saved)
+                }
+            }
+            NetworkConfig.EmailMigrationResult.NoSavedAccount -> {
+                // Không có tài khoản lưu trước đó
+            }
         }
         // Ô password mặc định để trống theo yêu cầu bảo mật
 
         // 2. Xử lý ĐĂNG NHẬP
         btnLogin.setOnClickListener {
             val serverUrl = prepareServerUrl(etServerUrl.text.toString().trim(), prefs)
-            val username = etUsername.text.toString().trim()
-            val password = etPassword.text.toString().trim()
+            val rawEmail = etEmail.text.toString().trim()
+            val password = etPassword.text.toString() // Không trim mật khẩu
 
-            if (username.isEmpty()) {
-                Toast.makeText(this, "Vui lòng nhập Tên đăng nhập!", Toast.LENGTH_SHORT).show()
+            if (rawEmail.isEmpty()) {
+                Toast.makeText(this, "Vui lòng nhập Email!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (!NetworkConfig.isValidEmail(rawEmail)) {
+                Toast.makeText(this, "Email không hợp lệ! Vui lòng nhập đúng định dạng (VD: user@fnmf.com)", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (password.isEmpty()) {
@@ -68,12 +92,13 @@ class Activity1 : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            prefs.edit().putString("saved_username", username).apply()
+            val normalizedEmail = NetworkConfig.normalizeEmail(rawEmail)
+            prefs.edit().putString(NetworkConfig.KEY_SAVED_EMAIL, normalizedEmail).apply()
 
             btnLogin.isEnabled = false
             btnLogin.text = "Đang đăng nhập..."
 
-            val request = LoginRequest(username = username, password = password)
+            val request = LoginRequest(email = normalizedEmail, password = password)
             RetrofitClient.apiService.login(request).enqueue(object : Callback<AuthResponse> {
                 override fun onResponse(call: Call<AuthResponse>, response: Response<AuthResponse>) {
                     btnLogin.isEnabled = true
@@ -85,7 +110,7 @@ class Activity1 : AppCompatActivity() {
                         Toast.makeText(this@Activity1, "✅ Đăng nhập thành công!", Toast.LENGTH_SHORT).show()
                         navigateToTradingScreen()
                     } else {
-                        val errMsg = response.body()?.message ?: "Tài khoản hoặc mật khẩu không chính xác!"
+                        val errMsg = response.body()?.message ?: "Email hoặc mật khẩu không chính xác!"
                         Toast.makeText(this@Activity1, "❌ $errMsg", Toast.LENGTH_LONG).show()
                     }
                 }
@@ -99,14 +124,18 @@ class Activity1 : AppCompatActivity() {
             })
         }
 
-        // 3. Xử lý ĐĂNG KÝ TÀI KHOẢN MỚI (CHỈ CẦN USERNAME & PASSWORD)
+        // 3. Xử lý ĐĂNG KÝ TÀI KHOẢN MỚI (CHỈ CẦN EMAIL & PASSWORD)
         btnRegister.setOnClickListener {
             val serverUrl = prepareServerUrl(etServerUrl.text.toString().trim(), prefs)
-            val username = etUsername.text.toString().trim()
-            val password = etPassword.text.toString().trim()
+            val rawEmail = etEmail.text.toString().trim()
+            val password = etPassword.text.toString() // Không trim mật khẩu
 
-            if (username.isEmpty()) {
-                Toast.makeText(this, "Vui lòng nhập Tên đăng nhập muốn tạo!", Toast.LENGTH_SHORT).show()
+            if (rawEmail.isEmpty()) {
+                Toast.makeText(this, "Vui lòng nhập Email muốn đăng ký!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (!NetworkConfig.isValidEmail(rawEmail)) {
+                Toast.makeText(this, "Email không hợp lệ! Vui lòng nhập đúng định dạng (VD: user@fnmf.com)", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (password.length < 4) {
@@ -114,15 +143,12 @@ class Activity1 : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            if (username.equals("khoi.pro@fnmf.com", ignoreCase = true)) {
-                Toast.makeText(this, "⚠️ Tài khoản 'khoi.pro@fnmf.com' đã tồn tại! Hãy nhập tên mới (VD: trader1, hung, manh...) để đăng ký.", Toast.LENGTH_LONG).show()
-                return@setOnClickListener
-            }
+            val normalizedEmail = NetworkConfig.normalizeEmail(rawEmail)
 
             btnRegister.isEnabled = false
             btnRegister.text = "Đang tạo tài khoản & cấp ví..."
 
-            val request = RegisterRequest(username = username, password = password)
+            val request = RegisterRequest(email = normalizedEmail, password = password)
             RetrofitClient.apiService.register(request).enqueue(object : Callback<AuthResponse> {
                 override fun onResponse(call: Call<AuthResponse>, response: Response<AuthResponse>) {
                     btnRegister.isEnabled = true
@@ -130,13 +156,13 @@ class Activity1 : AppCompatActivity() {
 
                     val token = response.body()?.token
                     if (response.isSuccessful && !token.isNullOrEmpty()) {
-                        prefs.edit().putString("saved_username", username).apply()
+                        prefs.edit().putString(NetworkConfig.KEY_SAVED_EMAIL, normalizedEmail).apply()
                         saveToken(token)
-                        Toast.makeText(this@Activity1, "🎉 Đăng ký thành công! Đã cấp ví $10,000 USD cho '$username'!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@Activity1, "🎉 Đăng ký thành công! Đã cấp ví $10,000 USD cho '$normalizedEmail'!", Toast.LENGTH_LONG).show()
                         navigateToTradingScreen()
                     } else {
                         val rawErr = response.errorBody()?.string() ?: ""
-                        var cleanErr = "Tài khoản '$username' đã tồn tại!"
+                        var cleanErr = "Email '$normalizedEmail' đã tồn tại!"
                         try {
                             val json = JSONObject(rawErr)
                             if (json.has("message")) {
@@ -148,8 +174,8 @@ class Activity1 : AppCompatActivity() {
                             if (rawErr.isNotBlank()) cleanErr = rawErr
                         }
 
-                        if (cleanErr.contains("tồn tại", ignoreCase = true)) {
-                            cleanErr = "Tên đăng nhập '$username' đã có người sử dụng! Vui lòng chọn tên khác."
+                        if (cleanErr.contains("tồn tại", ignoreCase = true) || cleanErr.contains("already", ignoreCase = true)) {
+                            cleanErr = "Email '$normalizedEmail' đã có người sử dụng! Vui lòng dùng email khác."
                         }
 
                         Toast.makeText(this@Activity1, "❌ $cleanErr", Toast.LENGTH_LONG).show()

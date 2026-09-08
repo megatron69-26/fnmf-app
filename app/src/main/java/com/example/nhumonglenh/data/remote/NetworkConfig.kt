@@ -117,4 +117,101 @@ object NetworkConfig {
             .apply()
         return normalized
     }
+
+    const val KEY_SAVED_EMAIL = "saved_email"
+    const val KEY_SAVED_USERNAME = "saved_username"
+    const val KEY_EMAIL_MIGRATION_DONE = "email_migration_done"
+
+    private val EMAIL_PATTERN = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
+
+    fun isValidEmail(email: String?): Boolean {
+        if (email.isNullOrBlank()) return false
+        return EMAIL_PATTERN.matches(email.trim())
+    }
+
+    fun normalizeEmail(email: String?): String {
+        return email?.trim()?.lowercase(java.util.Locale.ROOT) ?: ""
+    }
+
+    sealed class EmailMigrationResult {
+        data class Migrated(val email: String) : EmailMigrationResult()
+        data class LegacyAccountNeedsUpdate(val legacyUsername: String) : EmailMigrationResult()
+        object AlreadyMigrated : EmailMigrationResult()
+        object NoSavedAccount : EmailMigrationResult()
+    }
+
+    sealed class AccountMigrationDecision {
+        data class MigrateToEmail(val normalizedEmail: String) : AccountMigrationDecision()
+        data class LegacyAccountDetected(val legacyUsername: String) : AccountMigrationDecision()
+        data class UseExistingSavedEmail(val savedEmail: String) : AccountMigrationDecision()
+        object NoActionNeeded : AccountMigrationDecision()
+    }
+
+    /**
+     * Thuật toán quyết định xử lý migration độc lập với Android framework, phục vụ Unit Test.
+     */
+    fun decideAccountMigration(
+        alreadyMigrated: Boolean,
+        savedEmail: String?,
+        savedUsername: String?
+    ): AccountMigrationDecision {
+        if (alreadyMigrated) {
+            return if (!savedEmail.isNullOrBlank()) {
+                AccountMigrationDecision.UseExistingSavedEmail(savedEmail.trim())
+            } else {
+                AccountMigrationDecision.NoActionNeeded
+            }
+        }
+        if (savedUsername.isNullOrBlank()) {
+            return AccountMigrationDecision.NoActionNeeded
+        }
+        val trimmed = savedUsername.trim()
+        return if (isValidEmail(trimmed)) {
+            AccountMigrationDecision.MigrateToEmail(normalizeEmail(trimmed))
+        } else {
+            AccountMigrationDecision.LegacyAccountDetected(trimmed)
+        }
+    }
+
+    /**
+     * Di chuyển SharedPreferences từ saved_username sang saved_email.
+     * Chạy duy nhất một lần.
+     * - Nếu saved_username là email hợp lệ: normalize sang saved_email và xoá saved_username.
+     * - Nếu saved_username là legacy (như khoi10): KHÔNG tự bịa email, KHÔNG autofill, trả về kết quả để hiển thị cảnh báo.
+     */
+    fun migrateSavedAccount(prefs: SharedPreferences): EmailMigrationResult {
+        val alreadyMigrated = prefs.getBoolean(KEY_EMAIL_MIGRATION_DONE, false)
+        val savedEmail = prefs.getString(KEY_SAVED_EMAIL, null)
+        val savedUsername = prefs.getString(KEY_SAVED_USERNAME, null)
+
+        return when (val decision = decideAccountMigration(alreadyMigrated, savedEmail, savedUsername)) {
+            is AccountMigrationDecision.UseExistingSavedEmail -> {
+                EmailMigrationResult.Migrated(decision.savedEmail)
+            }
+            is AccountMigrationDecision.NoActionNeeded -> {
+                if (!alreadyMigrated) {
+                    prefs.edit().putBoolean(KEY_EMAIL_MIGRATION_DONE, true).apply()
+                }
+                if (!savedEmail.isNullOrBlank()) {
+                    EmailMigrationResult.Migrated(savedEmail)
+                } else {
+                    EmailMigrationResult.NoSavedAccount
+                }
+            }
+            is AccountMigrationDecision.MigrateToEmail -> {
+                prefs.edit()
+                    .putString(KEY_SAVED_EMAIL, decision.normalizedEmail)
+                    .remove(KEY_SAVED_USERNAME)
+                    .putBoolean(KEY_EMAIL_MIGRATION_DONE, true)
+                    .apply()
+                EmailMigrationResult.Migrated(decision.normalizedEmail)
+            }
+            is AccountMigrationDecision.LegacyAccountDetected -> {
+                prefs.edit()
+                    .putBoolean(KEY_EMAIL_MIGRATION_DONE, true)
+                    .apply()
+                EmailMigrationResult.LegacyAccountNeedsUpdate(decision.legacyUsername)
+            }
+        }
+    }
 }

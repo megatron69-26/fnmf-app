@@ -1,16 +1,14 @@
 package com.example.nhumonglenh.data.remote
 
 data class LoginRequest(
-    val username: String,
-    val password: String,
-    val email: String = if (username.contains("@")) username else "$username@fnmf.com"
+    val email: String,
+    val password: String
 )
 
 data class RegisterRequest(
-    val username: String,
+    val email: String,
     val password: String,
-    val email: String = if (username.contains("@")) username else "$username@fnmf.com",
-    val fullName: String = username
+    val fullName: String? = null
 )
 
 data class UserDto(
@@ -18,7 +16,10 @@ data class UserDto(
     val email: String? = null,
     val fullName: String? = null,
     val avatarUrl: String? = null,
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    val role: String? = null,
+    val validEmail: Boolean? = null,
+    val needsEmailUpdate: Boolean? = null
 )
 
 data class WalletDto(
