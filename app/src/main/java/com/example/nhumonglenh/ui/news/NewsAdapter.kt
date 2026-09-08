@@ -10,6 +10,8 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.nhumonglenh.databinding.ItemNewsBinding
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class NewsAdapter(
     private val onClick: (News) -> Unit
@@ -37,8 +39,9 @@ class NewsAdapter(
         holder.b.tvSource.text = n.source
         holder.b.tvConfidence.text = "${n.confidence}% tin cậy"
 
-        // Ngày đăng
+        // Ngày đăng: Giữ nguyên timestamp gốc bên trái và định dạng ngày phát hành dễ đọc bên phải
         holder.b.tvDate.text = n.publishedAt
+        holder.b.tvReleaseDate.text = formatReleaseDate(n.publishedAt)
 
         // Tác giả
         val authorName = if (!n.author.isNullOrBlank()) n.author else (if (n.source.isNotBlank()) n.source else "Tổng hợp")
@@ -104,4 +107,37 @@ class NewsAdapter(
     }
 
     override fun getItemCount() = items.size
+
+    companion object {
+        fun formatReleaseDate(rawDate: String?): String {
+            if (rawDate.isNullOrBlank()) return "--"
+            return runCatching {
+                val trimmed = rawDate.trim()
+                val date = when {
+                    trimmed.contains("T") && !trimmed.contains("-") -> {
+                        val fmt = SimpleDateFormat("yyyyMMdd'T'HHmmss", Locale.US)
+                        fmt.isLenient = false
+                        fmt.parse(trimmed)
+                    }
+                    trimmed.contains("-") -> {
+                        val clean = if (trimmed.contains("T")) trimmed.substringBefore("T") else trimmed
+                        val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                        fmt.isLenient = false
+                        fmt.parse(clean)
+                    }
+                    trimmed.length == 8 && trimmed.all { it.isDigit() } -> {
+                        val fmt = SimpleDateFormat("yyyyMMdd", Locale.US)
+                        fmt.isLenient = false
+                        fmt.parse(trimmed)
+                    }
+                    else -> null
+                }
+                if (date != null) {
+                    SimpleDateFormat("dd/MM/yyyy", Locale.US).format(date)
+                } else {
+                    "--"
+                }
+            }.getOrElse { "--" }
+        }
+    }
 }

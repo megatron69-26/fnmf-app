@@ -17,15 +17,32 @@
         android:orientation="vertical"
         android:padding="14dp">
 
-        <!-- Ngày đăng -->
-        <TextView
-            android:id="@+id/tvDate"
+        <!-- Ngày đăng: Timestamp gốc (trái) & Ngày phát hành dễ đọc (phải) -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp"
-            android:textSize="11sp"
-            android:textColor="#777777"
-            tools:text="20260907T090409" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:id="@+id/tvDate"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="11sp"
+                android:textColor="#777777"
+                tools:text="20260908T031438" />
+
+            <TextView
+                android:id="@+id/tvReleaseDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAlignment="viewEnd"
+                android:textSize="11sp"
+                android:textColor="#777777"
+                tools:text="08/09/2026" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tvTitle"
