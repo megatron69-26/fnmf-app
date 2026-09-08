@@ -38,7 +38,7 @@
         android:id="@+id/etServerUrl"
         android:layout_width="match_parent"
         android:layout_height="46dp"
-        android:hint="http://10.174.64.59:8083/"
+        android:hint="https://fnmf-backend-production.up.railway.app/"
         android:textColorHint="#4E5467"
         android:textColor="#00F0FF"
         android:background="#1E222D"

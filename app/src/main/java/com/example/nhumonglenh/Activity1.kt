@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.nhumonglenh.data.remote.AuthResponse
 import com.example.nhumonglenh.data.remote.LoginRequest
+import com.example.nhumonglenh.data.remote.NetworkConfig
 import com.example.nhumonglenh.data.remote.RegisterRequest
 import com.example.nhumonglenh.data.remote.RetrofitClient
 import org.json.JSONObject
@@ -40,9 +41,9 @@ class Activity1 : AppCompatActivity() {
         val btnLogin = findViewById<Button>(R.id.btnLogin)
         val btnRegister = findViewById<Button>(R.id.btnRegister)
 
-        // 1. Tải cấu hình Server URL đã lưu
-        val prefs = getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        val savedServerUrl = com.example.nhumonglenh.data.remote.NetworkConfig.getServerUrl(this)
+        // 1. Tải cấu hình Server URL đã lưu và tự động migrate sang Railway Cloud
+        val prefs = getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
+        val savedServerUrl = NetworkConfig.getOrMigrateServerUrl(prefs)
         RetrofitClient.updateBaseUrl(savedServerUrl)
         val savedUsername = prefs.getString("saved_username", "") ?: ""
         
@@ -81,7 +82,7 @@ class Activity1 : AppCompatActivity() {
                     val token = response.body()?.token
                     if (response.isSuccessful && !token.isNullOrEmpty()) {
                         saveToken(token)
-                        Toast.makeText(this@Activity1, "✅ Đăng nhập kết nối Laptop thành công!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@Activity1, "✅ Đăng nhập thành công!", Toast.LENGTH_SHORT).show()
                         navigateToTradingScreen()
                     } else {
                         val errMsg = response.body()?.message ?: "Tài khoản hoặc mật khẩu không chính xác!"
@@ -93,8 +94,7 @@ class Activity1 : AppCompatActivity() {
                     btnLogin.isEnabled = true
                     btnLogin.text = "ĐĂNG NHẬP VÀO SÀN"
                     Log.e(TAG, "Lỗi kết nối login: ${t.message}")
-                    Toast.makeText(this@Activity1, "⚠️ Chế độ Offline: Không kết nối được Server (${t.message})", Toast.LENGTH_SHORT).show()
-                    navigateToTradingScreen()
+                    Toast.makeText(this@Activity1, "❌ Không thể kết nối tới Server: ${t.message}", Toast.LENGTH_LONG).show()
                 }
             })
         }
@@ -167,20 +167,13 @@ class Activity1 : AppCompatActivity() {
     }
 
     private fun prepareServerUrl(rawUrl: String, prefs: android.content.SharedPreferences): String {
-        var serverUrl = rawUrl
-        if (serverUrl.isEmpty()) {
-            serverUrl = "http://172.18.97.109:8083/"
-        }
-        if (!serverUrl.endsWith("/")) {
-            serverUrl += "/"
-        }
-        prefs.edit().putString("server_url", serverUrl).apply()
+        val serverUrl = NetworkConfig.saveUserConfiguredUrl(prefs, rawUrl)
         RetrofitClient.updateBaseUrl(serverUrl)
         return serverUrl
     }
 
     private fun saveToken(token: String) {
-        val prefs = getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putString("jwt_token", token).apply()
     }
 

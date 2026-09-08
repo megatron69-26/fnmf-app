@@ -13,11 +13,9 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
 
     /**
-     * Cấu hình Base URL:
-     * - Máy chủ Laptop Khôi (Wi-Fi LAN IP): http://10.174.64.109:8083/
-     * - Khi cắm cáp USB vào máy tính (dùng adb reverse): http://localhost:8083/
+     * Cấu hình Base URL mặc định trỏ đến Railway Cloud Backend
      */
-    var BASE_URL = "http://172.18.97.109:8083/"
+    var BASE_URL = NetworkConfig.DEFAULT_SERVER_URL
         private set
 
     private var currentRetrofit: Retrofit? = null
@@ -36,13 +34,15 @@ object RetrofitClient {
         .build()
 
     /**
-     * Cập nhật địa chỉ Server mới khi chuyển sang Laptop Khôi hoặc Cloudflare
+     * Cập nhật địa chỉ Server mới
      */
     fun updateBaseUrl(newUrl: String) {
-        val formatted = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
-        BASE_URL = formatted
-        currentRetrofit = null
-        currentApiService = null
+        val formatted = NetworkConfig.normalizeUrl(newUrl)
+        if (BASE_URL != formatted || currentApiService == null) {
+            BASE_URL = formatted
+            currentRetrofit = null
+            currentApiService = null
+        }
     }
 
     val apiService: ApiService
