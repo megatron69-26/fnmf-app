@@ -13,6 +13,7 @@ import com.example.nhumonglenh.ui.trading.RequestFlightTracker
 import com.example.nhumonglenh.ui.trading.SubmissionGuard
 import com.example.nhumonglenh.ui.trading.TradingDataReadiness
 import com.example.nhumonglenh.ui.trading.TradingStateRestoration
+import com.example.nhumonglenh.ui.watchlist.WatchlistRoomSyncPolicy
 import org.junit.Assert.*
 import org.junit.Test
 import java.io.File
@@ -496,5 +497,181 @@ class TradingPolishUnitTest {
         assertEquals("BTCUSDT", TradingStateRestoration.resolveInitialSymbol(null))
         assertEquals("BTCUSDT", TradingStateRestoration.resolveInitialSymbol(""))
         assertEquals("BTCUSDT", TradingStateRestoration.resolveInitialSymbol("   "))
+    }
+
+    // -------------------------------------------------------------
+    // 17. MARKET STREAM HELPER & BINANCE VISION DOMAIN
+    // -------------------------------------------------------------
+    @Test
+    fun testMarketStreamHelper_binanceVisionWebSocketUrl() {
+        assertEquals(
+            "wss://data-stream.binance.vision:443/ws/",
+            MarketStreamHelper.DEFAULT_BINANCE_WS_BASE_URL
+        )
+
+        // BTC stream
+        val btcStream = MarketStreamHelper.resolveWebSocketStream("BTCUSDT")
+        assertEquals("btcusdt@kline_1s", btcStream)
+        val btcUrl = MarketStreamHelper.buildWebSocketUrl(btcStream!!)
+        assertEquals("wss://data-stream.binance.vision:443/ws/btcusdt@kline_1s", btcUrl)
+
+        // ETH stream
+        val ethStream = MarketStreamHelper.resolveWebSocketStream("ETHUSDT")
+        assertEquals("ethusdt@kline_1s", ethStream)
+        val ethUrl = MarketStreamHelper.buildWebSocketUrl(ethStream!!)
+        assertEquals("wss://data-stream.binance.vision:443/ws/ethusdt@kline_1s", ethUrl)
+
+        // XAU reference stream (PAXG)
+        val xauStream = MarketStreamHelper.resolveWebSocketStream("XAUUSD")
+        assertEquals("paxgusdt@kline_1s", xauStream)
+        val xauUrl = MarketStreamHelper.buildWebSocketUrl(xauStream!!)
+        assertEquals("wss://data-stream.binance.vision:443/ws/paxgusdt@kline_1s", xauUrl)
+
+        // Unsupported symbols return null
+        assertNull(MarketStreamHelper.resolveWebSocketStream("USOIL"))
+        assertNull(MarketStreamHelper.resolveWebSocketStream("UNKNOWN"))
+
+        // Custom base URL with or without trailing slash
+        val customUrl1 = MarketStreamHelper.buildWebSocketUrl("test@stream", "wss://custom.domain/ws")
+        assertEquals("wss://custom.domain/ws/test@stream", customUrl1)
+        val customUrl2 = MarketStreamHelper.buildWebSocketUrl("/test@stream", "wss://custom.domain/ws/")
+        assertEquals("wss://custom.domain/ws/test@stream", customUrl2)
+    }
+
+    @Test
+    fun testMarketStreamHelper_goldReferenceDetection() {
+        assertTrue(MarketStreamHelper.isGoldReferenceStream("XAUUSD"))
+        assertTrue(MarketStreamHelper.isGoldReferenceStream("XAU"))
+        assertTrue(MarketStreamHelper.isGoldReferenceStream("PAXGUSDT"))
+        assertFalse(MarketStreamHelper.isGoldReferenceStream("BTCUSDT"))
+        assertFalse(MarketStreamHelper.isGoldReferenceStream("ETHUSDT"))
+        assertFalse(MarketStreamHelper.isGoldReferenceStream("USOIL"))
+    }
+
+    // -------------------------------------------------------------
+    // 18. BINANCE WS DOMAIN PRODUCTION SANITY AUDIT
+    // -------------------------------------------------------------
+    @Test
+    fun testStaticSanityAudit_verifiesBinanceVisionWebSocketUsage() {
+        val projectDirs = listOf(
+            File("src/main/java/com/example/nhumonglenh"),
+            File("app/src/main/java/com/example/nhumonglenh"),
+            File("C:/Users/khoid/OneDrive/Desktop/FNMF_Manh_Test/app/src/main/java/com/example/nhumonglenh")
+        )
+        val sourceDir = projectDirs.firstOrNull { it.exists() && it.isDirectory } ?: return
+
+        val tradingFile = File(sourceDir, "TradingFragment.kt")
+        if (tradingFile.exists()) {
+            val content = tradingFile.readText()
+            // Không hardcode stream.binance.com:9443
+            assertFalse("TradingFragment must not contain stream.binance.com:9443", content.contains("stream.binance.com:9443"))
+            // Sử dụng MarketStreamHelper.buildWebSocketUrl
+            assertTrue("TradingFragment must use MarketStreamHelper.buildWebSocketUrl", content.contains("MarketStreamHelper.buildWebSocketUrl"))
+            // Xử lý 401/403 bằng AuthSessionManager.handleUnauthorized
+            assertTrue("TradingFragment must call AuthSessionManager.handleUnauthorized", content.contains("AuthSessionManager.handleUnauthorized"))
+        }
+
+        val watchlistFile = File(sourceDir, "ui/watchlist/WatchlistFragment.kt")
+        val policyFile = File(sourceDir, "ui/watchlist/WatchlistRoomSyncPolicy.kt")
+        if (watchlistFile.exists()) {
+            val content = watchlistFile.readText()
+            val policyContent = if (policyFile.exists()) policyFile.readText() else ""
+            val combined = content + "\n" + policyContent
+            // Xử lý 503 thông báo dữ liệu thị trường tạm thời không khả dụng
+            assertTrue("Watchlist policy must handle 503 with proper message", combined.contains("Nguồn dữ liệu thị trường tạm thời không khả dụng"))
+            // Sử dụng WatchlistRoomSyncPolicy
+            assertTrue("WatchlistFragment must use WatchlistRoomSyncPolicy", content.contains("WatchlistRoomSyncPolicy"))
+            // Gọi AuthSessionManager.handleUnauthorized
+            assertTrue("WatchlistFragment must call AuthSessionManager.handleUnauthorized", content.contains("AuthSessionManager.handleUnauthorized"))
+        }
+    }
+
+    // -------------------------------------------------------------
+    // 19. WATCHLIST ROOM SYNC POLICY DIRECT UNIT TESTS
+    // -------------------------------------------------------------
+    @Test
+    fun testWatchlistRoomSyncPolicy_http200_syncsRoomEvenIfEmpty() {
+        // Case A: HTTP 200 with non-empty list -> Must SYNC_ROOM and clearAndInsert
+        val decisionNonEmpty = WatchlistRoomSyncPolicy.evaluate(
+            statusCode = 200,
+            isSuccessful = true,
+            itemCount = 5
+        )
+        assertEquals(WatchlistRoomSyncPolicy.Action.SYNC_ROOM, decisionNonEmpty.action)
+        assertTrue(decisionNonEmpty.shouldClearAndInsert)
+        assertTrue(decisionNonEmpty.reason.contains("Đồng bộ Room DB"))
+
+        // Case B: HTTP 200 with EMPTY list ([]) -> CRITICAL: Must SYNC_ROOM to clear phantom watchlist
+        val decisionEmpty = WatchlistRoomSyncPolicy.evaluate(
+            statusCode = 200,
+            isSuccessful = true,
+            itemCount = 0
+        )
+        assertEquals(WatchlistRoomSyncPolicy.Action.SYNC_ROOM, decisionEmpty.action)
+        assertTrue(decisionEmpty.shouldClearAndInsert)
+        assertTrue(decisionEmpty.reason.contains("0 mục"))
+
+        // Case C: HTTP 200 with null itemCount -> Fallbacks to 0 items, still SYNC_ROOM
+        val decisionNullCount = WatchlistRoomSyncPolicy.evaluate(
+            statusCode = 200,
+            isSuccessful = true,
+            itemCount = null
+        )
+        assertEquals(WatchlistRoomSyncPolicy.Action.SYNC_ROOM, decisionNullCount.action)
+        assertTrue(decisionNullCount.shouldClearAndInsert)
+
+        // Case D: Direct outcome evaluation with HttpSuccess
+        val outcomeEmpty = WatchlistRoomSyncPolicy.evaluateOutcome(
+            WatchlistRoomSyncPolicy.ResponseOutcome.HttpSuccess(200, 0)
+        )
+        assertEquals(WatchlistRoomSyncPolicy.Action.SYNC_ROOM, outcomeEmpty.action)
+        assertTrue(outcomeEmpty.shouldClearAndInsert)
+    }
+
+    @Test
+    fun testWatchlistRoomSyncPolicy_errors_preserveCache() {
+        // Case A: HTTP 503 Market Data Unavailable -> KEEP_CACHE, do not clear
+        val decision503 = WatchlistRoomSyncPolicy.evaluate(
+            statusCode = 503,
+            isSuccessful = false,
+            itemCount = null
+        )
+        assertEquals(WatchlistRoomSyncPolicy.Action.KEEP_CACHE, decision503.action)
+        assertFalse(decision503.shouldClearAndInsert)
+        assertTrue(decision503.reason.contains("Nguồn dữ liệu thị trường tạm thời không khả dụng"))
+
+        // Case B: HTTP 500 Server Error -> KEEP_CACHE
+        val decision500 = WatchlistRoomSyncPolicy.evaluate(
+            statusCode = 500,
+            isSuccessful = false,
+            itemCount = null
+        )
+        assertEquals(WatchlistRoomSyncPolicy.Action.KEEP_CACHE, decision500.action)
+        assertFalse(decision500.shouldClearAndInsert)
+        assertTrue(decision500.reason.contains("500"))
+
+        // Case C: HTTP 401 Unauthorized -> KEEP_CACHE
+        val decision401 = WatchlistRoomSyncPolicy.evaluate(
+            statusCode = 401,
+            isSuccessful = false,
+            itemCount = null
+        )
+        assertEquals(WatchlistRoomSyncPolicy.Action.KEEP_CACHE, decision401.action)
+        assertFalse(decision401.shouldClearAndInsert)
+
+        // Case D: Network failure (IOException / timeout) -> KEEP_CACHE
+        val timeoutEx = java.net.SocketTimeoutException("Failed to connect to backend")
+        val networkDecision = WatchlistRoomSyncPolicy.evaluateNetworkFailure(timeoutEx)
+        assertEquals(WatchlistRoomSyncPolicy.Action.KEEP_CACHE, networkDecision.action)
+        assertFalse(networkDecision.shouldClearAndInsert)
+        assertTrue(networkDecision.reason.contains("Failed to connect to backend"))
+
+        // Case E: Direct outcome evaluation with NetworkError
+        val outcomeNetwork = WatchlistRoomSyncPolicy.evaluateOutcome(
+            WatchlistRoomSyncPolicy.ResponseOutcome.NetworkError(java.io.IOException("No route to host"))
+        )
+        assertEquals(WatchlistRoomSyncPolicy.Action.KEEP_CACHE, outcomeNetwork.action)
+        assertFalse(outcomeNetwork.shouldClearAndInsert)
+        assertTrue(outcomeNetwork.reason.contains("No route to host"))
     }
 }

@@ -19,6 +19,14 @@ object AuthHeaderFactory {
  * Các symbol khác (ví dụ: USOIL) trả về null để không fallback nhầm vào BTC.
  */
 object MarketStreamHelper {
+    const val DEFAULT_BINANCE_WS_BASE_URL = "wss://data-stream.binance.vision:443/ws/"
+
+    fun buildWebSocketUrl(streamName: String, baseUrl: String = DEFAULT_BINANCE_WS_BASE_URL): String {
+        val normalizedBase = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
+        val cleanStream = if (streamName.startsWith("/")) streamName.substring(1) else streamName
+        return "$normalizedBase$cleanStream"
+    }
+
     fun resolveWebSocketStream(symbol: String): String? {
         val sym = symbol.uppercase().trim()
         return when {

@@ -178,21 +178,28 @@ class WatchlistFragment : Fragment() {
                     return
                 }
 
-                if (response.isSuccessful) {
+                val body = response.body()
+                val syncDecision = WatchlistRoomSyncPolicy.evaluate(
+                    statusCode = response.code(),
+                    isSuccessful = response.isSuccessful,
+                    itemCount = body?.size
+                )
+
+                if (syncDecision.action == WatchlistRoomSyncPolicy.Action.SYNC_ROOM) {
                     lastFetchTime = System.currentTimeMillis()
                     isCurrentlyOffline = false
                     tvWatchlistStatus?.text = "● LIVE"
                     tvWatchlistStatus?.setTextColor(Color.parseColor("#089981"))
                     tvOfflineNotice?.visibility = View.GONE
 
-                    val body = response.body() ?: emptyList()
-                    if (body.isEmpty()) {
+                    val items = body ?: emptyList()
+                    if (items.isEmpty()) {
                         tvEmptyWatchlist?.visibility = View.VISIBLE
-                        tvEmptyWatchlist?.text = "Danh mục theo dõi trống.\\nBấm '+ Thêm' để theo dõi mã tài sản."
+                        tvEmptyWatchlist?.text = "Danh mục theo dõi trống.\nBấm '+ Thêm' để theo dõi mã tài sản."
                         adapter?.updateData(emptyList())
                     } else {
                         tvEmptyWatchlist?.visibility = View.GONE
-                        val uiItems = body.map { dto ->
+                        val uiItems = items.map { dto ->
                             WatchlistUiModel(
                                 symbol = dto.symbol,
                                 fullName = dto.name ?: getFriendlyName(dto.symbol),
@@ -204,11 +211,11 @@ class WatchlistFragment : Fragment() {
                         adapter?.updateData(uiItems)
                     }
 
-                    // Lưu cache ngầm vào Room DB theo userEmail bằng atomic transaction
+                    // Đồng bộ Room DB theo kết quả server (kể cả danh sách rỗng [] để tránh Watchlist ma khi xóa trên máy khác)
                     viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                         try {
                             val db = AppDatabase.getInstance(appContext)
-                            val itemsToCache = body.map { item ->
+                            val itemsToCache = items.map { item ->
                                 WatchlistItem(
                                     item.symbol,
                                     item.currentPrice,
@@ -222,7 +229,7 @@ class WatchlistFragment : Fragment() {
                         }
                     }
                 } else {
-                    loadFromRoomCache(appContext, userEmail, "Lỗi máy chủ (" + response.code() + ")")
+                    loadFromRoomCache(appContext, userEmail, syncDecision.reason)
                 }
             }
 
@@ -230,7 +237,8 @@ class WatchlistFragment : Fragment() {
                 activeWatchlistCall = null
                 if (call.isCanceled || !isAdded || view == null) return
                 pbWatchlist?.visibility = View.GONE
-                loadFromRoomCache(appContext, userEmail, "Không thể kết nối máy chủ: " + t.message)
+                val networkDecision = WatchlistRoomSyncPolicy.evaluateNetworkFailure(t)
+                loadFromRoomCache(appContext, userEmail, networkDecision.reason)
             }
         })
     }

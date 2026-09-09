@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.setFragmentResultListener
+import com.example.nhumonglenh.data.local.AuthSessionManager
 import com.example.nhumonglenh.data.remote.CandleDto
 import com.example.nhumonglenh.data.remote.HoldingDto
 import com.example.nhumonglenh.data.remote.PortfolioSummaryDto
@@ -320,6 +321,19 @@ class TradingFragment : Fragment() {
                     if (call.isCanceled || !isAdded || _binding == null) return
                     setLoadingState(false)
 
+                    if (response.code() == 401 || response.code() == 403) {
+                        AuthSessionManager.handleUnauthorized(activity)
+                        return
+                    }
+
+                    if (response.code() == 503) {
+                        context?.let { ctx ->
+                            Toast.makeText(ctx, "Nguồn dữ liệu thị trường tạm thời không khả dụng", Toast.LENGTH_SHORT).show()
+                        }
+                        handleCandleLoadFallback(symbol)
+                        return
+                    }
+
                     val candles = response.body()
                     if (response.isSuccessful && !candles.isNullOrEmpty()) {
                         renderCandleChart(candles, symbol)
@@ -443,8 +457,9 @@ class TradingFragment : Fragment() {
      * Kết nối Binance Public WebSocket API
      */
     private fun connectBinanceStream(streamName: String) {
+        val streamUrl = MarketStreamHelper.buildWebSocketUrl(streamName)
         val request = Request.Builder()
-            .url("wss://stream.binance.com:9443/ws/$streamName")
+            .url(streamUrl)
             .build()
 
         binanceWebSocket = okHttpClient.newWebSocket(request, object : WebSocketListener() {
@@ -655,6 +670,10 @@ class TradingFragment : Fragment() {
             override fun onResponse(call: Call<PortfolioSummaryDto>, response: Response<PortfolioSummaryDto>) {
                 try {
                     if (call.isCanceled || !isAdded || _binding == null) return
+                    if (response.code() == 401 || response.code() == 403) {
+                        AuthSessionManager.handleUnauthorized(activity)
+                        return
+                    }
                     val p = response.body()
                     if (response.isSuccessful && p != null) {
                         // Giữ đúng số dư thật của backend, không gán số dư giả
@@ -699,6 +718,10 @@ class TradingFragment : Fragment() {
             override fun onResponse(call: Call<PortfolioSummaryDto>, response: Response<PortfolioSummaryDto>) {
                 try {
                     if (call.isCanceled || !isAdded || _binding == null) return
+                    if (response.code() == 401 || response.code() == 403) {
+                        AuthSessionManager.handleUnauthorized(activity)
+                        return
+                    }
                     val p = response.body()
                     if (response.isSuccessful && p != null) {
                         if (p.cashBalanceUsd != null) {
