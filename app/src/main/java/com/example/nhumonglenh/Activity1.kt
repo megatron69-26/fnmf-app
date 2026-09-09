@@ -22,9 +22,9 @@ import retrofit2.Response
  * =====================================================================
  * ACTIVITY 1 - MÀN HÌNH ĐĂNG NHẬP & ĐĂNG KÝ (AUTH ENTRYPOINT)
  * =====================================================================
- * 1. ĐĂNG NHẬP (LOGIN): Dùng Username & Password
- * 2. ĐĂNG KÝ (REGISTER): Chỉ cần Username & Password -> Tự cấp ví $10,000 USD
- * 3. SERVER CONFIG: Cho phép chỉnh sửa và lưu Server IP Laptop linh hoạt
+ * 1. ĐĂNG NHẬP (LOGIN): Dùng Email & Password
+ * 2. ĐĂNG KÝ (REGISTER): Chỉ cần Email & Password -> Tự cấp ví $10,000 USD
+ * 3. KẾT NỐI: Luôn sử dụng Railway Cloud Backend của bản production
  * =====================================================================
  */
 class Activity1 : AppCompatActivity() {
@@ -35,17 +35,14 @@ class Activity1 : AppCompatActivity() {
         setContentView(R.layout.layout_activity1)
         Log.d(TAG, "Activity1 onCreate")
 
-        val etServerUrl = findViewById<EditText>(R.id.etServerUrl)
         val etEmail = findViewById<EditText>(R.id.etEmail)
         val etPassword = findViewById<EditText>(R.id.etPassword)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
         val btnRegister = findViewById<Button>(R.id.btnRegister)
 
-        // 1. Tải cấu hình Server URL đã lưu và tự động migrate sang Railway Cloud
+        // 1. Khóa ứng dụng vào Railway Cloud và dọn URL LAN/custom đã lưu từ bản cũ.
         val prefs = getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
-        val savedServerUrl = NetworkConfig.getOrMigrateServerUrl(prefs)
-        RetrofitClient.updateBaseUrl(savedServerUrl)
-        etServerUrl.setText(savedServerUrl)
+        RetrofitClient.updateBaseUrl(NetworkConfig.getOrMigrateServerUrl(prefs))
 
         // Di chuyển SharedPreferences từ saved_username sang saved_email (chạy đúng 1 lần)
         when (val migration = NetworkConfig.migrateSavedAccount(prefs)) {
@@ -83,7 +80,6 @@ class Activity1 : AppCompatActivity() {
 
         // 2. Xử lý ĐĂNG NHẬP
         btnLogin.setOnClickListener {
-            val serverUrl = prepareServerUrl(etServerUrl.text.toString().trim(), prefs)
             val rawEmail = etEmail.text.toString().trim()
             val password = etPassword.text.toString() // Không trim mật khẩu
 
@@ -134,7 +130,6 @@ class Activity1 : AppCompatActivity() {
 
         // 3. Xử lý ĐĂNG KÝ TÀI KHOẢN MỚI (CHỈ CẦN EMAIL & PASSWORD)
         btnRegister.setOnClickListener {
-            val serverUrl = prepareServerUrl(etServerUrl.text.toString().trim(), prefs)
             val rawEmail = etEmail.text.toString().trim()
             val password = etPassword.text.toString() // Không trim mật khẩu
 
@@ -198,12 +193,6 @@ class Activity1 : AppCompatActivity() {
                 }
             })
         }
-    }
-
-    private fun prepareServerUrl(rawUrl: String, prefs: android.content.SharedPreferences): String {
-        val serverUrl = NetworkConfig.saveUserConfiguredUrl(prefs, rawUrl)
-        RetrofitClient.updateBaseUrl(serverUrl)
-        return serverUrl
     }
 
     private fun saveToken(token: String) {

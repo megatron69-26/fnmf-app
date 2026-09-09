@@ -24,29 +24,7 @@
         android:textSize="13sp"
         android:layout_marginBottom="24dp"/>
 
-    <!-- 1. MÁY CHỦ IP -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="MÁY CHỦ BACKEND (SERVER IP):"
-        android:textColor="#089981"
-        android:textSize="11sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="4dp"/>
-
-    <EditText
-        android:id="@+id/etServerUrl"
-        android:layout_width="match_parent"
-        android:layout_height="46dp"
-        android:hint="https://fnmf-backend-production.up.railway.app/"
-        android:textColorHint="#4E5467"
-        android:textColor="#00F0FF"
-        android:background="#1E222D"
-        android:padding="10dp"
-        android:textSize="13sp"
-        android:layout_marginBottom="12dp"/>
-
-    <!-- 2. EMAIL -->
+    <!-- 1. EMAIL -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -70,7 +48,7 @@
         android:textSize="14sp"
         android:layout_marginBottom="12dp"/>
 
-    <!-- 3. PASSWORD -->
+    <!-- 2. PASSWORD -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -94,7 +72,7 @@
         android:textSize="14sp"
         android:layout_marginBottom="20dp"/>
 
-    <!-- 4. NÚT ĐĂNG NHẬP -->
+    <!-- 3. NÚT ĐĂNG NHẬP -->
     <Button
         android:id="@+id/btnLogin"
         android:layout_width="match_parent"
@@ -105,7 +83,7 @@
         android:textColor="#FFFFFF"
         android:layout_marginBottom="10dp"/>
 
-    <!-- 5. NÚT ĐĂNG KÝ MỚI -->
+    <!-- 4. NÚT ĐĂNG KÝ MỚI -->
     <Button
         android:id="@+id/btnRegister"
         android:layout_width="match_parent"

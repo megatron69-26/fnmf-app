@@ -17,7 +17,7 @@ object NetworkConfig {
     const val KEY_CONFIG_VERSION = "server_config_version"
 
     const val DEFAULT_SERVER_URL = "https://fnmf-backend-production.up.railway.app/"
-    const val SERVER_CONFIG_VERSION = 2
+    const val SERVER_CONFIG_VERSION = 3
 
     val LEGACY_HOSTS = listOf(
         "172.18.97.109",
@@ -59,23 +59,11 @@ object NetworkConfig {
     }
 
     /**
-     * Hàm thuần tuý (pure function) quyết định Server URL và Config Version mới.
-     * Hoàn toàn độc lập với Android Context, cho phép chạy 100% trên JVM Unit Test.
+     * Bản production chỉ sử dụng Railway Cloud. Mọi URL đã lưu từ các bản cũ,
+     * bao gồm URL LAN và URL tuỳ chỉnh, đều được thay bằng URL chính thức.
      */
     fun decideServerUrl(savedUrl: String?, savedConfigVersion: Int): Pair<String, Int> {
-        if (savedUrl.isNullOrBlank()) {
-            return Pair(DEFAULT_SERVER_URL, SERVER_CONFIG_VERSION)
-        }
-
-        val trimmed = savedUrl.trim()
-
-        // Nếu URL chứa legacy LAN/emulator target hoặc chuỗi URL không hợp lệ:
-        if (isLegacyUrl(trimmed) || !isValidUrl(trimmed)) {
-            return Pair(DEFAULT_SERVER_URL, SERVER_CONFIG_VERSION)
-        }
-
-        // URL tuỳ chỉnh hợp lệ (ví dụ: custom HTTPS server)
-        return Pair(normalizeUrl(trimmed), maxOf(savedConfigVersion, SERVER_CONFIG_VERSION))
+        return Pair(DEFAULT_SERVER_URL, SERVER_CONFIG_VERSION)
     }
 
     /**
@@ -104,18 +92,6 @@ object NetworkConfig {
     fun getServerUrl(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return getOrMigrateServerUrl(prefs)
-    }
-
-    /**
-     * Lưu URL khi người dùng tự nhập trong màn hình đăng nhập và gán version mới nhất.
-     */
-    fun saveUserConfiguredUrl(prefs: SharedPreferences, url: String): String {
-        val normalized = if (url.isBlank()) DEFAULT_SERVER_URL else normalizeUrl(url)
-        prefs.edit()
-            .putString(KEY_SERVER_URL, normalized)
-            .putInt(KEY_CONFIG_VERSION, SERVER_CONFIG_VERSION)
-            .apply()
-        return normalized
     }
 
     const val KEY_SAVED_EMAIL = "saved_email"

@@ -11,22 +11,22 @@ class NetworkConfigUnitTest {
     @Test
     fun testDefaultServerUrl() {
         assertEquals("https://fnmf-backend-production.up.railway.app/", NetworkConfig.DEFAULT_SERVER_URL)
-        assertEquals(2, NetworkConfig.SERVER_CONFIG_VERSION)
+        assertEquals(3, NetworkConfig.SERVER_CONFIG_VERSION)
     }
 
     @Test
     fun testDecideServerUrl_nullOrBlank() {
         val (url1, ver1) = NetworkConfig.decideServerUrl(null, 0)
         assertEquals(NetworkConfig.DEFAULT_SERVER_URL, url1)
-        assertEquals(2, ver1)
+        assertEquals(3, ver1)
 
         val (url2, ver2) = NetworkConfig.decideServerUrl("", 0)
         assertEquals(NetworkConfig.DEFAULT_SERVER_URL, url2)
-        assertEquals(2, ver2)
+        assertEquals(3, ver2)
 
         val (url3, ver3) = NetworkConfig.decideServerUrl("   ", 1)
         assertEquals(NetworkConfig.DEFAULT_SERVER_URL, url3)
-        assertEquals(2, ver3)
+        assertEquals(3, ver3)
     }
 
     @Test
@@ -47,30 +47,29 @@ class NetworkConfigUnitTest {
         for (legacy in legacyUrls) {
             val (resolved, ver) = NetworkConfig.decideServerUrl(legacy, 0)
             assertEquals("Legacy target should migrate to Railway: $legacy", NetworkConfig.DEFAULT_SERVER_URL, resolved)
-            assertEquals(2, ver)
+            assertEquals(3, ver)
         }
     }
 
     @Test
-    fun testDecideServerUrl_validCustomHttps() {
+    fun testDecideServerUrl_customHttpsIsReplacedByProductionCloud() {
         val custom1 = "https://custom-domain.example.com/"
         val (url1, ver1) = NetworkConfig.decideServerUrl(custom1, 0)
-        assertEquals("https://custom-domain.example.com/", url1)
-        assertEquals(2, ver1)
+        assertEquals(NetworkConfig.DEFAULT_SERVER_URL, url1)
+        assertEquals(3, ver1)
 
-        // Trailing slash added if missing
         val custom2 = "https://custom-domain.example.com"
         val (url2, ver2) = NetworkConfig.decideServerUrl(custom2, 0)
-        assertEquals("https://custom-domain.example.com/", url2)
-        assertEquals(2, ver2)
+        assertEquals(NetworkConfig.DEFAULT_SERVER_URL, url2)
+        assertEquals(3, ver2)
     }
 
     @Test
-    fun testDecideServerUrl_versionAlready2() {
+    fun testDecideServerUrl_oldConfiguredVersionIsReplaced() {
         val custom = "https://my-cloud-api.org/"
         val (url, ver) = NetworkConfig.decideServerUrl(custom, 2)
-        assertEquals("https://my-cloud-api.org/", url)
-        assertEquals(2, ver)
+        assertEquals(NetworkConfig.DEFAULT_SERVER_URL, url)
+        assertEquals(3, ver)
     }
 
     @Test
@@ -85,7 +84,7 @@ class NetworkConfigUnitTest {
         for (invalid in invalidInputs) {
             val (resolved, ver) = NetworkConfig.decideServerUrl(invalid, 0)
             assertEquals("Invalid input should fallback to Railway: $invalid", NetworkConfig.DEFAULT_SERVER_URL, resolved)
-            assertEquals(2, ver)
+            assertEquals(3, ver)
         }
     }
 
