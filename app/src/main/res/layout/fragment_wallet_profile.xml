@@ -349,6 +349,144 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
+                <!-- 2.1 Card Nạp / Rút tiền Sandbox (Architecture Showcase) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_sandbox_banking"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="8dp"
+                    android:layout_marginBottom="8dp"
+                    app:cardBackgroundColor="@color/tv_surface"
+                    app:cardCornerRadius="10dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="#2A2E39"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <!-- Warning Sandbox Badge -->
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="#2E2405"
+                            android:paddingHorizontal="10dp"
+                            android:paddingVertical="6dp"
+                            android:gravity="center"
+                            android:text="⚠️ MÔI TRƯỜNG SANDBOX — KHÔNG PHẢI TIỀN THẬT"
+                            android:textColor="#FDE047"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="10dp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="10dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="CỔNG NẠP/RÚT TIỀN SANDBOX"
+                                android:textColor="@color/tv_text_primary"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.04" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_refresh_payments"
+                                style="@style/Widget.MaterialComponents.Button.TextButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="28dp"
+                                android:minWidth="0dp"
+                                android:minHeight="0dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:paddingHorizontal="6dp"
+                                android:text="Làm mới"
+                                android:textSize="11sp"
+                                android:textColor="@color/tv_blue" />
+                        </LinearLayout>
+
+                        <!-- Buttons: NẠP TIỀN & RÚT TIỀN -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_marginBottom="12dp">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_sandbox_deposit"
+                                android:layout_width="0dp"
+                                android:layout_height="42dp"
+                                android:layout_weight="1"
+                                android:layout_marginEnd="6dp"
+                                android:backgroundTint="@color/tv_green"
+                                android:text="+ NẠP TIỀN"
+                                android:textColor="#022C22"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                app:cornerRadius="8dp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_sandbox_withdraw"
+                                android:layout_width="0dp"
+                                android:layout_height="42dp"
+                                android:layout_weight="1"
+                                android:layout_marginStart="6dp"
+                                android:backgroundTint="#EF4444"
+                                android:text="- RÚT TIỀN"
+                                android:textColor="#450A0A"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                app:cornerRadius="8dp" />
+                        </LinearLayout>
+
+                        <!-- Lịch sử giao dịch Sandbox -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="LỊCH SỬ NẠP/RÚT GẦN NHẤT"
+                            android:textColor="@color/tv_text_secondary"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.04"
+                            android:layout_marginBottom="6dp" />
+
+                        <ProgressBar
+                            android:id="@+id/pb_payments_loading"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_horizontal"
+                            android:layout_marginVertical="8dp"
+                            android:visibility="gone" />
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rv_payments"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:nestedScrollingEnabled="false" />
+
+                        <TextView
+                            android:id="@+id/tv_payments_empty"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:paddingVertical="10dp"
+                            android:text="Chưa có giao dịch nạp/rút nào"
+                            android:textColor="@color/tv_text_secondary"
+                            android:textSize="12sp"
+                            android:visibility="gone" />
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
                 <!-- 3. Danh mục đang nắm giữ (Holdings) -->
                 <TextView
                     android:layout_width="wrap_content"

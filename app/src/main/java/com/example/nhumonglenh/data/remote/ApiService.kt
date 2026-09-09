@@ -88,4 +88,34 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Path("symbol") symbol: String
     ): Call<Map<String, String>>
+
+    // 10. Sandbox Banking: Nạp / Rút tiền mô phỏng (Architecture Showcase)
+    @POST("/api/payments/deposits")
+    fun createDeposit(
+        @Header("Authorization") token: String,
+        @Body request: CreatePaymentRequest
+    ): Call<PaymentOrderDto>
+
+    @POST("/api/payments/withdrawals")
+    fun createWithdrawal(
+        @Header("Authorization") token: String,
+        @Body request: CreatePaymentRequest
+    ): Call<PaymentOrderDto>
+
+    @GET("/api/payments")
+    fun getPaymentHistory(
+        @Header("Authorization") token: String
+    ): Call<List<PaymentOrderDto>>
+
+    @GET("/api/payments/{paymentOrderId}")
+    fun getPaymentDetails(
+        @Header("Authorization") token: String,
+        @Path("paymentOrderId") paymentOrderId: Long
+    ): Call<PaymentOrderDto>
+
+    @POST("/api/payments/{paymentOrderId}/cancel")
+    fun cancelPayment(
+        @Header("Authorization") token: String,
+        @Path("paymentOrderId") paymentOrderId: Long
+    ): Call<PaymentOrderDto>
 }

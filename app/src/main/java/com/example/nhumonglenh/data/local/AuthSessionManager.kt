@@ -53,8 +53,15 @@ object AuthSessionManager {
 
     fun clearSession(context: Context) {
         val prefs = context.getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
-        // Chỉ xóa token xác thực, bảo lưu server_url và saved_email
-        prefs.edit().remove(KEY_JWT_TOKEN).apply()
+        val editor = prefs.edit()
+        editor.remove(KEY_JWT_TOKEN)
+        // Dọn dẹp toàn bộ dữ liệu pending payment orders và idempotency keys khi đăng xuất
+        for (key in prefs.all.keys) {
+            if (key.startsWith("payment_idemp_") || key.startsWith("fnmf_active_pending_payment_order_id")) {
+                editor.remove(key)
+            }
+        }
+        editor.apply()
     }
 
     fun handleUnauthorized(activity: Activity?) {
