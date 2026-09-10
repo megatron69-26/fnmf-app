@@ -108,4 +108,44 @@
     <string name="trading_no_live_badge">DỮ LIỆU BACKEND</string>
     <string name="trading_gold_paxg_reference">Vàng Thế Giới (Tham chiếu PAXG)</string>
     <string name="trading_err_data_not_ready">Dữ liệu giá hoặc số dư chưa sẵn sàng để đặt lệnh</string>
+
+    <!-- Auth Polish Strings -->
+    <string name="auth_login_title">FNMF TERMINAL</string>
+    <string name="auth_login_subtitle">24/7 Mobile Trading &amp; Financial Engine</string>
+    <string name="auth_email_label">EMAIL NGƯỜI DÙNG:</string>
+    <string name="auth_email_hint">Nhập email (VD: user@fnmf.com)</string>
+    <string name="auth_password_label">MẬT KHẨU / PASSWORD:</string>
+    <string name="auth_password_hint">Nhập mật khẩu</string>
+    <string name="auth_confirm_password_label">XÁC NHẬN MẬT KHẨU:</string>
+    <string name="auth_confirm_password_hint">Nhập lại mật khẩu</string>
+    <string name="auth_btn_login">Đăng nhập</string>
+    <string name="auth_btn_register">Đăng ký</string>
+    <string name="auth_btn_register_submit">Đăng ký</string>
+    <string name="auth_btn_back_to_login">Quay lại đăng nhập</string>
+    <string name="auth_register_title">Đăng ký</string>
+    <string name="auth_register_subtitle">Tạo tài khoản FNMF</string>
+    <string name="auth_logging_in">Đang đăng nhập...</string>
+    <string name="auth_registering">Đang đăng ký...</string>
+    <string name="auth_login_success">Đăng nhập thành công</string>
+    <string name="auth_register_success">Đăng ký thành công</string>
+    <string name="auth_err_empty_email">Vui lòng nhập email</string>
+    <string name="auth_err_invalid_email">Email không hợp lệ</string>
+    <string name="auth_err_empty_password">Vui lòng nhập mật khẩu</string>
+    <string name="auth_err_password_too_short">Mật khẩu phải có ít nhất 4 ký tự</string>
+    <string name="auth_err_confirm_password_mismatch">Mật khẩu xác nhận không khớp</string>
+    <string name="auth_err_invalid_credentials">Email hoặc mật khẩu không chính xác</string>
+    <string name="auth_err_cannot_connect">Không thể kết nối tới máy chủ: %1$s</string>
+    <string name="auth_err_email_already_used">Email \'%1$s\' đã được sử dụng</string>
+    <string name="auth_err_register_failed">Không thể đăng ký</string>
+
+    <!-- VNPay Sandbox Strings -->
+    <string name="vnpay_sandbox_warning">VNPay Sandbox — Không sử dụng tiền thật</string>
+    <string name="vnpay_conversion_hint">Tỷ giá tham chiếu: 1 USD = %1$s VND</string>
+    <string name="sandbox_deposit_vnpay_title">Nạp tiền VNPay Sandbox</string>
+    <string name="sandbox_withdrawal_internal_title">Rút tiền Sandbox (Nội bộ)</string>
+    <string name="sandbox_withdrawal_internal_notice">Cổng rút nội bộ mô phỏng (Sandbox Internal)</string>
+    <string name="payment_preset_100">$100</string>
+    <string name="payment_preset_500">$500</string>
+    <string name="payment_preset_1000">$1,000</string>
+    <string name="payment_preset_5000">$5,000</string>
 </resources>

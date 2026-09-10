@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import com.example.nhumonglenh.data.local.AuthSessionManager
 import com.example.nhumonglenh.data.remote.NetworkConfig
 import com.example.nhumonglenh.ui.news.NewsFeedFragment
 import com.example.nhumonglenh.ui.profile.WalletProfileFragment
@@ -38,6 +39,17 @@ class Activity2 : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Cold start auth check: Nếu chưa đăng nhập hoặc hết phiên, chuyển hướng về màn hình đăng nhập
+        if (!AuthSessionManager.isLoggedIn(this)) {
+            val loginIntent = Intent(this, Activity1::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            startActivity(loginIntent)
+            finish()
+            return
+        }
+
         supportActionBar?.hide()
         setContentView(R.layout.layout_activity2)
 
@@ -107,6 +119,29 @@ class Activity2 : AppCompatActivity() {
         bottomNav.setOnItemSelectedListener { item ->
             switchTab(item.itemId)
             true
+        }
+
+        handleDeepLink(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (!AuthSessionManager.isLoggedIn(this)) {
+            val loginIntent = Intent(this, Activity1::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            startActivity(loginIntent)
+            finish()
+            return
+        }
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: Intent?) {
+        val data = intent?.data ?: return
+        if ("fnmf".equals(data.scheme, ignoreCase = true) && "payment".equals(data.host, ignoreCase = true)) {
+            bottomNav.selectedItemId = R.id.nav_profile
         }
     }
 

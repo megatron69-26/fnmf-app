@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#131722"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="6dp"
+            android:text="@string/auth_register_title"
+            android:textColor="#00F0FF"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="24dp"
+            android:text="@string/auth_register_subtitle"
+            android:textColor="#787B86"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="@string/auth_email_label"
+            android:textColor="#787B86"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etRegisterEmail"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="12dp"
+            android:autofillHints="emailAddress"
+            android:background="#1E222D"
+            android:hint="@string/auth_email_hint"
+            android:inputType="textEmailAddress"
+            android:padding="10dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#4E5467"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="@string/auth_password_label"
+            android:textColor="#787B86"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etRegisterPassword"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="12dp"
+            android:autofillHints="newPassword"
+            android:background="#1E222D"
+            android:hint="@string/auth_password_hint"
+            android:inputType="textPassword"
+            android:padding="10dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#4E5467"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="@string/auth_confirm_password_label"
+            android:textColor="#787B86"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etConfirmPassword"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="20dp"
+            android:autofillHints="newPassword"
+            android:background="#1E222D"
+            android:hint="@string/auth_confirm_password_hint"
+            android:inputType="textPassword"
+            android:padding="10dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#4E5467"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btnSubmitRegister"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginBottom="10dp"
+            android:backgroundTint="#089981"
+            android:text="@string/auth_btn_register_submit"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnBackToLogin"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:backgroundTint="#2A2E39"
+            android:text="@string/auth_btn_back_to_login"
+            android:textColor="#D1D4DC"
+            android:textStyle="bold" />
+    </LinearLayout>
+</ScrollView>

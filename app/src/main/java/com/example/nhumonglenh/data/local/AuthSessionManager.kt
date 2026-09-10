@@ -47,8 +47,54 @@ object AuthSessionManager {
         return "Bearer $token"
     }
 
+    /**
+     * Giải mã claim 'exp' từ JWT payload mà không phụ thuộc vào thư viện bên ngoài.
+     * Trả về epoch timestamp dạng giây, hoặc null nếu token sai cấu trúc hoặc không có claim 'exp'.
+     */
+    fun extractExpirationSeconds(token: String?): Long? {
+        if (token.isNullOrBlank()) return null
+        val parts = token.trim().split(".")
+        if (parts.size != 3) return null
+        return try {
+            val payloadBase64 = parts[1]
+            val decodedBytes = android.util.Base64.decode(
+                payloadBase64,
+                android.util.Base64.URL_SAFE or
+                    android.util.Base64.NO_PADDING or
+                    android.util.Base64.NO_WRAP
+            )
+            val jsonString = String(decodedBytes, Charsets.UTF_8)
+            try {
+                val jsonObject = org.json.JSONObject(jsonString)
+                if (jsonObject.has("exp")) {
+                    return jsonObject.getLong("exp")
+                }
+            } catch (ignored: Exception) {
+            }
+            val match = "\"exp\"\\s*:\\s*(\\d+)".toRegex().find(jsonString)
+            match?.groupValues?.get(1)?.toLongOrNull()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Kiểm tra JWT token đã hết hạn hay chưa theo thời gian thực (giây).
+     * Trả về true nếu token null, rỗng, không có claim 'exp', hoặc exp <= currentTimeSeconds.
+     */
+    fun isTokenExpired(token: String?, currentTimeSeconds: Long = System.currentTimeMillis() / 1000): Boolean {
+        val exp = extractExpirationSeconds(token) ?: return true
+        return exp <= currentTimeSeconds
+    }
+
     fun isLoggedIn(context: Context): Boolean {
-        return getToken(context).isNotBlank()
+        val token = getToken(context)
+        if (token.isBlank()) return false
+        if (isTokenExpired(token)) {
+            clearSession(context)
+            return false
+        }
+        return true
     }
 
     fun clearSession(context: Context) {

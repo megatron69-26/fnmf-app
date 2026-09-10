@@ -40,6 +40,8 @@ class SandboxPaymentBottomSheet : BottomSheetDialogFragment() {
         const val KEY_CHECKOUT_URL = "key_checkout_url"
         const val KEY_PAYMENT_TYPE = "key_payment_type"
         const val KEY_AMOUNT_USD = "key_amount_usd"
+        const val KEY_AMOUNT_VND = "key_amount_vnd"
+        const val KEY_EXCHANGE_RATE = "key_exchange_rate"
         const val KEY_STATUS = "key_status"
         const val KEY_MESSAGE = "key_message"
 
@@ -81,10 +83,12 @@ class SandboxPaymentBottomSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val tvWarningBadge: TextView? = view.findViewById(R.id.tv_sandbox_warning_badge)
         val tvTitle: TextView = view.findViewById(R.id.tv_sheet_title)
         val tvSubtitle: TextView = view.findViewById(R.id.tv_sheet_subtitle)
         val tvCurrentBal: TextView = view.findViewById(R.id.tv_sheet_current_balance)
         val tvProjectedBal: TextView = view.findViewById(R.id.tv_sheet_projected_balance)
+        val tvConversion: TextView = view.findViewById(R.id.tv_sheet_conversion)
         val layoutAmount: TextInputLayout = view.findViewById(R.id.layout_amount_input)
         val etAmount: TextInputEditText = view.findViewById(R.id.et_amount_input)
         val btnConfirm: MaterialButton = view.findViewById(R.id.btn_confirm_payment)
@@ -95,17 +99,21 @@ class SandboxPaymentBottomSheet : BottomSheetDialogFragment() {
         val btn1000: MaterialButton = view.findViewById(R.id.btn_preset_1000)
         val btn5000: MaterialButton = view.findViewById(R.id.btn_preset_5000)
 
+        tvWarningBadge?.text = getString(R.string.vnpay_sandbox_warning)
+
         val isDeposit = paymentType.equals("DEPOSIT", ignoreCase = true)
         if (isDeposit) {
-            tvTitle.text = "Nạp tiền Sandbox"
-            tvSubtitle.text = "Mô phỏng nạp tiền USD vào ví vốn ảo FNMF (Tối đa \$100,000.00)"
-            btnConfirm.text = "TIẾP TỤC ĐẾN CỔNG NẠP SANDBOX"
+            tvTitle.text = getString(R.string.sandbox_deposit_vnpay_title)
+            tvSubtitle.text = "Mô phỏng nạp tiền USD qua VNPay Sandbox vào ví vốn ảo FNMF (Tối đa \$100,000.00)"
+            btnConfirm.text = "TIẾP TỤC ĐẾN CỔNG NẠP VNPAY SANDBOX"
             btnConfirm.setBackgroundColor(android.graphics.Color.parseColor("#0284C7"))
+            tvConversion.text = "Quy đổi mô phỏng: $0.00 USD ≈ 0 VND (25,000 VND/USD)"
         } else {
-            tvTitle.text = "Rút tiền Sandbox"
+            tvTitle.text = getString(R.string.sandbox_withdrawal_internal_title)
             tvSubtitle.text = "Mô phỏng rút tiền USD từ ví vốn ảo FNMF (Tối đa \$100,000.00)"
-            btnConfirm.text = "TIẾP TỤC ĐẾN CỔNG RÚT SANDBOX"
+            btnConfirm.text = "TIẾP TỤC ĐẾN CỔNG RÚT SANDBOX NỘI BỘ"
             btnConfirm.setBackgroundColor(android.graphics.Color.parseColor("#D97706"))
+            tvConversion.text = getString(R.string.sandbox_withdrawal_internal_notice)
         }
 
         tvCurrentBal.text = String.format(Locale.US, "$%,.2f USD", currentBalance)
@@ -115,6 +123,11 @@ class SandboxPaymentBottomSheet : BottomSheetDialogFragment() {
             layoutAmount.error = null
             if (rawStr.isBlank()) {
                 tvProjectedBal.text = String.format(Locale.US, "$%,.2f USD", currentBalance)
+                if (isDeposit) {
+                    tvConversion.text = "Quy đổi mô phỏng: $0.00 USD ≈ 0 VND (25,000 VND/USD)"
+                } else {
+                    tvConversion.text = getString(R.string.sandbox_withdrawal_internal_notice)
+                }
                 return
             }
             try {
@@ -130,6 +143,13 @@ class SandboxPaymentBottomSheet : BottomSheetDialogFragment() {
                 if (inputNum.compareTo(BigDecimal("100000.00")) > 0) {
                     layoutAmount.error = "Số tiền tối đa \$100,000.00 USD"
                     return
+                }
+
+                if (isDeposit) {
+                    val vndAmount = inputNum.multiply(BigDecimal(25000)).setScale(0, RoundingMode.HALF_UP)
+                    tvConversion.text = String.format(Locale.US, "Quy đổi mô phỏng: $%,.2f USD ≈ %,d VND (25,000 VND/USD)", inputNum.toDouble(), vndAmount.toLong())
+                } else {
+                    tvConversion.text = getString(R.string.sandbox_withdrawal_internal_notice)
                 }
 
                 val curBig = BigDecimal.valueOf(currentBalance)
@@ -234,6 +254,8 @@ class SandboxPaymentBottomSheet : BottomSheetDialogFragment() {
                             putString(KEY_CHECKOUT_URL, body.checkoutUrl)
                             putString(KEY_PAYMENT_TYPE, body.type)
                             putDouble(KEY_AMOUNT_USD, body.amountUsd ?: 0.0)
+                            body.amountVnd?.let { putString(KEY_AMOUNT_VND, it.toPlainString()) }
+                            body.exchangeRateSnapshot?.let { putString(KEY_EXCHANGE_RATE, it.toPlainString()) }
                             putString(KEY_STATUS, body.status)
                             putString(KEY_MESSAGE, body.message)
                         }

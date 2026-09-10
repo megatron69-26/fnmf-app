@@ -490,6 +490,8 @@ class SandboxPaymentUnitTest {
         assertEquals("key_checkout_url", SandboxPaymentBottomSheet.KEY_CHECKOUT_URL)
         assertEquals("key_payment_type", SandboxPaymentBottomSheet.KEY_PAYMENT_TYPE)
         assertEquals("key_amount_usd", SandboxPaymentBottomSheet.KEY_AMOUNT_USD)
+        assertEquals("key_amount_vnd", SandboxPaymentBottomSheet.KEY_AMOUNT_VND)
+        assertEquals("key_exchange_rate", SandboxPaymentBottomSheet.KEY_EXCHANGE_RATE)
         assertEquals("key_status", SandboxPaymentBottomSheet.KEY_STATUS)
         assertEquals("key_message", SandboxPaymentBottomSheet.KEY_MESSAGE)
     }

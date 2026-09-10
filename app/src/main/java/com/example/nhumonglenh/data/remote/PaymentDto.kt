@@ -17,6 +17,10 @@ data class PaymentOrderDto(
     val type: String? = null, // DEPOSIT, WITHDRAWAL
     @SerializedName("amountUsd")
     val amountUsd: Double? = null,
+    @SerializedName("amountVnd")
+    val amountVnd: BigDecimal? = null,
+    @SerializedName("exchangeRateSnapshot")
+    val exchangeRateSnapshot: BigDecimal? = null,
     @SerializedName("status")
     val status: String? = null, // PENDING, PROCESSING, SUCCEEDED, FAILED, CANCELLED
     @SerializedName("checkoutUrl")

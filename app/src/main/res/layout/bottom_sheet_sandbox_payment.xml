@@ -17,13 +17,14 @@
 
     <!-- Warning Sandbox Badge -->
     <TextView
+        android:id="@+id/tv_sandbox_warning_badge"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="14dp"
         android:background="#2E2405"
         android:gravity="center"
         android:padding="8dp"
-        android:text="⚠️ MÔI TRƯỜNG SANDBOX — KHÔNG PHẢI TIỀN THẬT"
+        android:text="@string/vnpay_sandbox_warning"
         android:textColor="#FDE047"
         android:textSize="11sp"
         android:textStyle="bold" />
@@ -127,6 +128,19 @@
             android:textSize="16sp" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- Simulated Conversion / Provider Info -->
+    <TextView
+        android:id="@+id/tv_sheet_conversion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:background="#0F172A"
+        android:padding="10dp"
+        android:text="Quy đổi mô phỏng: $0.00 USD ≈ 0 VND (25,000 VND/USD)"
+        android:textColor="#38BDF8"
+        android:textSize="12sp"
+        android:visibility="visible" />
+
     <!-- Presets -->
     <LinearLayout
         android:layout_width="match_parent"
@@ -143,7 +157,7 @@
             android:layout_weight="1"
             android:insetTop="0dp"
             android:insetBottom="0dp"
-            android:text=""
+            android:text="@string/payment_preset_100"
             android:textColor="#E2E8F0"
             android:textSize="12sp"
             app:cornerRadius="6dp"
@@ -158,7 +172,7 @@
             android:layout_weight="1"
             android:insetTop="0dp"
             android:insetBottom="0dp"
-            android:text=""
+            android:text="@string/payment_preset_500"
             android:textColor="#E2E8F0"
             android:textSize="12sp"
             app:cornerRadius="6dp"
@@ -173,7 +187,7 @@
             android:layout_weight="1"
             android:insetTop="0dp"
             android:insetBottom="0dp"
-            android:text=",000"
+            android:text="@string/payment_preset_1000"
             android:textColor="#E2E8F0"
             android:textSize="12sp"
             app:cornerRadius="6dp"
@@ -188,7 +202,7 @@
             android:layout_weight="1"
             android:insetTop="0dp"
             android:insetBottom="0dp"
-            android:text=",000"
+            android:text="@string/payment_preset_5000"
             android:textColor="#E2E8F0"
             android:textSize="12sp"
             app:cornerRadius="6dp"

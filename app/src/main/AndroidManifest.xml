@@ -27,10 +27,25 @@
             </intent-filter>
         </activity>
 
-        <!-- Activity2 (Màn hình Chính: Biểu đồ nến Candlestick + Ví ròng + Watchlist) -->
+        <activity
+            android:name=".RegisterActivity"
+            android:exported="false" />
+
+        <!-- Activity2 (Màn hình Chính: Biểu đồ nến Candlestick + Ví ròng + Watchlist + Deep link Payment Return) -->
         <activity
             android:name=".Activity2"
-            android:exported="false" />
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="fnmf"
+                    android:host="payment"
+                    android:pathPrefix="/return" />
+            </intent-filter>
+        </activity>
 
         <activity android:name=".ui.news.NewsDetailActivity" android:exported="false" />
     </application>
