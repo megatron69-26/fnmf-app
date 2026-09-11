@@ -24,6 +24,13 @@ public class NewsEntity {
     private int confidence = 0;
     private String bulletPoints = "";
 
+    private String originalTitle = "";
+    private String originalSummary = "";
+    private String displayTitleVi = "";
+    private String displaySummaryVi = "";
+    private String bulletPointsVi = "";
+    private String publisher = "";
+
     public NewsEntity() {
         this.newsId = "";
     }
@@ -51,6 +58,30 @@ public class NewsEntity {
             int confidence,
             String bulletPoints
     ) {
+        this(newsId, title, url, publishedAt, source, author, publishedAtRaw, imageUrl, summary, sentiment, confidence, bulletPoints, "", "", "", "", "", "");
+    }
+
+    @Ignore
+    public NewsEntity(
+            @NonNull String newsId,
+            String title,
+            String url,
+            long publishedAt,
+            String source,
+            String author,
+            String publishedAtRaw,
+            String imageUrl,
+            String summary,
+            String sentiment,
+            int confidence,
+            String bulletPoints,
+            String originalTitle,
+            String originalSummary,
+            String displayTitleVi,
+            String displaySummaryVi,
+            String bulletPointsVi,
+            String publisher
+    ) {
         this.newsId = newsId;
         this.title = title != null ? title : "";
         this.url = url != null ? url : "";
@@ -63,6 +94,12 @@ public class NewsEntity {
         this.sentiment = sentiment != null ? sentiment : "neutral";
         this.confidence = confidence;
         this.bulletPoints = bulletPoints != null ? bulletPoints : "";
+        this.originalTitle = originalTitle != null ? originalTitle : "";
+        this.originalSummary = originalSummary != null ? originalSummary : "";
+        this.displayTitleVi = displayTitleVi != null ? displayTitleVi : "";
+        this.displaySummaryVi = displaySummaryVi != null ? displaySummaryVi : "";
+        this.bulletPointsVi = bulletPointsVi != null ? bulletPointsVi : "";
+        this.publisher = publisher != null ? publisher : "";
     }
 
     @NonNull
@@ -160,5 +197,53 @@ public class NewsEntity {
 
     public void setBulletPoints(String bulletPoints) {
         this.bulletPoints = bulletPoints != null ? bulletPoints : "";
+    }
+
+    public String getOriginalTitle() {
+        return originalTitle;
+    }
+
+    public void setOriginalTitle(String originalTitle) {
+        this.originalTitle = originalTitle != null ? originalTitle : "";
+    }
+
+    public String getOriginalSummary() {
+        return originalSummary;
+    }
+
+    public void setOriginalSummary(String originalSummary) {
+        this.originalSummary = originalSummary != null ? originalSummary : "";
+    }
+
+    public String getDisplayTitleVi() {
+        return displayTitleVi;
+    }
+
+    public void setDisplayTitleVi(String displayTitleVi) {
+        this.displayTitleVi = displayTitleVi != null ? displayTitleVi : "";
+    }
+
+    public String getDisplaySummaryVi() {
+        return displaySummaryVi;
+    }
+
+    public void setDisplaySummaryVi(String displaySummaryVi) {
+        this.displaySummaryVi = displaySummaryVi != null ? displaySummaryVi : "";
+    }
+
+    public String getBulletPointsVi() {
+        return bulletPointsVi;
+    }
+
+    public void setBulletPointsVi(String bulletPointsVi) {
+        this.bulletPointsVi = bulletPointsVi != null ? bulletPointsVi : "";
+    }
+
+    public String getPublisher() {
+        return publisher;
+    }
+
+    public void setPublisher(String publisher) {
+        this.publisher = publisher != null ? publisher : "";
     }
 }

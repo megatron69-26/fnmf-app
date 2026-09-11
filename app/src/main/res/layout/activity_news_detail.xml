@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FBF9FC">
+    android:background="@color/tv_bg">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -18,7 +18,7 @@
             android:layout_height="wrap_content"
             android:textSize="20sp"
             android:textStyle="bold"
-            android:textColor="#1A1A1A" />
+            android:textColor="@color/tv_text_primary" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -36,7 +36,7 @@
                 android:textSize="12sp"
                 android:textStyle="bold"
                 android:textColor="#FFFFFF"
-                android:background="#999999"
+                android:background="@drawable/bg_sentiment_rounded"
                 tools:text="TÍCH CỰC" />
 
             <TextView
@@ -45,8 +45,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
                 android:textSize="13sp"
-                android:textColor="#666666"
-                tools:text="85% tin cậy" />
+                android:textColor="@color/tv_text_secondary"
+                tools:text="Tin cậy 85%" />
         </LinearLayout>
 
         <TextView
@@ -56,7 +56,7 @@
             android:text="@string/news_summary_heading"
             android:textSize="15sp"
             android:textStyle="bold"
-            android:textColor="#333333" />
+            android:textColor="@color/tv_text_primary" />
 
         <TextView
             android:id="@+id/tvDetailSummary"
@@ -64,7 +64,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:textSize="14sp"
-            android:textColor="#555555" />
+            android:textColor="@color/tv_text_secondary" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -73,7 +73,7 @@
             android:text="@string/news_bullets_heading"
             android:textSize="15sp"
             android:textStyle="bold"
-            android:textColor="#333333" />
+            android:textColor="@color/tv_text_primary" />
 
         <LinearLayout
             android:id="@+id/layoutBullets"
@@ -88,7 +88,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:textSize="12sp"
-            android:textColor="#999999"
+            android:textColor="@color/tv_text_secondary"
             tools:text="Nguồn: CNBC • 01/09/2026" />
 
         <TextView
@@ -97,14 +97,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:textSize="12sp"
-            android:textColor="#666666"
+            android:textColor="@color/tv_text_secondary"
             tools:text="Tác giả: MarketBeat" />
 
         <!-- Phân cách -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#E0E0E0"
+            android:background="@color/tv_border"
             android:layout_marginTop="18dp"
             android:layout_marginBottom="14dp" />
 
@@ -114,7 +114,7 @@
             android:text="@string/news_source_ref_heading"
             android:textSize="13sp"
             android:textStyle="bold"
-            android:textColor="#333333" />
+            android:textColor="@color/tv_text_primary" />
 
         <TextView
             android:id="@+id/tvDetailLink"
@@ -122,9 +122,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:textSize="12sp"
-            android:textColor="#1976D2"
+            android:textColor="@color/tv_blue"
             android:textStyle="bold"
-            android:background="#EEF4FF"
+            android:background="@drawable/bg_link_chip"
             android:padding="12dp"
             tools:text="https://uk.finance.yahoo.com/news/..." />
 
@@ -138,6 +138,6 @@
             android:textSize="13sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#1976D2" />
+            android:backgroundTint="@color/tv_blue" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

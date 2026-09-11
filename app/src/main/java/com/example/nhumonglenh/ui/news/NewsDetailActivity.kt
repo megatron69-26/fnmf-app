@@ -16,7 +16,7 @@ class NewsDetailActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         b = ActivityNewsDetailBinding.inflate(layoutInflater)
         setContentView(b.root)
-        SystemBarInsets.apply(this, findViewById(android.R.id.content), useLightStatusIcons = true)
+        SystemBarInsets.apply(this, findViewById(android.R.id.content))
 
         val title = intent.getStringExtra(EXTRA_TITLE) ?: ""
         val summary = intent.getStringExtra(EXTRA_SUMMARY) ?: ""
@@ -28,14 +28,25 @@ class NewsDetailActivity : AppCompatActivity() {
         val author = intent.getStringExtra(EXTRA_AUTHOR) ?: ""
         val link = intent.getStringExtra(EXTRA_LINK) ?: ""
 
+        val publisher = NewsCardPresentationMapper.resolvePublisher(source, link)
+
         b.tvDetailTitle.text = title
+        b.tvDetailTitle.setTextColor(NewsCardPresentationMapper.COLOR_TEXT_PRIMARY)
         b.tvDetailSummary.text = summary
-        b.tvDetailSource.text = "Nguồn: $source"
-        b.tvDetailConfidence.text = "$confidence% tin cậy"
+        if (!publisher.isNullOrBlank()) {
+            b.tvDetailSource.text = "Nguồn: $publisher"
+            b.tvDetailSource.setTextColor(NewsCardPresentationMapper.COLOR_TEXT_SECONDARY)
+            b.tvDetailSource.visibility = android.view.View.VISIBLE
+        } else {
+            b.tvDetailSource.visibility = android.view.View.GONE
+        }
+        b.tvDetailConfidence.text = NewsCardPresentationMapper.formatConfidence(confidence)
+        b.tvDetailConfidence.setTextColor(NewsCardPresentationMapper.COLOR_TEXT_SECONDARY)
 
         val formattedAuthor = NewsCardPresentationMapper.formatAuthor(author, source)
         if (formattedAuthor != null) {
             b.tvDetailAuthor.text = formattedAuthor
+            b.tvDetailAuthor.setTextColor(NewsCardPresentationMapper.COLOR_TEXT_SECONDARY)
             b.tvDetailAuthor.visibility = android.view.View.VISIBLE
         } else {
             b.tvDetailAuthor.visibility = android.view.View.GONE
@@ -61,20 +72,20 @@ class NewsDetailActivity : AppCompatActivity() {
             b.btnOpenArticle.visibility = android.view.View.GONE
         }
 
-        val (label, color) = when (sentiment) {
-            "bullish" -> UiTextLocalizer.sentiment(sentiment) to Color.parseColor("#2E7D32")
-            "bearish" -> UiTextLocalizer.sentiment(sentiment) to Color.parseColor("#C62828")
-            else      -> UiTextLocalizer.sentiment(sentiment) to Color.parseColor("#F9A825")
-        }
+        val label = NewsCardPresentationMapper.formatSentimentLabel(sentiment)
+        val bgColor = NewsCardPresentationMapper.getSentimentBackgroundColor(sentiment)
+        val textColor = NewsCardPresentationMapper.getSentimentTextColor(sentiment)
         b.tvDetailSentiment.text = label
-        b.tvDetailSentiment.setBackgroundColor(color)
+        b.tvDetailSentiment.backgroundTintList = android.content.res.ColorStateList.valueOf(bgColor)
+        b.tvDetailSentiment.setTextColor(textColor)
 
         // Thêm các gạch đầu dòng
+        b.layoutBullets.removeAllViews()
         for (bullet in NewsCardPresentationMapper.formatBullets(bullets.toList())) {
             val tv = TextView(this).apply {
                 text = "•  $bullet"
                 textSize = 14f
-                setTextColor(0xFF555555.toInt())
+                setTextColor(NewsCardPresentationMapper.COLOR_TEXT_PRIMARY)
                 setPadding(0, 8, 0, 8)
             }
             b.layoutBullets.addView(tv)

@@ -28,6 +28,12 @@ public interface NewsDao {
     @Query("SELECT * FROM ai_analysis_table WHERE newsId = :newsId LIMIT 1")
     AiAnalysisEntity getCachedAIAnalysis(String newsId);
 
+    @Query("DELETE FROM news_table WHERE newsId = :newsId")
+    void deleteNewsById(String newsId);
+
+    @Query("DELETE FROM news_table WHERE newsId IN (:newsIds)")
+    void deleteNewsByIds(List<String> newsIds);
+
     @androidx.room.Transaction
     default void upsertAllNewsWithAnalysis(List<NewsEntity> newsList, List<AiAnalysisEntity> analysisList) {
         if (newsList != null && !newsList.isEmpty()) {

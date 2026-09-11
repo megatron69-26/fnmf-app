@@ -49,36 +49,52 @@ class NewsRepository private constructor(private val context: Context) {
                     for (item in remoteNews) {
                         val epochMs = parseTimeToEpoch(item.publishedAt)
                         val joinedBulletPoints = if (item.bulletPoints.isNotEmpty()) item.bulletPoints.joinToString("\n") else ""
+                        val joinedBulletPointsVi = if (!item.bulletPointsVi.isNullOrEmpty()) item.bulletPointsVi.joinToString("\n") else joinedBulletPoints
 
                         newsEntities.add(
                             NewsEntity(
                                 item.id,
-                                item.title,
+                                item.getEffectiveTitle(),
                                 item.link ?: item.id,
                                 epochMs,
-                                item.source,
+                                item.getEffectivePublisher(),
                                 item.author ?: "",
                                 item.publishedAt,
                                 item.imageUrl,
-                                item.summary,
+                                item.getEffectiveSummary(),
                                 item.sentiment,
                                 item.confidence,
-                                joinedBulletPoints
+                                joinedBulletPoints,
+                                item.originalTitle ?: "",
+                                item.originalSummary ?: "",
+                                item.displayTitleVi ?: "",
+                                item.displaySummaryVi ?: "",
+                                joinedBulletPointsVi,
+                                item.publisher ?: ""
                             )
                         )
 
                         aiEntities.add(
                             AiAnalysisEntity(
                                 item.id,
-                                item.summary,
+                                item.getEffectiveSummary(),
                                 item.sentiment,
                                 item.confidence,
-                                if (item.bulletPoints.isNotEmpty()) item.bulletPoints.joinToString(" • ") else item.summary
+                                if (!item.bulletPointsVi.isNullOrEmpty()) item.bulletPointsVi.joinToString(" • ") else if (item.bulletPoints.isNotEmpty()) item.bulletPoints.joinToString(" • ") else item.getEffectiveSummary()
                             )
                         )
                     }
 
                     newsDao.upsertAllNewsWithAnalysis(newsEntities, aiEntities)
+
+                    // Dọn dẹp các bản ghi cũ chưa được bản địa hóa hợp lệ
+                    runCatching {
+                        val allInDb = newsDao.getAllNews()
+                        val invalidIds = allInDb.filter { !com.example.nhumonglenh.ui.news.NewsLocalizationPolicy.isEntityFullyLocalized(it) }.map { it.newsId }
+                        if (invalidIds.isNotEmpty()) {
+                            newsDao.deleteNewsByIds(invalidIds)
+                        }
+                    }
                 } catch (e: Exception) {
                     android.util.Log.e("NewsRepository", "Lỗi lưu cache Room DB: ${e.message}", e)
                     // Nếu ghi Room thất bại, không trả cache cũ và nói là online, cũng không bypass Room
@@ -90,30 +106,30 @@ class NewsRepository private constructor(private val context: Context) {
                 return@withContext if (roomNews.isNotEmpty()) {
                     NewsResult.SyncSuccess(roomNews)
                 } else {
-                    NewsResult.Empty("Dữ liệu Room DB rỗng sau khi đồng bộ")
+                    NewsResult.Empty("Chưa có bản tin tiếng Việt mới")
                 }
             } else {
                 // Server trả danh sách rỗng
                 val roomNews = readNewsFromRoom(newsDao)
                 return@withContext if (roomNews.isNotEmpty()) {
-                    NewsResult.CacheFallback(roomNews, "Máy chủ không có tin tức mới")
+                    NewsResult.CacheFallback(roomNews, "Chưa có bản tin tiếng Việt mới")
                 } else {
-                    NewsResult.Empty("Không có tin tức khả dụng từ máy chủ")
+                    NewsResult.Empty("Chưa có bản tin tiếng Việt mới")
                 }
             }
         } else {
             val err = remoteResult.exceptionOrNull()
             android.util.Log.w("NewsRepository", "Không thể tải tin tức trực tuyến: ${err?.message}", err)
 
-            // 2. Nếu ngoại tuyến hoặc lỗi mạng, đọc từ Room DB Cache
+            // 2. Nếu ngoại tuyến hoặc lỗi mạng, đọc từ Room DB Cache đã lọc bản địa hóa
             val cachedList = readNewsFromRoom(newsDao)
             if (cachedList.isNotEmpty()) {
                 val errorMsg = err?.localizedMessage ?: "Mất kết nối mạng"
                 return@withContext NewsResult.CacheFallback(cachedList, errorMsg)
             }
 
-            // 3. Nếu cả server và Room đều rỗng: Honest Empty State
-            val errorMsg = err?.localizedMessage ?: "Không có tin tức khả dụng"
+            // 3. Nếu cả server và Room đều rỗng hoặc không có tin tiếng Việt hợp lệ: Honest Empty State
+            val errorMsg = "Chưa có bản tin tiếng Việt mới"
             return@withContext NewsResult.Empty(errorMsg)
         }
     }
@@ -126,7 +142,12 @@ class NewsRepository private constructor(private val context: Context) {
             emptyList()
         }
 
-        return cachedEntities.map { entity ->
+        // Lọc nghiêm ngặt theo NewsLocalizationPolicy
+        val validEntities = cachedEntities.filter {
+            com.example.nhumonglenh.ui.news.NewsLocalizationPolicy.isEntityFullyLocalized(it)
+        }
+
+        return validEntities.map { entity ->
             val analysis = try {
                 newsDao.getCachedAIAnalysis(entity.newsId)
             } catch (e: Exception) {
@@ -140,7 +161,9 @@ class NewsRepository private constructor(private val context: Context) {
                 formatEpochToDate(entity.publishedAt)
             }
 
-            val bulletPointsList = if (entity.bulletPoints.isNotBlank()) {
+            val rawBullets = if (entity.bulletPointsVi.isNotBlank()) {
+                entity.bulletPointsVi.split("\n").filter { it.isNotBlank() }
+            } else if (entity.bulletPoints.isNotBlank()) {
                 entity.bulletPoints.split("\n").filter { it.isNotBlank() }
             } else if (analysis?.reason != null && analysis.reason.isNotBlank()) {
                 analysis.reason.split(" • ").filter { it.isNotBlank() }
@@ -148,18 +171,40 @@ class NewsRepository private constructor(private val context: Context) {
                 emptyList()
             }
 
+            val effectiveTitle = if (entity.displayTitleVi.isNotBlank()) entity.displayTitleVi else entity.title
+            val effectiveSummary = if (entity.displaySummaryVi.isNotBlank()) {
+                entity.displaySummaryVi
+            } else if (entity.summary.isNotBlank()) {
+                entity.summary
+            } else {
+                analysis?.summary ?: ""
+            }
+            val effectivePublisher = if (entity.publisher.isNotBlank()) {
+                entity.publisher
+            } else if (entity.source.isNotBlank() && !com.example.nhumonglenh.ui.news.NewsCardPresentationMapper.isGeneric(entity.source)) {
+                entity.source
+            } else {
+                ""
+            }
+
             News(
                 id = entity.newsId,
-                title = entity.title,
-                source = if (entity.source.isNotBlank()) entity.source else "Tin thị trường",
+                title = effectiveTitle,
+                source = effectivePublisher,
                 publishedAt = finalPublishedAt,
-                summary = if (entity.summary.isNotBlank()) entity.summary else (analysis?.summary ?: entity.title),
+                summary = effectiveSummary,
                 sentiment = if (entity.sentiment.isNotBlank()) entity.sentiment else (analysis?.sentiment ?: "neutral"),
                 confidence = if (entity.confidence > 0) entity.confidence else (analysis?.confidenceScore ?: 0),
-                bulletPoints = bulletPointsList,
+                bulletPoints = rawBullets,
                 author = entity.author,
                 imageUrl = entity.imageUrl,
-                link = entity.url
+                link = entity.url,
+                originalTitle = entity.originalTitle,
+                originalSummary = entity.originalSummary,
+                displayTitleVi = entity.displayTitleVi,
+                displaySummaryVi = entity.displaySummaryVi,
+                bulletPointsVi = rawBullets,
+                publisher = effectivePublisher
             )
         }
     }

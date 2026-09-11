@@ -35,28 +35,47 @@ class NewsAdapter(
 
     override fun onBindViewHolder(holder: NewsVH, position: Int) {
         val n = items[position]
-        holder.b.tvTitle.text = n.title
-        holder.b.tvSummary.text = n.summary
-        holder.b.tvSource.text = n.source
-        holder.b.tvConfidence.text = "${n.confidence}% tin cậy"
+        val effectiveTitle = n.getEffectiveTitle()
+        val effectiveSummary = n.getEffectiveSummary()
+        val effectiveSource = n.getEffectivePublisher()
+        val effectiveBullets = n.getEffectiveBullets()
 
-        // Ngày đăng: Giữ nguyên timestamp gốc bên trái và định dạng ngày phát hành dễ đọc bên phải
+        holder.b.tvTitle.text = effectiveTitle
+        holder.b.tvTitle.setTextColor(NewsCardPresentationMapper.COLOR_TEXT_PRIMARY)
+        holder.b.tvSummary.text = effectiveSummary
+        holder.b.tvSource.text = effectiveSource
+        holder.b.tvConfidence.text = NewsCardPresentationMapper.formatConfidence(n.confidence)
+        holder.b.tvConfidence.setTextColor(NewsCardPresentationMapper.COLOR_TEXT_SECONDARY)
+
+        // Dòng metadata: Publisher · DD/MM/YYYY (ẩn nếu rỗng)
+        val formattedMeta = NewsCardPresentationMapper.formatMetadata(effectiveSource, n.publishedAt, n.link)
+        if (formattedMeta.isNotBlank()) {
+            holder.b.tvMetadata.visibility = android.view.View.VISIBLE
+            holder.b.tvMetadata.text = formattedMeta
+            holder.b.tvMetadata.setTextColor(NewsCardPresentationMapper.COLOR_TEXT_SECONDARY)
+        } else {
+            holder.b.tvMetadata.visibility = android.view.View.GONE
+        }
+
+        // Ngày đăng tương thích cũ
         holder.b.tvDate.text = n.publishedAt
         holder.b.tvReleaseDate.text = formatReleaseDate(n.publishedAt)
 
         // Tác giả
-        val formattedAuthor = NewsCardPresentationMapper.formatAuthor(n.author, n.source)
+        val formattedAuthor = NewsCardPresentationMapper.formatAuthor(n.author, effectiveSource)
         if (formattedAuthor != null) {
             holder.b.tvAuthor.visibility = android.view.View.VISIBLE
             holder.b.tvAuthor.text = formattedAuthor
+            holder.b.tvAuthor.setTextColor(NewsCardPresentationMapper.COLOR_TEXT_SECONDARY)
         } else {
             holder.b.tvAuthor.visibility = android.view.View.GONE
         }
 
-        // Link bài báo ở đít thẻ
+        // Link bài báo ở đít thẻ: chip "Xem nguồn"
         if (!n.link.isNullOrBlank()) {
             holder.b.layoutLinkContainer.visibility = android.view.View.VISIBLE
             holder.b.tvLink.text = n.link
+            holder.b.tvViewSourceLabel.text = "Xem nguồn"
             holder.b.layoutLinkContainer.setOnClickListener {
                 try {
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(n.link))
@@ -68,17 +87,16 @@ class NewsAdapter(
             holder.b.layoutLinkContainer.visibility = android.view.View.GONE
         }
 
-        val (label, color) = when (n.sentiment) {
-            "bullish" -> UiTextLocalizer.sentiment(n.sentiment) to Color.parseColor("#2E7D32")
-            "bearish" -> UiTextLocalizer.sentiment(n.sentiment) to Color.parseColor("#C62828")
-            else      -> UiTextLocalizer.sentiment(n.sentiment) to Color.parseColor("#F9A825")
-        }
+        val label = NewsCardPresentationMapper.formatSentimentLabel(n.sentiment)
+        val bgColor = NewsCardPresentationMapper.getSentimentBackgroundColor(n.sentiment)
+        val textColor = NewsCardPresentationMapper.getSentimentTextColor(n.sentiment)
         holder.b.tvSentiment.text = label
-        holder.b.tvSentiment.setBackgroundColor(color)
+        holder.b.tvSentiment.backgroundTintList = android.content.res.ColorStateList.valueOf(bgColor)
+        holder.b.tvSentiment.setTextColor(textColor)
 
         // Bullet points động
         holder.b.bulletContainer.removeAllViews()
-        NewsCardPresentationMapper.formatBullets(n.bulletPoints).forEach { point ->
+        NewsCardPresentationMapper.formatBullets(effectiveBullets).forEach { point ->
             val row = LinearLayout(holder.itemView.context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -90,12 +108,12 @@ class NewsAdapter(
             val dot = TextView(holder.itemView.context).apply {
                 text = "•"
                 textSize = 12f
-                setTextColor(Color.parseColor("#888888"))
+                setTextColor(NewsCardPresentationMapper.COLOR_TEXT_SECONDARY)
             }
             val text = TextView(holder.itemView.context).apply {
                 text = point
                 textSize = 12f
-                setTextColor(Color.parseColor("#444444"))
+                setTextColor(NewsCardPresentationMapper.COLOR_TEXT_PRIMARY)
                 maxLines = 2
                 ellipsize = android.text.TextUtils.TruncateAt.END
                 layoutParams = LinearLayout.LayoutParams(

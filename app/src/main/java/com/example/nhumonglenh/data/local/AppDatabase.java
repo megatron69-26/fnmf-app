@@ -10,7 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 
 @Database(
     entities = {WatchlistItem.class, NewsEntity.class, AiAnalysisEntity.class},
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 public abstract class AppDatabase extends RoomDatabase {
@@ -79,6 +79,18 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    public static final Migration MIGRATION_4_5 = new Migration(4, 5) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE news_table ADD COLUMN originalTitle TEXT");
+            database.execSQL("ALTER TABLE news_table ADD COLUMN originalSummary TEXT");
+            database.execSQL("ALTER TABLE news_table ADD COLUMN displayTitleVi TEXT");
+            database.execSQL("ALTER TABLE news_table ADD COLUMN displaySummaryVi TEXT");
+            database.execSQL("ALTER TABLE news_table ADD COLUMN bulletPointsVi TEXT");
+            database.execSQL("ALTER TABLE news_table ADD COLUMN publisher TEXT");
+        }
+    };
+
     public static AppDatabase getInstance(Context context) {
         if (INSTANCE == null) {
             synchronized (AppDatabase.class) {
@@ -88,7 +100,7 @@ public abstract class AppDatabase extends RoomDatabase {
                         AppDatabase.class,
                         "fnmf_unified_mobile_db"
                     )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .fallbackToDestructiveMigrationOnDowngrade()
                     .build();
                 }

@@ -2,12 +2,13 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F5F5">
+    android:background="@color/tv_bg">
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvNews"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:background="@color/tv_bg"
         android:clipToPadding="false"
         android:paddingVertical="8dp" />
 
@@ -16,6 +17,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
+        android:indeterminateTint="@color/tv_blue"
         android:visibility="gone" />
 
     <TextView
@@ -25,7 +27,7 @@
         android:layout_gravity="center"
         android:layout_margin="24dp"
         android:gravity="center"
-        android:textColor="#777777"
+        android:textColor="@color/tv_text_secondary"
         android:textSize="14sp"
         android:visibility="gone" />
 

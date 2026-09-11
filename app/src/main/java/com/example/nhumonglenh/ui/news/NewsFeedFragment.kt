@@ -37,12 +37,12 @@ class NewsFeedFragment : Fragment() {
 
         val adapter = NewsAdapter { news ->
             val intent = Intent(requireContext(), NewsDetailActivity::class.java).apply {
-                putExtra(NewsDetailActivity.EXTRA_TITLE, news.title)
-                putExtra(NewsDetailActivity.EXTRA_SUMMARY, news.summary)
-                putExtra(NewsDetailActivity.EXTRA_SOURCE, news.source)
+                putExtra(NewsDetailActivity.EXTRA_TITLE, news.getEffectiveTitle())
+                putExtra(NewsDetailActivity.EXTRA_SUMMARY, news.getEffectiveSummary())
+                putExtra(NewsDetailActivity.EXTRA_SOURCE, news.getEffectivePublisher())
                 putExtra(NewsDetailActivity.EXTRA_SENTIMENT, news.sentiment)
                 putExtra(NewsDetailActivity.EXTRA_CONFIDENCE, news.confidence)
-                putExtra(NewsDetailActivity.EXTRA_BULLETS, news.bulletPoints.toTypedArray())
+                putExtra(NewsDetailActivity.EXTRA_BULLETS, news.getEffectiveBullets().toTypedArray())
                 putExtra(NewsDetailActivity.EXTRA_AUTHOR, news.author)
                 putExtra(NewsDetailActivity.EXTRA_LINK, news.link)
             }
