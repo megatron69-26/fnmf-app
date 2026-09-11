@@ -45,8 +45,13 @@ class NewsAdapter(
         holder.b.tvReleaseDate.text = formatReleaseDate(n.publishedAt)
 
         // Tác giả
-        val authorName = if (!n.author.isNullOrBlank()) n.author else (if (n.source.isNotBlank()) n.source else "Tổng hợp")
-        holder.b.tvAuthor.text = "Tác giả: $authorName"
+        val formattedAuthor = NewsCardPresentationMapper.formatAuthor(n.author, n.source)
+        if (formattedAuthor != null) {
+            holder.b.tvAuthor.visibility = android.view.View.VISIBLE
+            holder.b.tvAuthor.text = formattedAuthor
+        } else {
+            holder.b.tvAuthor.visibility = android.view.View.GONE
+        }
 
         // Link bài báo ở đít thẻ
         if (!n.link.isNullOrBlank()) {
@@ -73,7 +78,7 @@ class NewsAdapter(
 
         // Bullet points động
         holder.b.bulletContainer.removeAllViews()
-        n.bulletPoints.take(3).forEach { point ->
+        NewsCardPresentationMapper.formatBullets(n.bulletPoints).forEach { point ->
             val row = LinearLayout(holder.itemView.context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -110,7 +115,8 @@ class NewsAdapter(
     override fun getItemCount() = items.size
 
     companion object {
-        fun formatReleaseDate(rawDate: String?): String {
+        fun formatReleaseDate(rawDate: String?): String = NewsCardPresentationMapper.formatReleaseDate(rawDate)
+        private fun legacyFormatReleaseDate(rawDate: String?): String {
             if (rawDate.isNullOrBlank()) return "--"
             return runCatching {
                 val trimmed = rawDate.trim()

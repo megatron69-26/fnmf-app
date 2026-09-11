@@ -83,7 +83,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="2"
-            android:text="Tên / Cặp tiền"
+            android:text="@string/watchlist_col_asset"
             android:textColor="@color/tv_text_secondary"
             android:textSize="11sp" />
 
@@ -100,7 +100,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="24h %"
+            android:text="@string/watchlist_col_change_24h"
             android:gravity="end"
             android:textColor="@color/tv_text_secondary"
             android:textSize="11sp" />

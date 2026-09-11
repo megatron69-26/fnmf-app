@@ -53,7 +53,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Tóm tắt phân tích"
+            android:text="@string/news_summary_heading"
             android:textSize="15sp"
             android:textStyle="bold"
             android:textColor="#333333" />
@@ -70,7 +70,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
-            android:text="Điểm chính"
+            android:text="@string/news_bullets_heading"
             android:textSize="15sp"
             android:textStyle="bold"
             android:textColor="#333333" />
@@ -111,7 +111,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Đường dẫn bài báo gốc:"
+            android:text="@string/news_source_ref_heading"
             android:textSize="13sp"
             android:textStyle="bold"
             android:textColor="#333333" />
@@ -134,7 +134,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:layout_marginBottom="24dp"
-            android:text="MỞ BÀI BÁO GỐC TRÊN TRÌNH DUYỆT"
+            android:text="@string/news_open_full_article"
             android:textSize="13sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF"

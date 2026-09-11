@@ -33,8 +33,9 @@ class NewsDetailActivity : AppCompatActivity() {
         b.tvDetailSource.text = "Nguồn: $source"
         b.tvDetailConfidence.text = "$confidence% tin cậy"
 
-        if (author.isNotBlank()) {
-            b.tvDetailAuthor.text = "Tác giả: $author"
+        val formattedAuthor = NewsCardPresentationMapper.formatAuthor(author, source)
+        if (formattedAuthor != null) {
+            b.tvDetailAuthor.text = formattedAuthor
             b.tvDetailAuthor.visibility = android.view.View.VISIBLE
         } else {
             b.tvDetailAuthor.visibility = android.view.View.GONE
@@ -69,7 +70,7 @@ class NewsDetailActivity : AppCompatActivity() {
         b.tvDetailSentiment.setBackgroundColor(color)
 
         // Thêm các gạch đầu dòng
-        for (bullet in bullets) {
+        for (bullet in NewsCardPresentationMapper.formatBullets(bullets.toList())) {
             val tv = TextView(this).apply {
                 text = "•  $bullet"
                 textSize = 14f

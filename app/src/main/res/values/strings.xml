@@ -8,7 +8,7 @@
     <string name="nav_title_news">Tin tức</string>
     <string name="nav_title_watchlist">Theo dõi</string>
     <string name="nav_title_profile">Ví &amp; Hồ sơ</string>
-    <string name="wallet_profile_title">Hồ sơ &amp; Ví tài sản (FNMF)</string>
+    <string name="wallet_profile_title">Tài khoản và tài sản</string>
 
     <!-- Profile section -->
     <string name="profile_info_header">THÔNG TIN TÀI KHOẢN</string>
@@ -16,13 +16,13 @@
     <string name="profile_email_label">Email:</string>
     <string name="profile_user_id_label">Mã người dùng:</string>
     <string name="profile_status_label">Trạng thái:</string>
-    <string name="profile_status_active">Hoạt động 24/7</string>
+    <string name="profile_status_active">Đang hoạt động</string>
 
     <!-- Portfolio section -->
-    <string name="portfolio_header">TỔNG TÀI SẢN &amp; VÍ ĐẦU TƯ</string>
-    <string name="portfolio_net_worth_label">Tổng tài sản ròng:</string>
-    <string name="portfolio_cash_balance_label">Số dư tiền mặt khả dụng:</string>
-    <string name="portfolio_initial_balance_label">Vốn ảo ban đầu:</string>
+    <string name="portfolio_header">TỔNG QUAN TÀI SẢN</string>
+    <string name="portfolio_net_worth_label">Tổng giá trị tài sản:</string>
+    <string name="portfolio_cash_balance_label">Số dư khả dụng:</string>
+    <string name="portfolio_initial_balance_label">Vốn ban đầu:</string>
     <string name="portfolio_pnl_label">Tổng lãi/lỗ:</string>
 
     <!-- Holdings section -->
@@ -40,10 +40,10 @@
     <string name="portfolio_unavailable">Chưa tải được ví</string>
 
     <!-- System info & Logout -->
-    <string name="system_info_header">HỆ THỐNG &amp; CÀI ĐẶT</string>
+    <string name="system_info_header">THÔNG TIN ỨNG DỤNG</string>
     <string name="app_version_label">Phiên bản ứng dụng: %1$s</string>
     <string name="server_url_label">Máy chủ kết nối: %1$s</string>
-    <string name="btn_logout">ĐĂNG XUẤT TÀI KHOẢN</string>
+    <string name="btn_logout">ĐĂNG XUẤT</string>
 
     <!-- Dialog Logout -->
     <string name="logout_dialog_title">XÁC NHẬN ĐĂNG XUẤT</string>
@@ -63,14 +63,14 @@
     <string name="no_data">Chưa có dữ liệu</string>
 
     <!-- Trading Module & Chart -->
-    <string name="trading_timeframe_default">1 ngày • Trực tiếp 1 giây</string>
+    <string name="trading_timeframe_default">Nến ngày • Giá trực tiếp</string>
     <string name="trading_action_buy">MUA</string>
     <string name="trading_action_sell">BÁN</string>
-    <string name="trading_available_cash_format">Tiền khả dụng: %1$s</string>
-    <string name="trading_asset_holding_format">Đang giữ: %1$s %2$s</string>
-    <string name="trading_no_holding_format">Đang giữ: 0 %1$s</string>
-    <string name="trading_live_badge">TRỰC TIẾP</string>
-    <string name="trading_offline_badge">NGOẠI TUYẾN</string>
+    <string name="trading_available_cash_format">Số dư khả dụng: %1$s</string>
+    <string name="trading_asset_holding_format">Số lượng đang có: %1$s %2$s</string>
+    <string name="trading_no_holding_format">Số lượng đang có: 0 %1$s</string>
+    <string name="trading_live_badge">Đang cập nhật</string>
+    <string name="trading_offline_badge">Mất kết nối</string>
     <string name="trading_chart_empty">Chưa có dữ liệu nến cho mã này</string>
 
     <!-- Order Ticket BottomSheet -->
@@ -94,8 +94,8 @@
     <string name="order_ticket_err_invalid_qty">Khối lượng phải là số hữu hạn lớn hơn 0</string>
     <string name="order_ticket_err_insufficient_cash">Số dư tiền mặt khả dụng không đủ để đặt lệnh</string>
     <string name="order_ticket_err_insufficient_asset">Số lượng tài sản trong ví không đủ để bán</string>
-    <string name="trading_holding_label_format">ĐANG NẮM GIỮ (%1$s)</string>
-    <string name="trading_offline_cached_badge">NGOẠI TUYẾN • DỮ LIỆU CŨ</string>
+    <string name="trading_holding_label_format">SỐ LƯỢNG ĐANG CÓ (%1$s)</string>
+    <string name="trading_offline_cached_badge">MẤT KẾT NỐI • DỮ LIỆU CŨ</string>
     <string name="trading_toast_switch_symbol">Đang mở biểu đồ %1$s...</string>
     <string name="trading_toast_syncing_balance">Đang đồng bộ số dư mới nhất từ máy chủ...</string>
     <string name="trading_err_no_candles">Không thể tải dữ liệu nến từ máy chủ</string>
@@ -138,18 +138,27 @@
     <string name="auth_err_email_already_used">Email \'%1$s\' đã được sử dụng</string>
     <string name="auth_err_register_failed">Không thể đăng ký</string>
 
-    <!-- VNPay Sandbox Strings -->
-    <string name="vnpay_sandbox_warning">VNPay mô phỏng — Không sử dụng tiền thật</string>
+    <!-- VNPay & Payments Polish Strings -->
+    <string name="payment_testing_notice">Chức năng thanh toán đang được thử nghiệm</string>
     <string name="vnpay_conversion_hint">Tỷ giá tham chiếu: 1 USD = %1$s VND</string>
-    <string name="sandbox_deposit_vnpay_title">Nạp tiền qua VNPay mô phỏng</string>
-    <string name="sandbox_withdrawal_internal_title">Rút tiền mô phỏng</string>
-    <string name="sandbox_withdrawal_internal_notice">Giao dịch rút tiền được xử lý trong môi trường mô phỏng</string>
-    <string name="payment_deposit_subtitle">Nạp USD mô phỏng vào ví FNMF, tối đa $100,000.00</string>
-    <string name="payment_withdrawal_subtitle">Rút USD mô phỏng từ ví FNMF, tối đa $100,000.00</string>
-    <string name="payment_confirm_deposit">TIẾP TỤC ĐẾN VNPAY MÔ PHỎNG</string>
-    <string name="payment_confirm_withdrawal">TIẾP TỤC RÚT TIỀN MÔ PHỎNG</string>
+    <string name="sandbox_deposit_vnpay_title">Nạp tiền qua VNPay</string>
+    <string name="sandbox_withdrawal_internal_title">Rút tiền</string>
+    <string name="sandbox_withdrawal_internal_notice">Giao dịch rút tiền được ghi nhận vào tài khoản</string>
+    <string name="payment_deposit_subtitle">Nạp tiền vào tài khoản FNMF, tối đa $100,000.00</string>
+    <string name="payment_withdrawal_subtitle">Rút tiền từ tài khoản FNMF, tối đa $100,000.00</string>
+    <string name="payment_confirm_deposit">Tiếp tục thanh toán</string>
+    <string name="payment_confirm_withdrawal">Tiếp tục rút tiền</string>
     <string name="payment_preset_100">$100</string>
     <string name="payment_preset_500">$500</string>
     <string name="payment_preset_1000">$1,000</string>
     <string name="payment_preset_5000">$5,000</string>
+
+    <!-- News & Watchlist Polish Strings -->
+    <string name="news_summary_heading">Tóm tắt</string>
+    <string name="news_bullets_heading">Ý chính</string>
+    <string name="news_source_ref_heading">Nguồn tham khảo</string>
+    <string name="news_open_full_article">Xem bài viết đầy đủ</string>
+    <string name="news_view_source_label">Xem nguồn: </string>
+    <string name="watchlist_col_asset">Tài sản</string>
+    <string name="watchlist_col_change_24h">Biến động 24 giờ</string>
 </resources>

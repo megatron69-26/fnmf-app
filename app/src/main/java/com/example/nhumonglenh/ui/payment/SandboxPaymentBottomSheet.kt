@@ -99,7 +99,7 @@ class SandboxPaymentBottomSheet : BottomSheetDialogFragment() {
         val btn1000: MaterialButton = view.findViewById(R.id.btn_preset_1000)
         val btn5000: MaterialButton = view.findViewById(R.id.btn_preset_5000)
 
-        tvWarningBadge?.text = getString(R.string.vnpay_sandbox_warning)
+        tvWarningBadge?.visibility = View.GONE
 
         val isDeposit = paymentType.equals("DEPOSIT", ignoreCase = true)
         if (isDeposit) {
@@ -107,7 +107,7 @@ class SandboxPaymentBottomSheet : BottomSheetDialogFragment() {
             tvSubtitle.text = getString(R.string.payment_deposit_subtitle)
             btnConfirm.text = getString(R.string.payment_confirm_deposit)
             btnConfirm.setBackgroundColor(android.graphics.Color.parseColor("#0284C7"))
-            tvConversion.text = "Quy đổi mô phỏng: $0.00 USD ≈ 0 VND (25,000 VND/USD)"
+            tvConversion.text = "Số tiền quy đổi: $0.00 USD ≈ 0 VND (25,000 VND/USD)"
         } else {
             tvTitle.text = getString(R.string.sandbox_withdrawal_internal_title)
             tvSubtitle.text = getString(R.string.payment_withdrawal_subtitle)
@@ -124,7 +124,7 @@ class SandboxPaymentBottomSheet : BottomSheetDialogFragment() {
             if (rawStr.isBlank()) {
                 tvProjectedBal.text = String.format(Locale.US, "$%,.2f USD", currentBalance)
                 if (isDeposit) {
-                    tvConversion.text = "Quy đổi mô phỏng: $0.00 USD ≈ 0 VND (25,000 VND/USD)"
+                    tvConversion.text = "Số tiền quy đổi: $0.00 USD ≈ 0 VND (25,000 VND/USD)"
                 } else {
                     tvConversion.text = getString(R.string.sandbox_withdrawal_internal_notice)
                 }
@@ -147,7 +147,7 @@ class SandboxPaymentBottomSheet : BottomSheetDialogFragment() {
 
                 if (isDeposit) {
                     val vndAmount = inputNum.multiply(BigDecimal(25000)).setScale(0, RoundingMode.HALF_UP)
-                    tvConversion.text = String.format(Locale.US, "Quy đổi mô phỏng: $%,.2f USD ≈ %,d VND (25,000 VND/USD)", inputNum.toDouble(), vndAmount.toLong())
+                    tvConversion.text = String.format(Locale.US, "Số tiền quy đổi: $%,.2f USD ≈ %,d VND (25,000 VND/USD)", inputNum.toDouble(), vndAmount.toLong())
                 } else {
                     tvConversion.text = getString(R.string.sandbox_withdrawal_internal_notice)
                 }

@@ -9,11 +9,11 @@ import org.junit.Test
 class UiPolishUnitTest {
     @Test
     fun recommendationCodes_areDisplayedInVietnamese() {
-        assertEquals("MUA MẠNH", UiTextLocalizer.recommendation("STRONG_BUY"))
-        assertEquals("MUA", UiTextLocalizer.recommendation("BUY"))
-        assertEquals("GIỮ", UiTextLocalizer.recommendation("HOLD"))
-        assertEquals("BÁN", UiTextLocalizer.recommendation("SELL"))
-        assertEquals("BÁN MẠNH", UiTextLocalizer.recommendation("STRONG_SELL"))
+        assertEquals("Xu hướng tăng mạnh", UiTextLocalizer.recommendation("STRONG_BUY"))
+        assertEquals("Xu hướng tăng", UiTextLocalizer.recommendation("BUY"))
+        assertEquals("Đi ngang", UiTextLocalizer.recommendation("HOLD"))
+        assertEquals("Xu hướng giảm", UiTextLocalizer.recommendation("SELL"))
+        assertEquals("Xu hướng giảm mạnh", UiTextLocalizer.recommendation("STRONG_SELL"))
     }
 
     @Test
@@ -38,6 +38,6 @@ class UiPolishUnitTest {
             "Kế hoạch giao dịch (Action Plan): Chờ giá hồi về vùng hỗ trợ"
         )
         assertFalse(localized.contains("Action Plan", ignoreCase = true))
-        assertEquals("Kế hoạch giao dịch: Chờ giá hồi về vùng hỗ trợ", localized)
+        assertEquals("Kịch bản tham khảo: Chờ giá hồi về vùng hỗ trợ", localized)
     }
 }

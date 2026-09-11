@@ -15,19 +15,12 @@
         android:layout_marginBottom="16dp"
         android:background="#334155" />
 
-    <!-- Warning Sandbox Badge -->
+    <!-- Warning Sandbox Badge (Removed from active UI) -->
     <TextView
         android:id="@+id/tv_sandbox_warning_badge"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="14dp"
-        android:background="#2E2405"
-        android:gravity="center"
-        android:padding="8dp"
-        android:text="@string/vnpay_sandbox_warning"
-        android:textColor="#FDE047"
-        android:textSize="11sp"
-        android:textStyle="bold" />
+        android:visibility="gone" />
 
     <!-- Title -->
     <TextView
@@ -35,7 +28,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="4dp"
-        android:text="Nạp tiền mô phỏng"
+        android:text="@string/sandbox_deposit_vnpay_title"
         android:textColor="#F8FAFC"
         android:textSize="18sp"
         android:textStyle="bold" />
@@ -45,7 +38,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:text="Nạp tiền mô phỏng vào ví FNMF, tối đa $100,000.00"
+        android:text="@string/payment_deposit_subtitle"
         android:textColor="#94A3B8"
         android:textSize="12sp" />
 
@@ -75,7 +68,7 @@
                 android:id="@+id/tv_sheet_current_balance"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text=",000.00"
+                android:text="—"
                 android:textColor="#F8FAFC"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -91,7 +84,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Dự kiến sau giao dịch:"
+                android:text="Số dư sau giao dịch:"
                 android:textColor="#94A3B8"
                 android:textSize="12sp" />
 
@@ -99,7 +92,7 @@
                 android:id="@+id/tv_sheet_projected_balance"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text=",000.00"
+                android:text="—"
                 android:textColor="#34D399"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -128,7 +121,7 @@
             android:textSize="16sp" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- Simulated Conversion / Provider Info -->
+    <!-- Conversion / Provider Info -->
     <TextView
         android:id="@+id/tv_sheet_conversion"
         android:layout_width="match_parent"
@@ -136,7 +129,7 @@
         android:layout_marginBottom="12dp"
         android:background="#0F172A"
         android:padding="10dp"
-        android:text="Quy đổi mô phỏng: $0.00 USD ≈ 0 VND (25,000 VND/USD)"
+        android:text="Số tiền quy đổi: $0.00 USD ≈ 0 VND (25,000 VND/USD)"
         android:textColor="#38BDF8"
         android:textSize="12sp"
         android:visibility="visible" />
@@ -215,7 +208,7 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:backgroundTint="#0284C7"
-        android:text="TIẾP TỤC"
+        android:text="@string/payment_confirm_deposit"
         android:textColor="#FFFFFF"
         android:textSize="14sp"
         android:textStyle="bold"

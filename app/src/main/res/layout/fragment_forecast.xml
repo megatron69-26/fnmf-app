@@ -48,7 +48,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="KHUYẾN NGHỊ"
+                    android:text="NHẬN ĐỊNH"
                     android:textColor="#787B86"
                     android:textSize="12sp"
                     android:textStyle="bold"/>
@@ -129,7 +129,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="KẾ HOẠCH GIAO DỊCH"
+                    android:text="KỊCH BẢN THAM KHẢO"
                     android:textColor="#F5C518"
                     android:textSize="12sp"
                     android:textStyle="bold"/>
@@ -145,7 +145,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="TÂM LÝ THỊ TRƯỜNG"
+                    android:text="BỐI CẢNH THỊ TRƯỜNG"
                     android:textColor="#2962FF"
                     android:textSize="12sp"
                     android:textStyle="bold"/>

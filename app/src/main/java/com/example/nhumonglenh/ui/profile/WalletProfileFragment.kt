@@ -220,15 +220,12 @@ class WalletProfileFragment : Fragment() {
     }
 
     private fun displaySystemInfo(b: FragmentWalletProfileBinding) {
-        val prefs = requireActivity().getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
-        val savedServerUrl = prefs.getString("server_url", RetrofitClient.BASE_URL) ?: RetrofitClient.BASE_URL
         val versionName = runCatching {
             requireContext().packageManager
                 .getPackageInfo(requireContext().packageName, 0)
                 .versionName
         }.getOrNull() ?: "—"
         b.tvAppVersion.text = getString(R.string.app_version_label, versionName)
-        b.tvServerUrl.text = getString(R.string.server_url_label, savedServerUrl)
     }
 
     private fun triggerDataLoad(forceRefresh: Boolean) {
@@ -489,14 +486,14 @@ class WalletProfileFragment : Fragment() {
                     if (status == "SUCCEEDED") {
                         savePendingOrderId(null)
                         val typeText = if (order.type == "DEPOSIT") "Nạp" else "Rút"
-                        val msg = "🎉 $typeText thành công $${String.format(Locale.US, "%.2f", order.amountUsd ?: 0.0)} USD!"
+                        val msg = "$typeText thành công $${String.format(Locale.US, "%.2f", order.amountUsd ?: 0.0)} USD!"
                         Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show()
                         triggerDataLoad(forceRefresh = true)
                         fetchPaymentHistory()
                     } else if (status == "FAILED" || status == "CANCELLED") {
                         savePendingOrderId(null)
                         val reason = order.failureReason ?: "Giao dịch đã kết thúc ($status)"
-                        Toast.makeText(requireContext(), "Giao dịch mô phỏng: $reason", Toast.LENGTH_LONG).show()
+                        Toast.makeText(requireContext(), "Giao dịch: $reason", Toast.LENGTH_LONG).show()
                         fetchPaymentHistory()
                     }
                 }
