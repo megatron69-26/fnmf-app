@@ -35,7 +35,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="4dp"
-        android:text="Nạp tiền Sandbox"
+        android:text="Nạp tiền mô phỏng"
         android:textColor="#F8FAFC"
         android:textSize="18sp"
         android:textStyle="bold" />
@@ -45,7 +45,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:text="Mô phỏng nạp tiền vào ví vốn ảo FNMF (tối đa ,000.00)"
+        android:text="Nạp tiền mô phỏng vào ví FNMF, tối đa $100,000.00"
         android:textColor="#94A3B8"
         android:textSize="12sp" />
 
@@ -215,7 +215,7 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:backgroundTint="#0284C7"
-        android:text="TIẾP TỤC ĐẾN CỔNG SANDBOX"
+        android:text="TIẾP TỤC"
         android:textColor="#FFFFFF"
         android:textSize="14sp"
         android:textStyle="bold"

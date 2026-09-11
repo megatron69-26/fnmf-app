@@ -37,7 +37,7 @@
                 android:textStyle="bold"
                 android:textColor="#FFFFFF"
                 android:background="#999999"
-                tools:text="BULLISH" />
+                tools:text="TÍCH CỰC" />
 
             <TextView
                 android:id="@+id/tvDetailConfidence"
@@ -53,7 +53,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Tóm tắt AI"
+            android:text="Tóm tắt phân tích"
             android:textSize="15sp"
             android:textStyle="bold"
             android:textColor="#333333" />
@@ -111,7 +111,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="🔗 Đường dẫn kiểm chứng bài báo gốc:"
+            android:text="Đường dẫn bài báo gốc:"
             android:textSize="13sp"
             android:textStyle="bold"
             android:textColor="#333333" />

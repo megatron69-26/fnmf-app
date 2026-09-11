@@ -25,17 +25,17 @@ class OrderHistoryAdapter(private var orders: List<OrderResponse>) :
 
     override fun onBindViewHolder(holder: OrderViewHolder, position: Int) {
         val order = orders[position]
-        holder.tvSymbol.text = order.symbol ?: "N/A"
+        holder.tvSymbol.text = order.symbol ?: "—"
         
         val type = order.type ?: ""
-        holder.tvType.text = type
+        holder.tvType.text = if (type.equals("BUY", true)) "MUA" else "BÁN"
         if (type.equals("BUY", true)) {
             holder.tvType.setTextColor(Color.parseColor("#089981"))
         } else {
             holder.tvType.setTextColor(Color.parseColor("#F23645"))
         }
 
-        holder.tvQty.text = "Qty: ${order.quantity ?: 0.0}"
+        holder.tvQty.text = "Khối lượng: ${order.quantity ?: 0.0}"
     }
 
     override fun getItemCount() = orders.size

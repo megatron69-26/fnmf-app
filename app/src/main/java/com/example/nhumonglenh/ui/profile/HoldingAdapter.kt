@@ -26,7 +26,7 @@ class HoldingAdapter(
         val item = holdings[position]
         val context = holder.itemView.context
 
-        holder.binding.tvHoldingSymbol.text = item.symbol ?: "N/A"
+        holder.binding.tvHoldingSymbol.text = item.symbol ?: "—"
         holder.binding.tvHoldingQuantity.text = String.format(Locale.US, "%.4f", item.quantity ?: 0.0)
         holder.binding.tvHoldingAvgPrice.text = String.format(Locale.US, "$%,.2f", item.avgBuyPrice ?: 0.0)
         holder.binding.tvHoldingCurrentPrice.text = String.format(Locale.US, "$%,.2f", item.currentPrice ?: 0.0)

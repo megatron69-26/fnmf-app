@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">NHUMONGLENH</string>
+    <string name="app_name">FNMF</string>
 
     <!-- Navigation & Titles -->
-    <string name="nav_title_trading">Trading</string>
-    <string name="nav_title_forecast">Forecast</string>
-    <string name="nav_title_news">News</string>
-    <string name="nav_title_watchlist">Watchlist</string>
+    <string name="nav_title_trading">Giao dịch</string>
+    <string name="nav_title_forecast">Dự báo</string>
+    <string name="nav_title_news">Tin tức</string>
+    <string name="nav_title_watchlist">Theo dõi</string>
     <string name="nav_title_profile">Ví &amp; Hồ sơ</string>
     <string name="wallet_profile_title">Hồ sơ &amp; Ví tài sản (FNMF)</string>
 
@@ -14,7 +14,7 @@
     <string name="profile_info_header">THÔNG TIN TÀI KHOẢN</string>
     <string name="profile_fullname_label">Họ và tên:</string>
     <string name="profile_email_label">Email:</string>
-    <string name="profile_user_id_label">Mã User:</string>
+    <string name="profile_user_id_label">Mã người dùng:</string>
     <string name="profile_status_label">Trạng thái:</string>
     <string name="profile_status_active">Hoạt động 24/7</string>
 
@@ -23,10 +23,10 @@
     <string name="portfolio_net_worth_label">Tổng tài sản ròng:</string>
     <string name="portfolio_cash_balance_label">Số dư tiền mặt khả dụng:</string>
     <string name="portfolio_initial_balance_label">Vốn ảo ban đầu:</string>
-    <string name="portfolio_pnl_label">Tổng Lời / Lỗ (PnL):</string>
+    <string name="portfolio_pnl_label">Tổng lãi/lỗ:</string>
 
     <!-- Holdings section -->
-    <string name="holdings_header">DANH MỤC ĐANG NẮM GIỮ (HOLDINGS)</string>
+    <string name="holdings_header">DANH MỤC ĐANG NẮM GIỮ</string>
     <string name="holdings_empty">Chưa có tài sản nào trong danh mục sở hữu.</string>
 
     <!-- Transactions section -->
@@ -41,7 +41,7 @@
 
     <!-- System info & Logout -->
     <string name="system_info_header">HỆ THỐNG &amp; CÀI ĐẶT</string>
-    <string name="app_version_label">Phiên bản ứng dụng: v1.1.8</string>
+    <string name="app_version_label">Phiên bản ứng dụng: %1$s</string>
     <string name="server_url_label">Máy chủ kết nối: %1$s</string>
     <string name="btn_logout">ĐĂNG XUẤT TÀI KHOẢN</string>
 
@@ -56,21 +56,21 @@
     <string name="loading_data">Đang tải dữ liệu từ máy chủ...</string>
     <string name="btn_retry">Thử lại</string>
     <string name="btn_refresh">Làm mới</string>
-    <string name="offline_badge">● Chế độ Ngoại tuyến (Offline)</string>
-    <string name="network_error_msg">Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng hoặc bật Server!</string>
-    <string name="server_error_msg">Máy chủ phản hồi lỗi. Vui lòng thử lại sau!</string>
-    <string name="session_expired_msg">Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!</string>
+    <string name="offline_badge">Chế độ ngoại tuyến</string>
+    <string name="network_error_msg">Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.</string>
+    <string name="server_error_msg">Máy chủ phản hồi lỗi. Vui lòng thử lại sau.</string>
+    <string name="session_expired_msg">Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.</string>
     <string name="no_data">Chưa có dữ liệu</string>
 
     <!-- Trading Module & Chart -->
-    <string name="trading_timeframe_default">1D • Live 1s</string>
+    <string name="trading_timeframe_default">1 ngày • Trực tiếp 1 giây</string>
     <string name="trading_action_buy">MUA</string>
     <string name="trading_action_sell">BÁN</string>
     <string name="trading_available_cash_format">Tiền khả dụng: %1$s</string>
     <string name="trading_asset_holding_format">Đang giữ: %1$s %2$s</string>
     <string name="trading_no_holding_format">Đang giữ: 0 %1$s</string>
-    <string name="trading_live_badge">● LIVE</string>
-    <string name="trading_offline_badge">● OFFLINE</string>
+    <string name="trading_live_badge">TRỰC TIẾP</string>
+    <string name="trading_offline_badge">NGOẠI TUYẾN</string>
     <string name="trading_chart_empty">Chưa có dữ liệu nến cho mã này</string>
 
     <!-- Order Ticket BottomSheet -->
@@ -95,7 +95,7 @@
     <string name="order_ticket_err_insufficient_cash">Số dư tiền mặt khả dụng không đủ để đặt lệnh</string>
     <string name="order_ticket_err_insufficient_asset">Số lượng tài sản trong ví không đủ để bán</string>
     <string name="trading_holding_label_format">ĐANG NẮM GIỮ (%1$s)</string>
-    <string name="trading_offline_cached_badge">OFFLINE • DỮ LIỆU CŨ</string>
+    <string name="trading_offline_cached_badge">NGOẠI TUYẾN • DỮ LIỆU CŨ</string>
     <string name="trading_toast_switch_symbol">Đang mở biểu đồ %1$s...</string>
     <string name="trading_toast_syncing_balance">Đang đồng bộ số dư mới nhất từ máy chủ...</string>
     <string name="trading_err_no_candles">Không thể tải dữ liệu nến từ máy chủ</string>
@@ -103,18 +103,18 @@
     <string name="order_ticket_executing">Đang gửi lệnh tới hệ thống...</string>
     <string name="order_success_format">Khớp lệnh %1$s %2$s %3$s thành công</string>
     <string name="order_error_generic">Không thể thực hiện lệnh, vui lòng thử lại</string>
-    <string name="trading_connecting_badge">● ĐANG KẾT NỐI</string>
-    <string name="trading_waiting_price_badge">● CHỜ GIÁ</string>
-    <string name="trading_no_live_badge">DỮ LIỆU BACKEND</string>
+    <string name="trading_connecting_badge">ĐANG KẾT NỐI</string>
+    <string name="trading_waiting_price_badge">ĐANG CHỜ GIÁ</string>
+    <string name="trading_no_live_badge">DỮ LIỆU MÁY CHỦ</string>
     <string name="trading_gold_paxg_reference">Vàng Thế Giới (Tham chiếu PAXG)</string>
     <string name="trading_err_data_not_ready">Dữ liệu giá hoặc số dư chưa sẵn sàng để đặt lệnh</string>
 
     <!-- Auth Polish Strings -->
-    <string name="auth_login_title">FNMF TERMINAL</string>
-    <string name="auth_login_subtitle">24/7 Mobile Trading &amp; Financial Engine</string>
+    <string name="auth_login_title">FNMF</string>
+    <string name="auth_login_subtitle">Nền tảng giao dịch và theo dõi tài chính</string>
     <string name="auth_email_label">EMAIL NGƯỜI DÙNG:</string>
     <string name="auth_email_hint">Nhập email (VD: user@fnmf.com)</string>
-    <string name="auth_password_label">MẬT KHẨU / PASSWORD:</string>
+    <string name="auth_password_label">MẬT KHẨU:</string>
     <string name="auth_password_hint">Nhập mật khẩu</string>
     <string name="auth_confirm_password_label">XÁC NHẬN MẬT KHẨU:</string>
     <string name="auth_confirm_password_hint">Nhập lại mật khẩu</string>
@@ -139,11 +139,15 @@
     <string name="auth_err_register_failed">Không thể đăng ký</string>
 
     <!-- VNPay Sandbox Strings -->
-    <string name="vnpay_sandbox_warning">VNPay Sandbox — Không sử dụng tiền thật</string>
+    <string name="vnpay_sandbox_warning">VNPay mô phỏng — Không sử dụng tiền thật</string>
     <string name="vnpay_conversion_hint">Tỷ giá tham chiếu: 1 USD = %1$s VND</string>
-    <string name="sandbox_deposit_vnpay_title">Nạp tiền VNPay Sandbox</string>
-    <string name="sandbox_withdrawal_internal_title">Rút tiền Sandbox (Nội bộ)</string>
-    <string name="sandbox_withdrawal_internal_notice">Cổng rút nội bộ mô phỏng (Sandbox Internal)</string>
+    <string name="sandbox_deposit_vnpay_title">Nạp tiền qua VNPay mô phỏng</string>
+    <string name="sandbox_withdrawal_internal_title">Rút tiền mô phỏng</string>
+    <string name="sandbox_withdrawal_internal_notice">Giao dịch rút tiền được xử lý trong môi trường mô phỏng</string>
+    <string name="payment_deposit_subtitle">Nạp USD mô phỏng vào ví FNMF, tối đa $100,000.00</string>
+    <string name="payment_withdrawal_subtitle">Rút USD mô phỏng từ ví FNMF, tối đa $100,000.00</string>
+    <string name="payment_confirm_deposit">TIẾP TỤC ĐẾN VNPAY MÔ PHỎNG</string>
+    <string name="payment_confirm_withdrawal">TIẾP TỤC RÚT TIỀN MÔ PHỎNG</string>
     <string name="payment_preset_100">$100</string>
     <string name="payment_preset_500">$500</string>
     <string name="payment_preset_1000">$1,000</string>

@@ -42,6 +42,17 @@ object PaymentItemFormatter {
         return status?.trim()?.uppercase(Locale.ROOT) ?: "UNKNOWN"
     }
 
+    fun formatStatusLabel(status: String?): String {
+        return when (formatStatus(status)) {
+            "SUCCEEDED" -> "THÀNH CÔNG"
+            "PENDING" -> "ĐANG CHỜ"
+            "PROCESSING" -> "ĐANG XỬ LÝ"
+            "FAILED" -> "THẤT BẠI"
+            "CANCELLED" -> "ĐÃ HỦY"
+            else -> "CHƯA XÁC ĐỊNH"
+        }
+    }
+
     fun shouldShowPendingActions(status: String?, orderId: Long?): Boolean {
         val s = formatStatus(status)
         return (s == "PENDING" || s == "PROCESSING") && (orderId != null && orderId > 0)
@@ -124,7 +135,7 @@ class PaymentHistoryAdapter(
 
             // 5. Trạng thái - Mặc định "UNKNOWN" nếu thiếu trường, không tự gán "PENDING"
             val status = PaymentItemFormatter.formatStatus(item.status)
-            tvStatusBadge.text = status
+            tvStatusBadge.text = PaymentItemFormatter.formatStatusLabel(item.status)
 
             when (status) {
                 "SUCCEEDED" -> {

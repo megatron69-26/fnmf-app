@@ -88,7 +88,7 @@
                 android:textStyle="bold"
                 android:textColor="#FFFFFF"
                 android:background="#999999"
-                tools:text="BULLISH" />
+                tools:text="TÍCH CỰC" />
 
             <TextView
                 android:id="@+id/tvConfidence"
@@ -145,7 +145,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🔗 Báo gốc: "
+                android:text="Báo gốc: "
                 android:textSize="11sp"
                 android:textStyle="bold"
                 android:textColor="#1976D2" />

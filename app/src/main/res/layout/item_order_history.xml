@@ -20,7 +20,7 @@
         android:id="@+id/tvOrderType"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="BUY"
+        android:text="MUA"
         android:textColor="#089981"
         android:textStyle="bold"
         android:paddingEnd="12dp"/>

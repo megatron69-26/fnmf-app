@@ -3,19 +3,19 @@
     <item
         android:id="@+id/nav_trading"
         android:icon="@android:drawable/ic_menu_sort_by_size"
-        android:title="Trading" />
+        android:title="@string/nav_title_trading" />
     <item
         android:id="@+id/nav_forecast"
         android:icon="@android:drawable/ic_menu_compass"
-        android:title="Forecast" />
+        android:title="@string/nav_title_forecast" />
     <item
         android:id="@+id/nav_news"
         android:icon="@android:drawable/ic_menu_recent_history"
-        android:title="News" />
+        android:title="@string/nav_title_news" />
     <item
         android:id="@+id/nav_watchlist"
         android:icon="@android:drawable/ic_menu_agenda"
-        android:title="Watchlist" />
+        android:title="@string/nav_title_watchlist" />
     <item
         android:id="@+id/nav_profile"
         android:icon="@android:drawable/ic_menu_myplaces"

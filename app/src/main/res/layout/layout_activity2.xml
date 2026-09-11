@@ -21,10 +21,12 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="⚡ FNMF TRADING"
+            android:text="FNMF GIAO DỊCH"
             android:textColor="@color/tv_text_primary"
             android:textSize="15sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
 
         <TextView
             android:id="@+id/tv_header_user"
@@ -33,6 +35,9 @@
             android:textColor="@color/tv_text_secondary"
             android:textSize="12sp"
             android:layout_marginEnd="10dp"
+            android:maxWidth="140dp"
+            android:maxLines="1"
+            android:ellipsize="end"
             android:text="khoi.pro@fnmf.com" />
 
         <com.google.android.material.button.MaterialButton

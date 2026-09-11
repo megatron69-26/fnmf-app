@@ -74,19 +74,19 @@ class NewsFeedFragment : Fragment() {
                     is com.example.nhumonglenh.data.repository.NewsRepository.NewsResult.CacheFallback -> {
                         binding.rvNews.visibility = View.VISIBLE
                         binding.tvNewsError.visibility = View.VISIBLE
-                        binding.tvNewsError.text = "⚠️ Chế độ ngoại tuyến: Hiển thị tin tức đã lưu trong Room DB (${result.reason})"
+                        binding.tvNewsError.text = "Đang ngoại tuyến. Ứng dụng đang hiển thị tin tức đã lưu trên thiết bị."
                         adapter.submit(result.news)
                     }
                     is com.example.nhumonglenh.data.repository.NewsRepository.NewsResult.CacheWriteFailure -> {
                         binding.rvNews.visibility = View.GONE
                         binding.tvNewsError.visibility = View.VISIBLE
-                        binding.tvNewsError.text = "⚠️ Lỗi lưu trữ cục bộ: Không thể đồng bộ tin tức vào Room DB (${result.error.localizedMessage})"
+                        binding.tvNewsError.text = "Không thể lưu tin tức trên thiết bị. Vui lòng thử lại."
                         adapter.submit(emptyList())
                     }
                     is com.example.nhumonglenh.data.repository.NewsRepository.NewsResult.Empty -> {
                         binding.rvNews.visibility = View.GONE
                         binding.tvNewsError.visibility = View.VISIBLE
-                        binding.tvNewsError.text = "⚠️ ${result.message}\n(Không có tin tức khả dụng)"
+                        binding.tvNewsError.text = "${result.message}\n(Không có tin tức khả dụng)"
                         adapter.submit(emptyList())
                     }
                 }

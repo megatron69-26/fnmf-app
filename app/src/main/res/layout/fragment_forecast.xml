@@ -12,7 +12,7 @@
             android:id="@+id/tvForecastTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Dự báo Xu hướng Thị trường (AI LLM)"
+            android:text="Dự báo xu hướng thị trường"
             android:textColor="#FFFFFF"
             android:textSize="20sp"
             android:textStyle="bold"
@@ -48,7 +48,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="KHUYẾN NGHỊ AI"
+                    android:text="KHUYẾN NGHỊ"
                     android:textColor="#787B86"
                     android:textSize="12sp"
                     android:textStyle="bold"/>
@@ -56,7 +56,7 @@
                     android:id="@+id/tvRecommendation"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="STRONG BUY"
+                    android:text="MUA MẠNH"
                     android:textColor="#089981"
                     android:textSize="24sp"
                     android:textStyle="bold"
@@ -85,7 +85,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="HỖ TRỢ (Support)"
+                        android:text="HỖ TRỢ"
                         android:textColor="#787B86"
                         android:textSize="12sp"
                         android:textStyle="bold"/>
@@ -106,7 +106,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="KHÁNG CỰ (Resistance)"
+                        android:text="KHÁNG CỰ"
                         android:textColor="#787B86"
                         android:textSize="12sp"
                         android:textStyle="bold"/>
@@ -129,7 +129,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="KẾ HOẠCH GIAO DỊCH (Action Plan)"
+                    android:text="KẾ HOẠCH GIAO DỊCH"
                     android:textColor="#F5C518"
                     android:textSize="12sp"
                     android:textStyle="bold"/>
@@ -145,7 +145,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="TÂM LÝ THỊ TRƯỜNG (Market Sentiment)"
+                    android:text="TÂM LÝ THỊ TRƯỜNG"
                     android:textColor="#2962FF"
                     android:textSize="12sp"
                     android:textStyle="bold"/>

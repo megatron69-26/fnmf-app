@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.example.nhumonglenh.databinding.ActivityNewsDetailBinding
+import com.example.nhumonglenh.ui.SystemBarInsets
+import com.example.nhumonglenh.ui.UiTextLocalizer
 
 class NewsDetailActivity : AppCompatActivity() {
 
@@ -14,6 +16,7 @@ class NewsDetailActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         b = ActivityNewsDetailBinding.inflate(layoutInflater)
         setContentView(b.root)
+        SystemBarInsets.apply(this, findViewById(android.R.id.content), useLightStatusIcons = true)
 
         val title = intent.getStringExtra(EXTRA_TITLE) ?: ""
         val summary = intent.getStringExtra(EXTRA_SUMMARY) ?: ""
@@ -58,9 +61,9 @@ class NewsDetailActivity : AppCompatActivity() {
         }
 
         val (label, color) = when (sentiment) {
-            "bullish" -> "BULLISH" to Color.parseColor("#2E7D32")
-            "bearish" -> "BEARISH" to Color.parseColor("#C62828")
-            else      -> "NEUTRAL" to Color.parseColor("#F9A825")
+            "bullish" -> UiTextLocalizer.sentiment(sentiment) to Color.parseColor("#2E7D32")
+            "bearish" -> UiTextLocalizer.sentiment(sentiment) to Color.parseColor("#C62828")
+            else      -> UiTextLocalizer.sentiment(sentiment) to Color.parseColor("#F9A825")
         }
         b.tvDetailSentiment.text = label
         b.tvDetailSentiment.setBackgroundColor(color)

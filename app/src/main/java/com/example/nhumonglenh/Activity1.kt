@@ -8,6 +8,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.nhumonglenh.ui.SystemBarInsets
 import com.example.nhumonglenh.data.remote.AuthResponse
 import com.example.nhumonglenh.data.remote.LoginRequest
 import com.example.nhumonglenh.data.remote.NetworkConfig
@@ -33,6 +34,7 @@ class Activity1 : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         supportActionBar?.hide()
         setContentView(R.layout.layout_activity1)
+        SystemBarInsets.apply(this, findViewById(android.R.id.content))
         Log.d(TAG, "Activity1 onCreate")
 
         val etEmail = findViewById<EditText>(R.id.etEmail)

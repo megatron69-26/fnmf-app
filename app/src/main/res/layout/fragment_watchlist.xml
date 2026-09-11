@@ -21,7 +21,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Watchlist (Theo dõi)"
+            android:text="Danh sách theo dõi"
             android:textColor="@color/tv_text_primary"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -30,7 +30,7 @@
             android:id="@+id/tvWatchlistStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="● LIVE"
+            android:text="TRỰC TIẾP"
             android:textColor="#089981"
             android:textSize="12sp"
             android:textStyle="bold"
@@ -60,7 +60,7 @@
         android:textSize="11sp"
         android:padding="6dp"
         android:gravity="center"
-        android:text="⚠️ CHẾ ĐỘ OFFLINE: Hiển thị giá lưu tạm trong Room DB"
+        android:text="CHẾ ĐỘ NGOẠI TUYẾN: Hiển thị giá đã lưu trên thiết bị"
         android:visibility="gone" />
 
     <!-- Divider -->

@@ -11,9 +11,11 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.example.nhumonglenh.data.remote.ForecastResponse
 import com.example.nhumonglenh.data.remote.RetrofitClient
+import com.example.nhumonglenh.ui.UiTextLocalizer
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.util.Locale
 
 class ForecastFragment : Fragment() {
 
@@ -74,18 +76,19 @@ class ForecastFragment : Fragment() {
                 val forecast = response.body()
                 if (response.isSuccessful && forecast != null) {
                     llContent?.visibility = View.VISIBLE
-                    tvRecommendation?.text = forecast.recommendation ?: "N/A"
+                    val recommendationCode = forecast.recommendation?.trim()?.uppercase(Locale.ROOT)
+                    tvRecommendation?.text = UiTextLocalizer.recommendation(forecast.recommendation)
                     val confidence = forecast.confidenceScore ?: 0
                     tvConfidence?.text = "Độ tin cậy: $confidence%"
                     tvSupport?.text = String.format("%,.2f", forecast.supportLevel ?: 0.0)
                     tvResistance?.text = String.format("%,.2f", forecast.resistanceLevel ?: 0.0)
-                    tvTechOutlook?.text = forecast.technicalOutlook ?: "Đang cập nhật..."
-                    tvFundOutlook?.text = forecast.fundamentalOutlook ?: "Đang cập nhật..."
+                    tvTechOutlook?.text = UiTextLocalizer.forecastNarrative(forecast.technicalOutlook)
+                    tvFundOutlook?.text = UiTextLocalizer.forecastNarrative(forecast.fundamentalOutlook)
 
                     when {
-                        forecast.recommendation?.contains("BUY") == true ->
+                        recommendationCode?.contains("BUY") == true ->
                             tvRecommendation?.setTextColor(Color.parseColor("#089981"))
-                        forecast.recommendation?.contains("SELL") == true ->
+                        recommendationCode?.contains("SELL") == true ->
                             tvRecommendation?.setTextColor(Color.parseColor("#F23645"))
                         else ->
                             tvRecommendation?.setTextColor(Color.parseColor("#D1D4DC"))
@@ -126,4 +129,5 @@ class ForecastFragment : Fragment() {
         tvFundOutlook = null
         super.onDestroyView()
     }
+
 }

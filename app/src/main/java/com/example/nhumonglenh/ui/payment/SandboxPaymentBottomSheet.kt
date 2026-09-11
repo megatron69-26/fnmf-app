@@ -104,14 +104,14 @@ class SandboxPaymentBottomSheet : BottomSheetDialogFragment() {
         val isDeposit = paymentType.equals("DEPOSIT", ignoreCase = true)
         if (isDeposit) {
             tvTitle.text = getString(R.string.sandbox_deposit_vnpay_title)
-            tvSubtitle.text = "Mô phỏng nạp tiền USD qua VNPay Sandbox vào ví vốn ảo FNMF (Tối đa \$100,000.00)"
-            btnConfirm.text = "TIẾP TỤC ĐẾN CỔNG NẠP VNPAY SANDBOX"
+            tvSubtitle.text = getString(R.string.payment_deposit_subtitle)
+            btnConfirm.text = getString(R.string.payment_confirm_deposit)
             btnConfirm.setBackgroundColor(android.graphics.Color.parseColor("#0284C7"))
             tvConversion.text = "Quy đổi mô phỏng: $0.00 USD ≈ 0 VND (25,000 VND/USD)"
         } else {
             tvTitle.text = getString(R.string.sandbox_withdrawal_internal_title)
-            tvSubtitle.text = "Mô phỏng rút tiền USD từ ví vốn ảo FNMF (Tối đa \$100,000.00)"
-            btnConfirm.text = "TIẾP TỤC ĐẾN CỔNG RÚT SANDBOX NỘI BỘ"
+            tvSubtitle.text = getString(R.string.payment_withdrawal_subtitle)
+            btnConfirm.text = getString(R.string.payment_confirm_withdrawal)
             btnConfirm.setBackgroundColor(android.graphics.Color.parseColor("#D97706"))
             tvConversion.text = getString(R.string.sandbox_withdrawal_internal_notice)
         }
@@ -133,7 +133,7 @@ class SandboxPaymentBottomSheet : BottomSheetDialogFragment() {
             try {
                 val inputNum = BigDecimal(rawStr.trim())
                 if (inputNum.stripTrailingZeros().scale() > 2) {
-                    layoutAmount.error = "Tối đa 2 chữ số thập phân (cents)"
+                    layoutAmount.error = "Tối đa 2 chữ số thập phân"
                     return
                 }
                 if (inputNum.compareTo(BigDecimal.ZERO) <= 0) {

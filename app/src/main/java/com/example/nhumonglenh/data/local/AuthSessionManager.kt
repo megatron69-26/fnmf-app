@@ -124,7 +124,7 @@ object AuthSessionManager {
         activity.runOnUiThread {
             Toast.makeText(
                 activity.applicationContext,
-                "⚠️ Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.",
+                "Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.",
                 Toast.LENGTH_LONG
             ).show()
 

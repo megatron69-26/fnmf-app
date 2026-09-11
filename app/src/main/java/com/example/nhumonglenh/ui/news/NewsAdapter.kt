@@ -10,6 +10,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.nhumonglenh.databinding.ItemNewsBinding
+import com.example.nhumonglenh.ui.UiTextLocalizer
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -63,9 +64,9 @@ class NewsAdapter(
         }
 
         val (label, color) = when (n.sentiment) {
-            "bullish" -> "BULLISH" to Color.parseColor("#2E7D32")
-            "bearish" -> "BEARISH" to Color.parseColor("#C62828")
-            else      -> "NEUTRAL" to Color.parseColor("#F9A825")
+            "bullish" -> UiTextLocalizer.sentiment(n.sentiment) to Color.parseColor("#2E7D32")
+            "bearish" -> UiTextLocalizer.sentiment(n.sentiment) to Color.parseColor("#C62828")
+            else      -> UiTextLocalizer.sentiment(n.sentiment) to Color.parseColor("#F9A825")
         }
         holder.b.tvSentiment.text = label
         holder.b.tvSentiment.setBackgroundColor(color)

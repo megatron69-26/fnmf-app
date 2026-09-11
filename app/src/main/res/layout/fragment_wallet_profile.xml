@@ -201,7 +201,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="● "
+                                android:text=""
                                 android:textColor="@color/tv_green"
                                 android:textSize="12sp" />
 
@@ -376,7 +376,7 @@
                             android:paddingHorizontal="10dp"
                             android:paddingVertical="6dp"
                             android:gravity="center"
-                            android:text="⚠️ MÔI TRƯỜNG SANDBOX — KHÔNG PHẢI TIỀN THẬT"
+                            android:text="MÔI TRƯỜNG MÔ PHỎNG — KHÔNG PHẢI TIỀN THẬT"
                             android:textColor="#FDE047"
                             android:textSize="11sp"
                             android:textStyle="bold"
@@ -393,7 +393,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="CỔNG NẠP/RÚT TIỀN SANDBOX"
+                                android:text="NẠP/RÚT TIỀN MÔ PHỎNG"
                                 android:textColor="@color/tv_text_primary"
                                 android:textSize="12sp"
                                 android:textStyle="bold"
@@ -580,7 +580,8 @@
                             android:id="@+id/tv_app_version"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="@string/app_version_label"
+                            android:text="—"
+                            tools:text="Phiên bản ứng dụng: 1.1.16"
                             android:textColor="@color/tv_text_secondary"
                             android:textSize="12sp"
                             android:layout_marginBottom="4dp" />
@@ -648,7 +649,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="⚠️"
+            android:text=""
             android:textSize="36sp"
             android:layout_marginBottom="12dp" />
 

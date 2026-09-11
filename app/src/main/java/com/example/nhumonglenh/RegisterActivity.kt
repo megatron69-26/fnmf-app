@@ -8,6 +8,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.nhumonglenh.ui.SystemBarInsets
 import com.example.nhumonglenh.data.local.AuthSessionManager
 import com.example.nhumonglenh.data.remote.AuthResponse
 import com.example.nhumonglenh.data.remote.NetworkConfig
@@ -26,6 +27,7 @@ class RegisterActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         supportActionBar?.hide()
         setContentView(R.layout.layout_register)
+        SystemBarInsets.apply(this, findViewById(android.R.id.content))
 
         val emailInput = findViewById<EditText>(R.id.etRegisterEmail)
         val passwordInput = findViewById<EditText>(R.id.etRegisterPassword)

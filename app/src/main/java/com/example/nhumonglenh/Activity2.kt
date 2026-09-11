@@ -16,6 +16,7 @@ import com.example.nhumonglenh.data.local.AuthSessionManager
 import com.example.nhumonglenh.data.remote.NetworkConfig
 import com.example.nhumonglenh.ui.news.NewsFeedFragment
 import com.example.nhumonglenh.ui.profile.WalletProfileFragment
+import com.example.nhumonglenh.ui.SystemBarInsets
 import com.example.nhumonglenh.ui.watchlist.WatchlistFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.button.MaterialButton
@@ -52,6 +53,7 @@ class Activity2 : AppCompatActivity() {
 
         supportActionBar?.hide()
         setContentView(R.layout.layout_activity2)
+        SystemBarInsets.apply(this, findViewById(android.R.id.content))
 
         bottomNav = findViewById(R.id.bottom_navigation)
 

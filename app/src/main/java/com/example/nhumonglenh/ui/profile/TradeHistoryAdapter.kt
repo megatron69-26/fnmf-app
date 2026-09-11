@@ -40,7 +40,7 @@ class TradeHistoryAdapter(
         holder.binding.tvOrderTypeBadge.setBackgroundColor(ContextCompat.getColor(context, badgeColor))
 
         // 2. Thông tin mã coin & ID
-        holder.binding.tvOrderSymbol.text = order.symbol ?: "N/A"
+        holder.binding.tvOrderSymbol.text = order.symbol ?: "—"
         holder.binding.tvOrderId.text = if (order.transactionId != null) "#${order.transactionId}" else ""
 
         // 3. Tổng tiền

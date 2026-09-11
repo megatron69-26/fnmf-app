@@ -222,6 +222,12 @@ class WalletProfileFragment : Fragment() {
     private fun displaySystemInfo(b: FragmentWalletProfileBinding) {
         val prefs = requireActivity().getSharedPreferences("fnmf_prefs", Context.MODE_PRIVATE)
         val savedServerUrl = prefs.getString("server_url", RetrofitClient.BASE_URL) ?: RetrofitClient.BASE_URL
+        val versionName = runCatching {
+            requireContext().packageManager
+                .getPackageInfo(requireContext().packageName, 0)
+                .versionName
+        }.getOrNull() ?: "—"
+        b.tvAppVersion.text = getString(R.string.app_version_label, versionName)
         b.tvServerUrl.text = getString(R.string.server_url_label, savedServerUrl)
     }
 
@@ -490,7 +496,7 @@ class WalletProfileFragment : Fragment() {
                     } else if (status == "FAILED" || status == "CANCELLED") {
                         savePendingOrderId(null)
                         val reason = order.failureReason ?: "Giao dịch đã kết thúc ($status)"
-                        Toast.makeText(requireContext(), "Giao dịch sandbox: $reason", Toast.LENGTH_LONG).show()
+                        Toast.makeText(requireContext(), "Giao dịch mô phỏng: $reason", Toast.LENGTH_LONG).show()
                         fetchPaymentHistory()
                     }
                 }

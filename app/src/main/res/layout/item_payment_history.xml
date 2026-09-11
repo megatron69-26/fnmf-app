@@ -77,7 +77,7 @@
                 android:background="#1E293B"
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="2dp"
-                android:text="SUCCEEDED"
+                android:text="THÀNH CÔNG"
                 android:textColor="#E2E8F0"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -118,7 +118,7 @@
                 android:minWidth="0dp"
                 android:minHeight="0dp"
                 android:paddingHorizontal="10dp"
-                android:text="Mở Checkout"
+                android:text="Mở thanh toán"
                 android:textColor="#FFFFFF"
                 android:textSize="11sp"
                 app:cornerRadius="6dp" />

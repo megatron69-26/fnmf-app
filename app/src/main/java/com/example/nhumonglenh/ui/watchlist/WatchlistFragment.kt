@@ -145,7 +145,7 @@ class WatchlistFragment : Fragment() {
 
         if (authHeader == null || userEmail.isBlank()) {
             tvOfflineNotice?.visibility = View.GONE
-            tvWatchlistStatus?.text = "● CHƯA ĐĂNG NHẬP"
+            tvWatchlistStatus?.text = "CHƯA ĐĂNG NHẬP"
             tvWatchlistStatus?.setTextColor(Color.parseColor("#888888"))
             tvEmptyWatchlist?.visibility = View.VISIBLE
             tvEmptyWatchlist?.text = "Vui lòng đăng nhập để xem danh mục theo dõi cá nhân."
@@ -188,7 +188,7 @@ class WatchlistFragment : Fragment() {
                 if (syncDecision.action == WatchlistRoomSyncPolicy.Action.SYNC_ROOM) {
                     lastFetchTime = System.currentTimeMillis()
                     isCurrentlyOffline = false
-                    tvWatchlistStatus?.text = "● LIVE"
+                    tvWatchlistStatus?.text = "TRỰC TIẾP"
                     tvWatchlistStatus?.setTextColor(Color.parseColor("#089981"))
                     tvOfflineNotice?.visibility = View.GONE
 
@@ -267,8 +267,8 @@ class WatchlistFragment : Fragment() {
                 if (!isAdded || view == null) return@withContext
 
                 tvOfflineNotice?.visibility = View.VISIBLE
-                tvOfflineNotice?.text = "⚠️ CHẾ ĐỘ OFFLINE: " + reason
-                tvWatchlistStatus?.text = "● OFFLINE"
+                tvOfflineNotice?.text = "CHẾ ĐỘ NGOẠI TUYẾN: Đang hiển thị dữ liệu đã lưu trên thiết bị"
+                tvWatchlistStatus?.text = "NGOẠI TUYẾN"
                 tvWatchlistStatus?.setTextColor(Color.parseColor("#F9A825"))
 
                 if (cachedList.isNotEmpty()) {
@@ -285,7 +285,7 @@ class WatchlistFragment : Fragment() {
                     adapter?.updateData(uiItems)
                 } else {
                     tvEmptyWatchlist?.visibility = View.VISIBLE
-                    tvEmptyWatchlist?.text = "Không có dữ liệu lưu tạm trong Room DB cho tài khoản này.\\nVui lòng kết nối mạng và thử lại."
+                    tvEmptyWatchlist?.text = "Không có dữ liệu đã lưu trên thiết bị cho tài khoản này.\\nVui lòng kết nối mạng và thử lại."
                     adapter?.updateData(emptyList())
                 }
             }
@@ -300,7 +300,7 @@ class WatchlistFragment : Fragment() {
         val appContext = ctx.applicationContext
 
         if (isCurrentlyOffline) {
-            Toast.makeText(ctx, "⚠️ Ngoại tuyến: Không thể thêm mã mới lên Cloud", Toast.LENGTH_SHORT).show()
+            Toast.makeText(ctx, "Đang ngoại tuyến, không thể thêm mã mới lên máy chủ", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -316,14 +316,14 @@ class WatchlistFragment : Fragment() {
         val availableSymbols = supportedSymbols.filter { !currentSymbols.contains(it) }
 
         if (availableSymbols.isEmpty()) {
-            Toast.makeText(ctx, "Tất cả các mã khả dụng đã có trong Watchlist", Toast.LENGTH_SHORT).show()
+            Toast.makeText(ctx, "Tất cả mã khả dụng đã có trong danh sách theo dõi", Toast.LENGTH_SHORT).show()
             return
         }
 
         val displayNames = availableSymbols.map { it + " — " + getFriendlyName(it) }.toTypedArray()
 
         AlertDialog.Builder(ctx)
-            .setTitle("Thêm mã vào Watchlist")
+            .setTitle("Thêm mã theo dõi")
             .setItems(displayNames) { _, which ->
                 val selectedSymbol = availableSymbols[which]
                 performAddToWatchlist(authHeader, selectedSymbol)
@@ -352,10 +352,10 @@ class WatchlistFragment : Fragment() {
                 }
 
                 if (response.isSuccessful) {
-                    Toast.makeText(ctx, "Đã thêm " + symbol + " vào Watchlist", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(ctx, "Đã thêm " + symbol + " vào danh sách theo dõi", Toast.LENGTH_SHORT).show()
                     fetchCloudWatchlist()
                 } else if (response.code() == 400) {
-                    Toast.makeText(ctx, "Mã " + symbol + " đã tồn tại trong Watchlist", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(ctx, "Mã " + symbol + " đã có trong danh sách theo dõi", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(ctx, "Không thể thêm " + symbol + " (Mã lỗi: " + response.code() + ")", Toast.LENGTH_SHORT).show()
                 }
@@ -378,7 +378,7 @@ class WatchlistFragment : Fragment() {
         val appContext = ctx.applicationContext
 
         if (isCurrentlyOffline) {
-            Toast.makeText(ctx, "⚠️ Ngoại tuyến: Không thể xóa mã trên Cloud", Toast.LENGTH_SHORT).show()
+            Toast.makeText(ctx, "Đang ngoại tuyến, không thể xóa mã trên máy chủ", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -390,7 +390,7 @@ class WatchlistFragment : Fragment() {
         }
 
         AlertDialog.Builder(ctx)
-            .setTitle("Xóa khỏi Watchlist")
+            .setTitle("Xóa mã theo dõi")
             .setMessage("Bạn có chắc chắn muốn xóa " + item.symbol + " khỏi danh mục theo dõi?")
             .setPositiveButton("Xóa") { _, _ ->
                 performRemoveFromWatchlist(authHeader, userEmail, item.symbol)
@@ -420,7 +420,7 @@ class WatchlistFragment : Fragment() {
                 }
 
                 if (response.isSuccessful) {
-                    Toast.makeText(ctx, "Đã xóa " + symbol + " khỏi Watchlist", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(ctx, "Đã xóa " + symbol + " khỏi danh sách theo dõi", Toast.LENGTH_SHORT).show()
                     // Xóa khỏi Room DB
                     viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                         try {
@@ -448,7 +448,7 @@ class WatchlistFragment : Fragment() {
         return when {
             symbol.contains("BTC") -> "Bitcoin"
             symbol.contains("ETH") -> "Ethereum"
-            symbol.contains("XAU") -> "Vàng Thế Giới (Gold Spot)"
+            symbol.contains("XAU") -> "Vàng giao ngay thế giới"
             else -> symbol
         }
     }
