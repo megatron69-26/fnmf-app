@@ -57,6 +57,8 @@ data class ForecastResponse(
     val keyDrivers: List<String>?,
     val technicalOutlook: String?,
     val fundamentalOutlook: String?,
+    val analysisSource: String? = null,
+    val candleCount: Int? = null,
     val fromCache: Boolean? = false,
     val createdAt: String? = null
 )

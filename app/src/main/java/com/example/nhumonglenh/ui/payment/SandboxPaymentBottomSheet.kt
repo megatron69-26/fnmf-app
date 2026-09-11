@@ -262,8 +262,14 @@ class SandboxPaymentBottomSheet : BottomSheetDialogFragment() {
                         setFragmentResult(REQUEST_KEY_PAYMENT, resultBundle)
                         dismiss()
                     } else {
-                        val errorMsg = response.errorBody()?.string() ?: "Tạo giao dịch thất bại (HTTP ${response.code()})"
-                        layoutAmount.error = errorMsg
+                        val parsedMessage = runCatching {
+                            val raw = response.errorBody()?.string()
+                            if (!raw.isNullOrBlank()) {
+                                val json = org.json.JSONObject(raw)
+                                if (json.has("message")) json.getString("message") else null
+                            } else null
+                        }.getOrNull()
+                        layoutAmount.error = parsedMessage ?: "Không thể khởi tạo giao dịch lúc này. Vui lòng thử lại sau."
                     }
                 }
 
@@ -271,7 +277,7 @@ class SandboxPaymentBottomSheet : BottomSheetDialogFragment() {
                     if (!isAdded) return
                     btnConfirm.isEnabled = true
                     pbLoading.visibility = View.GONE
-                    layoutAmount.error = "Lỗi kết nối mạng: ${t.localizedMessage ?: "Timeout"}. Bạn có thể bấm lại để thử lại với cùng mã giao dịch."
+                    layoutAmount.error = "Không thể kết nối đến máy chủ thanh toán. Bạn có thể bấm lại để thử lại."
                 }
             })
         }

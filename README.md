@@ -1,98 +1,96 @@
-# 🚀 TÀI LIỆU BÀN GIAO & HƯỚNG DẪN HOÀN THIỆN ỨNG DỤNG FNMF
-> **Dành cho:** Nhóm phát triển FNMF (Mạnh - Leader, Hùng - Android Dev, Khôi - Backend Dev)  
-> **Phiên bản:** `v1.2.0 - Unified Mobile & Backend Suite`  
-> **Trạng thái:** 🟢 **Đã tích hợp thành công 3 phần việc, chạy mượt mà trên máy thật!**
+# FNMF Mobile Client — Ung dung Android Tin tuc Tai chinh & Giao dich Mo phong
+
+Financial News & Market Forecasting (FNMF) Mobile Client la ung dung di dong Android ho tro nha dau tu theo doi thi truong, cap nhat tin tuc tai chinh quoc te duoc phan tich boi tri tue nhan tao Google Gemini, va thuc hanh giao dich gia lap (Paper Trading).
+
+- **Phien ban ung dung:** v1.1.18 (`versionCode = 18`, `versionName = "1.1.18"`)
+- **Thanh vien thuc hien:**
+  - Nguyen Quang Hung (Member #2 - Android Developer / UI, MPAndroidChart, Retrofit)
+  - Nguyen Huu Manh (Member #1 / Leader - Prompt AI, Room Database & Offline Cache)
+  - Dang Duc Khoi (Member #3 - Backend, Data Pipeline & Android Integration)
+- **Nen tang cong nghe:**
+  - Ngon ngu: Kotlin
+  - Yeu cau he dieu hanh: Android SDK minSdk 24 (Android 7.0), targetSdk 35 (Android 15)
+  - Kien truc: MVVM (Model - View - ViewModel)
+  - Mang va API: Retrofit 2, OkHttp 3, Binance WebSocket Client
+  - Bieu do ky thuat: MPAndroidChart (nen Nhat OHLCV thoi gian thuc)
+  - Co so du lieu cuc bo: Room Database (SQLite) luu tru offline tin tuc va danh muc theo doi
+  - Bao mat: AndroidKeyStore voi thuat toan AES-GCM 256-bit ma hoa token phien JWT, Network Security Config chan cleartext HTTP
+- **Backend Production Endpoint:** `https://fnmf-backend-production.up.railway.app/`
 
 ---
 
-## 🎯 1. TỔNG KẾT NHỮNG GÌ ĐÃ HOÀN THÀNH (100% CHẠY TỐT)
+## 1. Cac Man hinh va Tab Chuc nang (5 Bottom Navigation Tabs)
 
-Hệ thống đã được **Khôi** ghép nối (Merge) thành công toàn bộ mã nguồn của 3 thành viên thành **1 dự án Android thống nhất duy nhất**:
+Ung dung duoc thiet ke toi gian, truc quan voi thanh dieu huong duoi gom 5 tab chuc nang:
 
-| Thành viên | Phần việc đóng góp | Trạng thái hiện tại |
-| :--- | :--- | :---: |
-| **Đặng Đức Khôi (Backend)** | • Máy chủ Spring Boot 3, CSDL Oracle 21c.<br>• Pipeline Alpha Vantage (Nến thật) + Gemini AI Gateway.<br>• Trọn bộ 21 REST API (Xác thực JWT, Sàn ví ảo $10,000, Dự báo AI). | 🟢 **Hoàn thành 100%**<br>(Đã test pass 21/21 API trên Swagger) |
-| **Nguyễn Quang Hùng (Android)** | • Màn hình Đăng nhập `Activity1`.<br>• Màn hình Giao dịch `Activity2` vẽ biểu đồ nến `MPAndroidChart` Xanh/Đỏ.<br>• Nút Mua/Bán khớp lệnh và danh sách Watchlist. | 🟢 **Hoàn thành khung MVP**<br>(Đã kết nối trực tiếp Backend) |
-| **Nguyễn Hữu Mạnh (Leader/AI/Room)** | • Thiết kế cấu trúc CSDL cục bộ Room Database (`News` + `AI_Analysis`).<br>• Cơ chế lưu trữ ngoại tuyến (Offline Cache) khi điện thoại mất mạng. | 🟢 **Hoàn thành tích hợp**<br>(Tự động đồng bộ tin tức từ Backend) |
+### 1. Tab Giao dich (Trading)
+- Ve bieu do nen Nhat ky thuat 30 ngay su dung `MPAndroidChart` tu du lieu Binance REST Klines.
+- Ket noi Binance WebSocket de nhan tick gia live cap nhat bieu do va gia header voi do tre < 100ms.
+- Phieu dat lenh Mua (`BUY`) va Ban (`SELL`) Paper Trading voi so du von ao ban dau $10,000.00 USD.
+- Hien thi gia khop authoritative tu backend, ty le loi/lo (PnL) thoi gian thuc, va so du vi kha dung.
+
+### 2. Tab Du bao AI (Market Forecast)
+- Truy van ban du bao xu huong da chieu tu backend qua Google Gemini 3.6 Flash (`GET /api/forecast/{symbol}?timeframe=24H_7D`).
+- Hien thi xu huong du bao (`BULLISH_UPTREND`, `BEARISH_DOWNTREND`, `SIDEWAYS`).
+- Cung cap nguong Ho tro ky thuat (`supportLevel`), Khang cu ky thuat (`resistanceLevel`), Khuyen nghi hanh dong (`STRONG_BUY`, `BUY`, `HOLD`, `SELL`), va Diem tin cay AI.
+- Quan ly vong doi an toan: huy request khi `onDestroyView()`, khong bao gio sinh du lieu gia mo phong tren client.
+
+### 3. Tab Tin tuc AI (Financial News)
+- Dong bo ban tin tai chinh quoc te tu Alpha Vantage qua backend (`GET /api/news/sync`).
+- Tieu de duoc dich sang tieng Viet tu nhien, noi dung su kien tom tat thanh 2 den 4 bullet ro rang tu Gemini AI.
+- Gan nhan cam xuc thi truong (`BULLISH`, `BEARISH`, `NEUTRAL`), diem tin cay, va ly do phan tich kinh te vi mo.
+- Tu dong upsert va duy tri Room Database cuc bo, ho tro doc offline khi thiet bi mat ket noi Internet.
+
+### 4. Tab Danh muc theo doi (Watchlist)
+- Quan ly danh muc tai san quan tam cua nguoi dung (Cloud CRUD: xem, them, xoa ma theo doi).
+- Tu dong lam giau gia truc tuyen va ty le bien dong 24h.
+- Luu tru bo nho dem Room DB cuc bo phan tach theo `userEmail`, bao dam khi doi tai khoan khong bi lan lon du lieu.
+
+### 5. Tab Vi & Ho so (Wallet & Profile)
+- Hien thi thong tin tai khoan email-only, vai tro, va so du vi tien mat hien tai.
+- Tich hop module Nap/Rut tien mo phong (Sandbox Banking):
+  - Nhap so tien (scale <= 2, toi da $100,000.00 USD).
+  - Khoi chay Chrome Custom Tabs mo giao dien Hosted Checkout voi token co han 15 phut.
+  - Tu dong lam moi so du vi va hien thi lich su so cai bien dong `WALLET_LEDGER` khi quay lai ung dung.
+- Ho tro dieu huong Deep Link: `fnmf://app/*` (vi du: `fnmf://app/trading`, `fnmf://app/wallet`).
 
 ---
 
-## 📱 2. HIỆN TRẠNG ỨNG DỤNG TRÊN ĐIỆN THOẠI ĐÃ LÀM ĐƯỢC GÌ?
+## 2. Huong dan Bien dich va Cai dat
 
-Khi bạn mở App trên điện thoại Android (đã test thực tế trên Samsung A17):
-1. **Đăng nhập mượt mà:** Nhập email $\rightarrow$ Bấm "Đăng Nhập" $\rightarrow$ Nhận Token bảo mật JWT từ Server.
-2. **Vẽ nến thời gian thực:** Màn hình chuyển sang biểu đồ nến 30 ngày của Bitcoin (`BTCUSDT`) với màu xanh/đỏ chuẩn TradingView.
-3. **Khớp lệnh Mua/Bán ví ảo:** Bấm nút **MUA (Buy)** / **BÁN (Sell)** $\rightarrow$ Backend tự động trừ tiền ví ảo $10,000, tính lãi/lỗ (PnL) và cập nhật số dư ngay trên màn hình.
-4. **Lưu trữ Offline Room DB:** App tự động kéo tin tức tài chính và phân tích Bullish/Bearish từ Server lưu vào Room DB trong máy.
+### 1. Mo du an trong Android Studio
+1. Khoi dong Android Studio (ban Koala, Ladybug hoac moi hon).
+2. Chon **Open** va tro toi thu muc chua ma nguon Android (`FNMF_Manh_Test`).
+3. Cho Android Studio va Gradle hoan tat dong bo dependencies.
 
----
-
-## 🛠️ 3. VIỆC CÒN LẠI CẦN HÙNG & MẠNH LÀM TIẾP (RẤT DỄ VÀ NHẸ NHÀNG)
-
-Toàn bộ **Dữ liệu & API Backend của Khôi đã có sẵn 100%**, phía Android của **Hùng & Mạnh** chỉ cần thiết kế thêm **Giao diện hiển thị (UI Tab)** cho 2 màn hình sau:
-
-```text
-               ┌──────────────────────────────────────────────┐
-               │         THANH ĐIỀU HƯỚNG TAB (BOTTOM NAV)    │
-               └──────┬────────────────┬───────────────┬──────┘
-                      │                │               │
-                      ▼                ▼               ▼
-                 [TAB 1: TRADING]  [TAB 2: TIN TỨC AI] [TAB 3: DỰ BÁO AI]
-                 • ĐÃ XONG 100%    • CẦN VẼ THÊM UI    • CẦN VẼ THÊM UI
-                 (Biểu đồ nến)     (Danh sách báo)     (Hỗ trợ/Kháng cự)
+### 2. Chay Unit Tests
+Tren terminal cua Android Studio hoac CMD:
+```bash
+gradlew testDebugUnitTest --no-build-cache
 ```
 
-### 📋 Chi tiết 2 màn hình cần vẽ thêm:
+### 3. Bien dich Ban Release Candidate
+Tao file APK release duoc ky so bang keystore:
+```bash
+gradlew assembleRelease
+```
+File APK dau ra duoc tao tai:
+`app/build/outputs/apk/release/app-release.apk`
+(Hoac ban sao luu: `FNMF-v1.1.18-Release-Candidate.apk` tai thu muc goc du an).
 
-#### 1️⃣ Màn hình Tab Tin tức AI (AI News Feed) - *Gợi ý cho Mạnh phụ trách*
-* **Mục đích:** Hiển thị danh sách các bài báo tài chính kèm phân tích của Gemini AI.
-* **API Backend đã có sẵn:** `GET /api/mobile/news/sync?limit=10`
-* **Dữ liệu trả về để vẽ lên màn hình:**
-  * Tiêu đề bài báo (`title`), Link đọc báo (`url`).
-  * Nhãn tâm lý thị trường: `BULLISH` (Màu xanh), `BEARISH` (Màu đỏ), `NEUTRAL` (Màu vàng).
-  * Điểm tin cậy: `confidenceScore` (Ví dụ: 93%).
-  * 3 ý tóm tắt của AI (`summary`) và lý do giải thích (`reason`).
+### 4. Kiem tra Chu ky so va Tuan thu Bao mat APK
+Su dung cong cu `apksigner` cua Android SDK Build-Tools:
+```bash
+apksigner verify --verbose --print-certs FNMF-v1.1.18-Release-Candidate.apk
+```
+Tieu chuan xac nhan:
+- Verified using v2 scheme: `true`
+- Certificate SHA-256: `f19eddeb2acac5dcef5a5f710674cf0ea652fbb5da10233b736ceadc4d4648bc`
+- `android:debuggable = false`
+- `minSdkVersion = 24`, `targetSdkVersion = 35`
 
-#### 2️⃣ Màn hình Tab Dự báo Thị trường AI (Market Forecast) - *Gợi ý cho Hùng phụ trách*
-* **Mục đích:** Hiển thị nhận định xu hướng và khuyến nghị chiến lược của AI cho từng đồng tiền (BTC, Vàng, Dầu).
-* **API Backend đã có sẵn:** `GET /api/forecast/BTCUSDT`
-* **Dữ liệu trả về để vẽ lên màn hình:**
-  * Xu hướng: `BULLISH_UPTREND` (Xu hướng tăng) hoặc `BEARISH_DOWNTREND` (Xu hướng giảm).
-  * Vùng Hỗ trợ (`supportLevel` - ví dụ: $65,200) & Vùng Kháng cự (`resistanceLevel` - ví dụ: $69,500).
-  * Khuyến nghị hành động: `STRONG_BUY`, `BUY`, `HOLD`, `SELL`.
-
----
-
-## 💻 4. HƯỚNG DẪN HÙNG & MẠNH MỞ VÀ CHẠY PROJECT TRÊN MÁY TÍNH
-
-Mã nguồn đã được đồng bộ chuẩn chỉnh và đặt tại thư mục:  
-👉 **`FNMF_Android_Merged`**
-
-### Các bước mở dự án:
-1. Mở **Android Studio** $\rightarrow$ Chọn **File** $\rightarrow$ **Open...**
-2. Chọn thư mục **`FNMF_Android_Merged`**.
-3. Chờ Android Studio tải xong Gradle (khoảng 1 phút).
-4. Cắm điện thoại Android vào máy tính (hoặc bật máy ảo Emulator).
-5. Bấm nút **RUN ▶️ (Tam giác xanh)** là ứng dụng sẽ chạy lên ngay!
-
-### 🌐 Cấu hình địa chỉ Server (File `RetrofitClient.kt`):
-* **Nếu chạy máy ảo Android Studio:** Dùng `http://10.0.2.2:8083/`
-* **Nếu cắm cáp điện thoại thật:** Dùng `http://localhost:8083/` (kèm lệnh `adb reverse tcp:8083 tcp:8083`).
-* **Nếu chạy qua mạng Internet từ xa:** Dùng link Cloudflare Tunnel do Khôi cấp (Ví dụ: `https://xxxx.trycloudflare.com/`).
-
----
-
-## 🎓 5. KỊCH BẢN BẢO VỆ ĐỒ ÁN (ĐẢM BẢO CẢ 3 BẠN ĐỀU ĐẠT ĐIỂM A+)
-
-Khi đứng trước Hội đồng chấm thi, nhóm phân vai thuyết trình cực kỳ chuyên nghiệp như sau:
-
-| Thành viên | Nội dung báo cáo ấn tượng trước Hội đồng |
-| :--- | :--- |
-| **Mạnh (Leader / Prompt & Cache)** | *"Em phụ trách tối ưu hóa Prompt AI tài chính và thiết kế kiến trúc Room Database để lưu trữ dữ liệu ngoại tuyến (Offline-First), đảm bảo người dùng mất mạng vẫn xem lại được các phân tích AI."* |
-| **Hùng (Mobile Dev / UI & Charts)** | *"Em phụ trách phát triển giao diện Android, tích hợp thư viện MPAndroidChart để vẽ biểu đồ nến kỹ thuật theo thời gian thực và xây dựng trải nghiệm đặt lệnh Mua/Bán trực quan."* |
-| **Khôi (Backend & Data Architect)** | *"Em phụ trách xây dựng toàn bộ hạ tầng Backend Spring Boot 3, CSDL Oracle 21c, cổng AI Gateway kết nối Gemini AI, đường ống dữ liệu Alpha Vantage và hệ thống tính toán khớp lệnh ví ảo Paper Trading $10,000."* |
-
----
-
-> 💡 **Tài liệu Swagger kiểm thử toàn bộ API:**  
-> Mở trình duyệt tại: `http://localhost:8083/swagger-ui/index.html` để xem và bấm thử toàn bộ 21 API thật của dự án!
+### 5. Cai dat len Thiet bi Android
+Ket noi thiet bi qua USB debugging va chay lenh:
+```bash
+adb install -r FNMF-v1.1.18-Release-Candidate.apk
+```

@@ -10,7 +10,7 @@
     <LinearLayout
         android:id="@+id/layout_top_bar"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="52dp"
         android:background="@color/tv_surface"
         android:orientation="horizontal"
         android:gravity="center_vertical"
@@ -21,9 +21,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="FNMF GIAO DỊCH"
+            android:text="@string/app_name"
             android:textColor="@color/tv_text_primary"
-            android:textSize="15sp"
+            android:textSize="16sp"
             android:textStyle="bold"
             android:maxLines="1"
             android:ellipsize="end" />
@@ -32,31 +32,7 @@
             android:id="@+id/tv_header_user"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/tv_text_secondary"
-            android:textSize="12sp"
-            android:layout_marginEnd="10dp"
-            android:maxWidth="140dp"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:text="khoi.pro@fnmf.com" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_logout"
-            android:layout_width="wrap_content"
-            android:layout_height="32dp"
-            android:text="Đăng xuất"
-            android:textSize="11sp"
-            android:textColor="@color/tv_red"
-            app:strokeColor="@color/tv_red"
-            app:strokeWidth="1dp"
-            app:cornerRadius="6dp"
-            android:backgroundTint="@color/tv_surface"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="0dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:minWidth="0dp"
-            android:minHeight="0dp" />
+            android:visibility="gone" />
     </LinearLayout>
 
     <FrameLayout

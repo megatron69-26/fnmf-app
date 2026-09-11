@@ -62,7 +62,7 @@ class NewsDetailActivity : AppCompatActivity() {
                     val browserIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link))
                     startActivity(browserIntent)
                 } catch (e: Exception) {
-                    android.widget.Toast.makeText(this, "Không thể mở trình duyệt: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(this, "Không thể mở trình duyệt web. Vui lòng thử lại.", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
             b.btnOpenArticle.setOnClickListener(openBrowser)

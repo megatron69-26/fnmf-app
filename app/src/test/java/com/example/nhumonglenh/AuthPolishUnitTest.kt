@@ -208,4 +208,61 @@ class AuthPolishUnitTest {
             )
         }
     }
+
+    @Test
+    fun testLoginAndRegisterPersistenceOutcomesBehavioral() {
+        val testContext = object : android.content.ContextWrapper(null) {}
+        var sessionCleared = false
+        val mockClearer: (android.content.Context) -> Unit = { sessionCleared = true }
+
+        // 1. Success case: saveToken succeeds -> outcome is NavigateToMain, session NOT cleared
+        sessionCleared = false
+        val successOutcome = com.example.nhumonglenh.data.local.AuthFlowCoordinator.handleAuthSuccess(
+            context = testContext,
+            token = "valid_jwt_token_12345",
+            tokenSaver = { _, _ -> true },
+            sessionClearer = mockClearer
+        )
+        assertTrue(
+            "Khi lưu token thành công, phải trả về NavigateToMain",
+            successOutcome is com.example.nhumonglenh.data.local.AuthFlowCoordinator.PersistenceOutcome.NavigateToMain
+        )
+        assertFalse("Không được clear session khi lưu token thành công", sessionCleared)
+
+        // 2. Failure case: KeyStore/disk failure -> saveToken fails -> stay on auth, clear session, re-enable button, safe message
+        sessionCleared = false
+        val failureOutcome = com.example.nhumonglenh.data.local.AuthFlowCoordinator.handleAuthSuccess(
+            context = testContext,
+            token = "valid_jwt_token_12345",
+            tokenSaver = { _, _ -> false },
+            sessionClearer = mockClearer
+        )
+        assertTrue(
+            "Khi lưu token thất bại, phải ở lại màn hình auth",
+            failureOutcome is com.example.nhumonglenh.data.local.AuthFlowCoordinator.PersistenceOutcome.StayOnAuth
+        )
+        val stayOnAuth = failureOutcome as com.example.nhumonglenh.data.local.AuthFlowCoordinator.PersistenceOutcome.StayOnAuth
+        assertTrue("Nút bấm phải được bật lại để người dùng thử lại", stayOnAuth.isButtonEnabled)
+        assertTrue("Phiên dang dở phải được dọn dẹp an toàn", stayOnAuth.isSessionCleared)
+        assertTrue("Hàm clearSession phải được gọi", sessionCleared)
+        assertEquals(
+            "Thông báo lỗi phải là chuỗi an toàn tiếng Việt",
+            R.string.auth_err_token_persistence_failed,
+            stayOnAuth.errorMessageResId
+        )
+
+        // 3. Null or blank token: stay on auth, clear session
+        sessionCleared = false
+        val blankOutcome = com.example.nhumonglenh.data.local.AuthFlowCoordinator.handleAuthSuccess(
+            context = testContext,
+            token = "",
+            tokenSaver = { _, _ -> true },
+            sessionClearer = mockClearer
+        )
+        assertTrue(
+            "Token rỗng phải ở lại auth",
+            blankOutcome is com.example.nhumonglenh.data.local.AuthFlowCoordinator.PersistenceOutcome.StayOnAuth
+        )
+        assertTrue("Phiên phải được dọn dẹp khi token rỗng", sessionCleared)
+    }
 }

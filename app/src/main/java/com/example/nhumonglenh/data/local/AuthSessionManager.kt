@@ -10,24 +10,24 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Quản lý tập trung phiên đăng nhập và Token (AuthSessionManager).
- * - Tránh truy cập rải rác key "jwt_token" trong SharedPreferences.
+ * - Sử dụng SecureTokenStore (Android KeyStore AES-GCM) để mã hoá token.
  * - Xử lý 401/403 Unauthorized tập trung, chống loop logout.
  * - Giữ nguyên Server URL và Email người dùng khi đăng xuất.
  */
 object AuthSessionManager {
 
-    private const val KEY_JWT_TOKEN = "jwt_token"
     private val isHandlingUnauthorized = AtomicBoolean(false)
 
     fun getToken(context: Context): String {
-        val prefs = context.getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getString(KEY_JWT_TOKEN, "") ?: ""
+        return SecureTokenStore.getToken(context)
     }
 
-    fun saveToken(context: Context, token: String) {
-        val prefs = context.getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_JWT_TOKEN, token.trim()).apply()
-        isHandlingUnauthorized.set(false)
+    fun saveToken(context: Context, token: String): Boolean {
+        val saved = SecureTokenStore.saveToken(context, token)
+        if (saved) {
+            isHandlingUnauthorized.set(false)
+        }
+        return saved
     }
 
     fun getUserEmail(context: Context): String {
@@ -98,9 +98,9 @@ object AuthSessionManager {
     }
 
     fun clearSession(context: Context) {
+        SecureTokenStore.clearToken(context)
         val prefs = context.getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
         val editor = prefs.edit()
-        editor.remove(KEY_JWT_TOKEN)
         // Dọn dẹp toàn bộ dữ liệu pending payment orders và idempotency keys khi đăng xuất
         for (key in prefs.all.keys) {
             if (key.startsWith("payment_idemp_") || key.startsWith("fnmf_active_pending_payment_order_id")) {

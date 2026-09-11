@@ -217,14 +217,32 @@ class WalletProfileFragment : Fragment() {
         b.btnRefreshPayments.setOnClickListener {
             fetchPaymentHistory()
         }
+
+        // Nút Đăng xuất trong tab Hồ sơ
+        b.btnProfileLogout.setOnClickListener {
+            val act = activity as? com.example.nhumonglenh.Activity2
+            if (act != null) {
+                act.showLogoutConfirmationDialog()
+            } else {
+                androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Xác nhận đăng xuất")
+                    .setMessage("Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?")
+                    .setPositiveButton("Đăng xuất") { _, _ ->
+                        AuthSessionManager.clearSession(requireContext())
+                        val intent = android.content.Intent(requireContext(), com.example.nhumonglenh.Activity1::class.java).apply {
+                            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        }
+                        startActivity(intent)
+                        activity?.finish()
+                    }
+                    .setNegativeButton("Hủy", null)
+                    .show()
+            }
+        }
     }
 
     private fun displaySystemInfo(b: FragmentWalletProfileBinding) {
-        val versionName = runCatching {
-            requireContext().packageManager
-                .getPackageInfo(requireContext().packageName, 0)
-                .versionName
-        }.getOrNull() ?: "—"
+        val versionName = com.example.nhumonglenh.BuildConfig.VERSION_NAME
         b.tvAppVersion.text = getString(R.string.app_version_label, versionName)
     }
 
@@ -598,7 +616,7 @@ class WalletProfileFragment : Fragment() {
                 val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                 startActivity(browserIntent)
             } catch (e2: Exception) {
-                Toast.makeText(requireContext(), "Không thể mở trình duyệt: ${e2.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Không thể mở trình duyệt thanh toán. Vui lòng thử lại.", Toast.LENGTH_SHORT).show()
             }
         }
     }

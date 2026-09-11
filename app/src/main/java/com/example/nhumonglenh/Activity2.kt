@@ -37,6 +37,7 @@ class Activity2 : AppCompatActivity() {
     private var activeFragment: Fragment? = null
 
     private var tradingFragment: TradingFragment? = null
+    private var activeMarketSymbol: String = "BTCUSDT"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,7 +59,6 @@ class Activity2 : AppCompatActivity() {
         bottomNav = findViewById(R.id.bottom_navigation)
 
         val tvHeaderUser = findViewById<TextView>(R.id.tv_header_user)
-        val btnLogout = findViewById<MaterialButton>(R.id.btn_logout)
 
         val prefs = getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
         val savedEmail = prefs.getString(NetworkConfig.KEY_SAVED_EMAIL, "") ?: ""
@@ -67,10 +67,6 @@ class Activity2 : AppCompatActivity() {
             tvHeaderUser.visibility = View.VISIBLE
         } else {
             tvHeaderUser.visibility = View.GONE
-        }
-
-        btnLogout.setOnClickListener {
-            showLogoutConfirmationDialog()
         }
 
         if (savedInstanceState == null) {
@@ -190,14 +186,28 @@ class Activity2 : AppCompatActivity() {
             tx.hide(current).show(target).commit()
         }
         activeFragment = target
+        if (target is ForecastFragment) {
+            target.setSymbol(activeMarketSymbol)
+        }
+    }
+
+    fun getActiveMarketSymbol(): String = activeMarketSymbol
+
+    fun updateActiveSymbol(symbol: String) {
+        val clean = symbol.trim().uppercase(java.util.Locale.ROOT)
+        if (clean.isNotBlank()) {
+            activeMarketSymbol = clean
+        }
     }
 
     /**
      * Cho phép WatchlistFragment gọi để chuyển về tab Trading và chọn mã tương ứng
      */
     fun switchToTradingSymbol(symbol: String) {
+        val clean = symbol.trim().uppercase(java.util.Locale.ROOT)
+        activeMarketSymbol = clean
         bottomNav.selectedItemId = R.id.nav_trading
-        tradingFragment?.switchMarketSymbol(symbol)
+        tradingFragment?.switchMarketSymbol(clean)
     }
 
     /**

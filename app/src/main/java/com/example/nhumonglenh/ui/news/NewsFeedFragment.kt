@@ -86,7 +86,7 @@ class NewsFeedFragment : Fragment() {
                     is com.example.nhumonglenh.data.repository.NewsRepository.NewsResult.Empty -> {
                         binding.rvNews.visibility = View.GONE
                         binding.tvNewsError.visibility = View.VISIBLE
-                        binding.tvNewsError.text = "${result.message}\n(Không có tin tức khả dụng)"
+                        binding.tvNewsError.text = if (result.message.isNotBlank()) result.message else "Chưa có bản tin mới"
                         adapter.submit(emptyList())
                     }
                 }

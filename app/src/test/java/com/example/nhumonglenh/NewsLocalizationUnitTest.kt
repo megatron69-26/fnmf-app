@@ -2,6 +2,7 @@ package com.example.nhumonglenh
 
 import com.example.nhumonglenh.data.local.NewsEntity
 import com.example.nhumonglenh.ui.news.News
+import com.example.nhumonglenh.ui.news.NewsCardPresentationMapper
 import com.example.nhumonglenh.ui.news.NewsLocalizationPolicy
 import org.junit.Assert.*
 import org.junit.Test
@@ -167,10 +168,10 @@ class NewsLocalizationUnitTest {
     }
 
     @Test
-    fun testRejectsMixedEnglishVietnameseTitle() {
-        val mixedTitle = "Nvidia reports quarterly revenue và earnings growth"
+    fun testRejectsEnglishTitleWithoutVietnameseDiacritics() {
+        val englishTitle = "Nvidia reports quarterly revenue and earnings growth"
         val origTitle = "Nvidia reports quarterly revenue and earnings growth"
-        assertFalse(NewsLocalizationPolicy.isValidDisplayTitleVi(mixedTitle, origTitle))
+        assertFalse(NewsLocalizationPolicy.isValidDisplayTitleVi(englishTitle, origTitle))
     }
 
     @Test
@@ -222,12 +223,17 @@ class NewsLocalizationUnitTest {
         // Publisher null/rỗng vẫn được giữ và hợp lệ
         assertTrue(NewsLocalizationPolicy.isNewsFullyLocalized(newsWithoutPublisher))
 
-        // Publisher generic trực tiếp bị từ chối
+        // Publisher generic không làm loại bài (vẫn giữ bài để phục vụ bạn đọc)
         val newsWithGenericPub = newsWithoutPublisher.copy(publisher = "Financial News")
-        assertFalse(NewsLocalizationPolicy.isNewsFullyLocalized(newsWithGenericPub))
+        assertTrue(NewsLocalizationPolicy.isNewsFullyLocalized(newsWithGenericPub))
 
-        // Publisher uy tín được chấp nhận
+        // Presentation mapper sẽ loại bỏ publisher generic và chỉ hiển thị ngày đăng hoặc ẩn publisher
+        val resolvedPub = NewsCardPresentationMapper.resolvePublisher(newsWithGenericPub.publisher, null)
+        assertNull(resolvedPub)
+
+        // Publisher uy tín được chấp nhận và hiển thị đầy đủ
         val newsWithMarketBeat = newsWithoutPublisher.copy(publisher = "MarketBeat")
         assertTrue(NewsLocalizationPolicy.isNewsFullyLocalized(newsWithMarketBeat))
+        assertEquals("MarketBeat", NewsCardPresentationMapper.resolvePublisher(newsWithMarketBeat.publisher, null))
     }
 }

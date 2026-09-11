@@ -239,6 +239,7 @@ class TradingFragment : Fragment() {
     fun switchMarketSymbol(symbol: String, isInitial: Boolean = false) {
         val sym = symbol.uppercase()
         currentSymbol = sym
+        (activity as? Activity2)?.updateActiveSymbol(sym)
 
         val b = binding ?: return
         val ctx = context ?: return

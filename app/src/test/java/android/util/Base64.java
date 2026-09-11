@@ -16,10 +16,19 @@ public class Base64 {
 
     public static byte[] decode(String str, int flags) {
         if (str == null) return null;
-        String padded = str.trim();
-        while (padded.length() % 4 != 0) {
-            padded += "=";
+        try {
+            return java.util.Base64.getDecoder().decode(str.trim());
+        } catch (IllegalArgumentException e) {
+            String padded = str.trim();
+            while (padded.length() % 4 != 0) {
+                padded += "=";
+            }
+            return java.util.Base64.getUrlDecoder().decode(padded);
         }
-        return java.util.Base64.getUrlDecoder().decode(padded);
+    }
+
+    public static String encodeToString(byte[] input, int flags) {
+        if (input == null) return null;
+        return java.util.Base64.getEncoder().encodeToString(input);
     }
 }

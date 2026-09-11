@@ -106,6 +106,10 @@ object NetworkConfig {
         return EMAIL_PATTERN.matches(email.trim())
     }
 
+    fun isValidPassword(password: String?): Boolean {
+        return password != null && password.length >= 8
+    }
+
     fun normalizeEmail(email: String?): String {
         return email?.trim()?.lowercase(java.util.Locale.ROOT) ?: ""
     }

@@ -365,7 +365,7 @@ class WatchlistFragment : Fragment() {
                 activeAddCall = null
                 if (call.isCanceled || !isAdded || view == null) return
                 pbWatchlist?.visibility = View.GONE
-                Toast.makeText(ctx, "Lỗi kết nối khi thêm: " + t.message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, "Không thể kết nối đến máy chủ. Vui lòng thử lại.", Toast.LENGTH_SHORT).show()
             }
         })
     }
@@ -439,7 +439,7 @@ class WatchlistFragment : Fragment() {
                 activeDeleteCall = null
                 if (call.isCanceled || !isAdded || view == null) return
                 pbWatchlist?.visibility = View.GONE
-                Toast.makeText(ctx, "Lỗi kết nối khi xóa: " + t.message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, "Không thể kết nối đến máy chủ. Vui lòng thử lại.", Toast.LENGTH_SHORT).show()
             }
         })
     }

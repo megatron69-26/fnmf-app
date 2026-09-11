@@ -131,12 +131,13 @@
     <string name="auth_err_empty_email">Vui lòng nhập email</string>
     <string name="auth_err_invalid_email">Email không hợp lệ</string>
     <string name="auth_err_empty_password">Vui lòng nhập mật khẩu</string>
-    <string name="auth_err_password_too_short">Mật khẩu phải có ít nhất 4 ký tự</string>
+    <string name="auth_err_password_too_short">Mật khẩu phải có ít nhất 8 ký tự</string>
     <string name="auth_err_confirm_password_mismatch">Mật khẩu xác nhận không khớp</string>
     <string name="auth_err_invalid_credentials">Email hoặc mật khẩu không chính xác</string>
     <string name="auth_err_cannot_connect">Không thể kết nối tới máy chủ: %1$s</string>
     <string name="auth_err_email_already_used">Email \'%1$s\' đã được sử dụng</string>
     <string name="auth_err_register_failed">Không thể đăng ký</string>
+    <string name="auth_err_token_persistence_failed">Không thể bảo vệ phiên đăng nhập trên thiết bị. Vui lòng thử lại.</string>
 
     <!-- VNPay & Payments Polish Strings -->
     <string name="payment_testing_notice">Chức năng thanh toán đang được thử nghiệm</string>

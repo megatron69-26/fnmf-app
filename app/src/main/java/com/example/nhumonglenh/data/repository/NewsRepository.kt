@@ -39,7 +39,9 @@ class NewsRepository private constructor(private val context: Context) {
         }
 
         if (remoteResult.isSuccess) {
-            val remoteNews = remoteResult.getOrNull()?.data ?: emptyList()
+            val remoteResponse = remoteResult.getOrNull()
+            val remoteNews = remoteResponse?.data ?: emptyList()
+            val serverMsg = remoteResponse?.message?.takeIf { it.isNotBlank() } ?: "Chưa có bản tin mới"
             if (remoteNews.isNotEmpty()) {
                 // Ghi vào Room DB nguyên vẹn qua atomic transaction
                 try {
@@ -106,15 +108,15 @@ class NewsRepository private constructor(private val context: Context) {
                 return@withContext if (roomNews.isNotEmpty()) {
                     NewsResult.SyncSuccess(roomNews)
                 } else {
-                    NewsResult.Empty("Chưa có bản tin tiếng Việt mới")
+                    NewsResult.Empty(serverMsg)
                 }
             } else {
-                // Server trả danh sách rỗng
+                // Server trả danh sách rỗng (status degraded hoặc chưa có tin mới)
                 val roomNews = readNewsFromRoom(newsDao)
                 return@withContext if (roomNews.isNotEmpty()) {
-                    NewsResult.CacheFallback(roomNews, "Chưa có bản tin tiếng Việt mới")
+                    NewsResult.CacheFallback(roomNews, serverMsg)
                 } else {
-                    NewsResult.Empty("Chưa có bản tin tiếng Việt mới")
+                    NewsResult.Empty(serverMsg)
                 }
             }
         } else {
@@ -124,13 +126,12 @@ class NewsRepository private constructor(private val context: Context) {
             // 2. Nếu ngoại tuyến hoặc lỗi mạng, đọc từ Room DB Cache đã lọc bản địa hóa
             val cachedList = readNewsFromRoom(newsDao)
             if (cachedList.isNotEmpty()) {
-                val errorMsg = err?.localizedMessage ?: "Mất kết nối mạng"
+                val errorMsg = "Mất kết nối máy chủ. Đang hiển thị tin tức đã lưu trên thiết bị."
                 return@withContext NewsResult.CacheFallback(cachedList, errorMsg)
             }
 
             // 3. Nếu cả server và Room đều rỗng hoặc không có tin tiếng Việt hợp lệ: Honest Empty State
-            val errorMsg = "Chưa có bản tin tiếng Việt mới"
-            return@withContext NewsResult.Empty(errorMsg)
+            return@withContext NewsResult.Empty("Chưa có bản tin mới")
         }
     }
 

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#131722">
@@ -17,7 +18,18 @@
             android:textSize="20sp"
             android:textStyle="bold"
             android:textAlignment="center"
-            android:layout_marginBottom="24dp"/>
+            android:layout_marginBottom="4dp"/>
+        <TextView
+            android:id="@+id/tvForecastSymbol"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="—"
+            tools:text="BTCUSDT"
+            android:textColor="#2962FF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textAlignment="center"
+            android:layout_marginBottom="20dp"/>
         <ProgressBar
             android:id="@+id/pbForecastLoading"
             android:layout_width="wrap_content"
@@ -56,7 +68,8 @@
                     android:id="@+id/tvRecommendation"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="MUA MẠNH"
+                    android:text="—"
+                    tools:text="MUA MẠNH"
                     android:textColor="#089981"
                     android:textSize="24sp"
                     android:textStyle="bold"
@@ -65,7 +78,8 @@
                     android:id="@+id/tvConfidence"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Độ tin cậy: 95%"
+                    android:text="—"
+                    tools:text="Độ tin cậy: 95%"
                     android:textColor="#D1D4DC"
                     android:textSize="14sp"
                     android:layout_marginTop="4dp"/>
@@ -93,7 +107,8 @@
                         android:id="@+id/tvSupport"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="62,000"
+                        android:text="—"
+                        tools:text="62,000"
                         android:textColor="#089981"
                         android:textSize="18sp"
                         android:textStyle="bold"/>
@@ -114,7 +129,8 @@
                         android:id="@+id/tvResistance"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="68,000"
+                        android:text="—"
+                        tools:text="68,000"
                         android:textColor="#F23645"
                         android:textSize="18sp"
                         android:textStyle="bold"/>
@@ -137,7 +153,8 @@
                     android:id="@+id/tvTechOutlook"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="..."
+                    android:text="—"
+                    tools:text="Dự báo kỹ thuật..."
                     android:textColor="#D1D4DC"
                     android:textSize="14sp"
                     android:layout_marginTop="4dp"
@@ -153,7 +170,24 @@
                     android:id="@+id/tvFundOutlook"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="..."
+                    android:text="—"
+                    tools:text="Bối cảnh vĩ mô..."
+                    android:textColor="#D1D4DC"
+                    android:textSize="14sp"
+                    android:layout_marginTop="4dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="LUẬN ĐIỂM THEN CHỐT"
+                    android:textColor="#26A69A"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="16dp"/>
+                <TextView
+                    android:id="@+id/tvKeyDrivers"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="—"
                     android:textColor="#D1D4DC"
                     android:textSize="14sp"
                     android:layout_marginTop="4dp"/>

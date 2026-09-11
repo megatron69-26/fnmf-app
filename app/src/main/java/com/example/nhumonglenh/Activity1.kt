@@ -118,9 +118,21 @@ class Activity1 : AppCompatActivity() {
 
                     val token = response.body()?.token
                     if (response.isSuccessful && !token.isNullOrEmpty()) {
-                        saveToken(token)
-                        Toast.makeText(this@Activity1, getString(R.string.auth_login_success), Toast.LENGTH_SHORT).show()
-                        navigateToTradingScreen()
+                        val outcome = com.example.nhumonglenh.data.local.AuthFlowCoordinator.handleAuthSuccess(
+                            this@Activity1,
+                            token
+                        )
+                        when (outcome) {
+                            is com.example.nhumonglenh.data.local.AuthFlowCoordinator.PersistenceOutcome.NavigateToMain -> {
+                                Toast.makeText(this@Activity1, getString(R.string.auth_login_success), Toast.LENGTH_SHORT).show()
+                                navigateToTradingScreen()
+                            }
+                            is com.example.nhumonglenh.data.local.AuthFlowCoordinator.PersistenceOutcome.StayOnAuth -> {
+                                btnLogin.isEnabled = outcome.isButtonEnabled
+                                btnLogin.text = getString(R.string.auth_btn_login)
+                                Toast.makeText(this@Activity1, getString(outcome.errorMessageResId), Toast.LENGTH_LONG).show()
+                            }
+                        }
                     } else {
                         val errMsg = response.body()?.message ?: getString(R.string.auth_err_invalid_credentials)
                         Toast.makeText(this@Activity1, errMsg, Toast.LENGTH_LONG).show()
@@ -133,7 +145,7 @@ class Activity1 : AppCompatActivity() {
                     btnLogin.isEnabled = true
                     btnLogin.text = getString(R.string.auth_btn_login)
                     Log.e(TAG, "Lỗi kết nối login: ${t.message}")
-                    Toast.makeText(this@Activity1, getString(R.string.auth_err_cannot_connect, t.message ?: ""), Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@Activity1, "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại mạng.", Toast.LENGTH_LONG).show()
                 }
             })
         }
@@ -142,10 +154,6 @@ class Activity1 : AppCompatActivity() {
         btnRegister.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
-    }
-
-    private fun saveToken(token: String) {
-        com.example.nhumonglenh.data.local.AuthSessionManager.saveToken(this, token)
     }
 
     private fun navigateToTradingScreen() {

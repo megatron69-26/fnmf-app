@@ -104,7 +104,7 @@ class WalletProfileRepository(private val apiService: ApiService) {
             RepoResult.NetworkError("Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng!")
         } catch (e: Exception) {
             Log.e(TAG, "Lỗi không xác định khi tải WalletProfile: ${e.message}", e)
-            RepoResult.ServerError(-1, e.localizedMessage ?: "Lỗi hệ thống không xác định")
+            RepoResult.ServerError(-1, "Lỗi hệ thống khi tải thông tin hồ sơ")
         }
     }
 }
