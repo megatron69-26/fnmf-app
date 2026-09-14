@@ -60,7 +60,24 @@ data class ForecastResponse(
     val analysisSource: String? = null,
     val candleCount: Int? = null,
     val fromCache: Boolean? = false,
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    val maxDailyRefreshes: Int? = null,
+    val usedRefreshes: Int? = null,
+    val remainingRefreshes: Int? = null,
+    val quotaDate: String? = null
+)
+
+data class RefreshQuotaDto(
+    val maxDailyRefreshes: Int = 5,
+    val usedRefreshes: Int = 0,
+    val remainingRefreshes: Int = 5,
+    val quotaDate: String? = null
+)
+
+data class ForecastRefreshRequest(
+    val symbol: String,
+    val timeframe: String = "24H_7D",
+    val clientRequestId: String? = null
 )
 
 data class WatchlistItemDto(

@@ -29,6 +29,15 @@ class NewsRepository private constructor(private val context: Context) {
         data class Empty(val message: String) : NewsResult()
     }
 
+    sealed class NewsRefreshResult {
+        data class Success(val news: List<News>, val remainingRefreshes: Int?, val quotaDate: String?) : NewsRefreshResult()
+        data class DegradedOrEmpty(val status: String, val message: String, val cachedNews: List<News>, val remainingRefreshes: Int?, val quotaDate: String?) : NewsRefreshResult()
+        data class QuotaExhausted(val message: String, val cachedNews: List<News>) : NewsRefreshResult()
+        data class Unauthorized(val message: String) : NewsRefreshResult()
+        data class ServerError(val message: String, val cachedNews: List<News>, val remainingRefreshes: Int? = null) : NewsRefreshResult()
+        data class NetworkError(val message: String, val cachedNews: List<News>) : NewsRefreshResult()
+    }
+
     suspend fun getNews(): NewsResult = withContext(Dispatchers.IO) {
         val db = AppDatabase.getInstance(context)
         val newsDao = db.newsDao()
@@ -132,6 +141,131 @@ class NewsRepository private constructor(private val context: Context) {
 
             // 3. Nếu cả server và Room đều rỗng hoặc không có tin tiếng Việt hợp lệ: Honest Empty State
             return@withContext NewsResult.Empty("Chưa có bản tin mới")
+        }
+    }
+
+    suspend fun refreshNews(token: String, clientRequestId: String): NewsRefreshResult = withContext(Dispatchers.IO) {
+        val db = AppDatabase.getInstance(context)
+        val newsDao = db.newsDao()
+        val cached = readNewsFromRoom(newsDao)
+
+        val authHeader = if (token.startsWith("Bearer ")) token else "Bearer $token"
+
+        try {
+            val response = ApiClient.service(context).refreshNews(
+                token = authHeader,
+                clientRequestId = clientRequestId,
+                limit = 5
+            )
+
+            val statusLower = response.status.lowercase(Locale.ROOT)
+            val remoteNews = response.data ?: emptyList()
+
+            // Kiểm tra response.status: nếu degraded hoặc data rỗng, giữ dữ liệu cũ, không trả Success giả
+            if (statusLower != "ok" || remoteNews.isEmpty()) {
+                val msg = response.message?.takeIf { it.isNotBlank() } ?: context.getString(com.example.nhumonglenh.R.string.refresh_news_empty)
+                return@withContext NewsRefreshResult.DegradedOrEmpty(
+                    status = response.status,
+                    message = msg,
+                    cachedNews = cached,
+                    remainingRefreshes = response.remainingRefreshes,
+                    quotaDate = response.quotaDate
+                )
+            }
+
+            persistNewsToRoom(newsDao, remoteNews)
+            val updated = readNewsFromRoom(newsDao)
+            NewsRefreshResult.Success(
+                news = if (updated.isNotEmpty()) updated else remoteNews,
+                remainingRefreshes = response.remainingRefreshes,
+                quotaDate = response.quotaDate
+            )
+        } catch (e: retrofit2.HttpException) {
+            when (e.code()) {
+                401, 403 -> {
+                    NewsRefreshResult.Unauthorized("Phiên đăng nhập đã hết hạn hoặc không hợp lệ.")
+                }
+                429 -> {
+                    NewsRefreshResult.QuotaExhausted(
+                        context.getString(com.example.nhumonglenh.R.string.refresh_quota_exhausted),
+                        cached
+                    )
+                }
+                503 -> {
+                    NewsRefreshResult.ServerError(
+                        context.getString(com.example.nhumonglenh.R.string.refresh_news_error),
+                        cached
+                    )
+                }
+                else -> {
+                    val errorMsg = context.getString(com.example.nhumonglenh.R.string.refresh_server_error_format, e.code())
+                    NewsRefreshResult.ServerError(errorMsg, cached)
+                }
+            }
+        } catch (e: java.io.IOException) {
+            NewsRefreshResult.NetworkError(
+                context.getString(com.example.nhumonglenh.R.string.refresh_network_error),
+                cached
+            )
+        } catch (e: Exception) {
+            NewsRefreshResult.ServerError(
+                context.getString(com.example.nhumonglenh.R.string.refresh_unknown_error),
+                cached
+            )
+        }
+    }
+
+    private fun persistNewsToRoom(newsDao: com.example.nhumonglenh.data.local.NewsDao, remoteNews: List<News>) {
+        val newsEntities = ArrayList<NewsEntity>(remoteNews.size)
+        val aiEntities = ArrayList<AiAnalysisEntity>(remoteNews.size)
+
+        for (item in remoteNews) {
+            val epochMs = parseTimeToEpoch(item.publishedAt)
+            val joinedBulletPoints = if (item.bulletPoints.isNotEmpty()) item.bulletPoints.joinToString("\n") else ""
+            val joinedBulletPointsVi = if (!item.bulletPointsVi.isNullOrEmpty()) item.bulletPointsVi.joinToString("\n") else joinedBulletPoints
+
+            newsEntities.add(
+                NewsEntity(
+                    item.id,
+                    item.getEffectiveTitle(),
+                    item.link ?: item.id,
+                    epochMs,
+                    item.getEffectivePublisher(),
+                    item.author ?: "",
+                    item.publishedAt,
+                    item.imageUrl,
+                    item.getEffectiveSummary(),
+                    item.sentiment,
+                    item.confidence,
+                    joinedBulletPoints,
+                    item.originalTitle ?: "",
+                    item.originalSummary ?: "",
+                    item.displayTitleVi ?: "",
+                    item.displaySummaryVi ?: "",
+                    joinedBulletPointsVi,
+                    item.publisher ?: ""
+                )
+            )
+
+            aiEntities.add(
+                AiAnalysisEntity(
+                    item.id,
+                    item.getEffectiveSummary(),
+                    item.sentiment,
+                    item.confidence,
+                    if (!item.bulletPointsVi.isNullOrEmpty()) item.bulletPointsVi.joinToString(" • ") else if (item.bulletPoints.isNotEmpty()) item.bulletPoints.joinToString(" • ") else item.getEffectiveSummary()
+                )
+            )
+        }
+
+        newsDao.upsertAllNewsWithAnalysis(newsEntities, aiEntities)
+
+        runCatching {
+            val allInDb = newsDao.getAllNews()
+            val invalidIds = allInDb.filter { !com.example.nhumonglenh.ui.news.NewsLocalizationPolicy.isEntityFullyLocalized(it) }.map { it.newsId }
+            if (invalidIds.isNotEmpty()) {
+                newsDao.deleteNewsByIds(invalidIds)
+            }
         }
     }
 

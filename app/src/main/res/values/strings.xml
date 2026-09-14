@@ -162,4 +162,18 @@
     <string name="news_view_source_label">Xem nguồn: </string>
     <string name="watchlist_col_asset">Tài sản</string>
     <string name="watchlist_col_change_24h">Biến động 24 giờ</string>
+
+    <!-- Refresh Quota Strings -->
+    <string name="refresh_quota_remaining">Còn %1$d lượt làm mới hôm nay</string>
+    <string name="refresh_quota_zero">Còn 0 lượt làm mới hôm nay</string>
+    <string name="refresh_quota_default">Còn 5 lượt làm mới hôm nay</string>
+    <string name="refresh_quota_exhausted">Bạn đã dùng hết lượt làm mới hôm nay</string>
+    <string name="refresh_forecast_error">Chưa thể tạo nhận định lúc này. Vui lòng thử lại sau.</string>
+    <string name="refresh_news_error">Dịch vụ tin tức tạm thời chưa sẵn sàng. Vui lòng thử lại sau.</string>
+    <string name="refresh_auth_required">Vui lòng đăng nhập để sử dụng tính năng làm mới</string>
+    <string name="refresh_network_error">Không thể kết nối máy chủ. Vui lòng kiểm tra mạng.</string>
+    <string name="refresh_forecast_unsupported">Mã tài sản \'%1$s\' chưa được hỗ trợ nhận định thị trường.</string>
+    <string name="refresh_news_empty">Chưa có bản tin mới</string>
+    <string name="refresh_server_error_format">Lỗi máy chủ (%1$d). Vui lòng thử lại.</string>
+    <string name="refresh_unknown_error">Đã xảy ra lỗi không xác định. Vui lòng thử lại.</string>
 </resources>

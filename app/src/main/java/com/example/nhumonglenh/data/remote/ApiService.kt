@@ -67,6 +67,20 @@ interface ApiService {
         @Query("timeframe") timeframe: String = "24H_7D"
     ): Call<ForecastResponse>
 
+    // 7.1. Làm mới dự báo AI (tiêu hao quota dùng chung)
+    @POST("/api/forecast/refresh")
+    fun refreshForecast(
+        @Header("Authorization") token: String,
+        @Header("Client-Request-ID") clientRequestId: String,
+        @Body request: ForecastRefreshRequest
+    ): Call<ForecastResponse>
+
+    // 7.2. Lấy trạng thái hạn mức làm mới hàng ngày
+    @GET("/api/refresh-quota/status")
+    fun getRefreshQuotaStatus(
+        @Header("Authorization") token: String
+    ): Call<RefreshQuotaDto>
+
     // 8. Lấy bảng giá thị trường cho Watchlist
     @GET("/api/market/prices")
     fun getMarketPrices(): Call<List<MarketPriceDto>>

@@ -311,15 +311,15 @@ class SecureTokenStoreUnitTest {
     }
 
     @Test
-    fun testBuildGradle_configuredVersionCode18AndVersionName1118() {
+    fun testBuildGradle_configuredVersionCode19AndVersionName1119() {
         val buildGradleFile = File("app/build.gradle.kts")
         val fallbackFile = File("build.gradle.kts")
         val target = if (buildGradleFile.exists()) buildGradleFile else fallbackFile
         assertTrue("build.gradle.kts phải tồn tại", target.exists())
         val content = target.readText()
 
-        assertTrue("versionCode phải là 18", content.contains("versionCode = 18"))
-        assertTrue("versionName phải là 1.1.18", content.contains("versionName = \"1.1.18\""))
+        assertTrue("versionCode phải là 19", content.contains("versionCode = 19"))
+        assertTrue("versionName phải là 1.1.19", content.contains("versionName = \"1.1.19\""))
         assertTrue("buildConfig phải được kích hoạt", content.contains("buildConfig = true"))
     }
 
