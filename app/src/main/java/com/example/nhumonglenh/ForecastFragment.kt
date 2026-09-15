@@ -150,6 +150,26 @@ class ForecastFragment : Fragment() {
                         }
                         displayForecastData(forecast)
                     }
+                    response.code() == 503 -> {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.refresh_forecast_error),
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        // Đọc remainingRefreshes từ body lỗi nếu backend có gửi kèm
+                        runCatching {
+                            val errStr = response.errorBody()?.string()
+                            if (!errStr.isNullOrBlank()) {
+                                val json = JSONObject(errStr)
+                                if (json.has("remainingRefreshes")) {
+                                    val rem = json.getInt("remainingRefreshes")
+                                    RefreshQuotaManager.setRemaining(rem)
+                                    updateQuotaLabel(rem)
+                                }
+                            }
+                        }
+                    }
                     else -> {
                         val errorMsg = when (response.code()) {
                             422 -> getString(R.string.refresh_forecast_unsupported, currentSymbol)
@@ -283,6 +303,7 @@ class ForecastFragment : Fragment() {
                     llContent?.visibility = View.GONE
 
                     val errorMsg = when (response.code()) {
+                        503 -> getString(R.string.refresh_forecast_error)
                         422 -> getString(R.string.refresh_forecast_unsupported, currentSymbol)
                         else -> getString(R.string.refresh_forecast_error)
                     }

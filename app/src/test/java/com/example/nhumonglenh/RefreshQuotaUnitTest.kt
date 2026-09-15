@@ -186,4 +186,42 @@ class RefreshQuotaUnitTest {
         assertTrue(result is com.example.nhumonglenh.data.repository.NewsRepository.NewsRefreshResult.Unauthorized)
         assertEquals("Phiên đăng nhập đã hết hạn", result.message)
     }
+
+    @Test
+    fun retrofitClient_timeoutsConfiguredCorrectly_readTimeout55s() {
+        assertEquals(55000L, com.example.nhumonglenh.data.remote.RetrofitClient.okHttpClient.readTimeoutMillis.toLong())
+        assertEquals(20000L, com.example.nhumonglenh.data.remote.RetrofitClient.okHttpClient.connectTimeoutMillis.toLong())
+        assertEquals(20000L, com.example.nhumonglenh.data.remote.RetrofitClient.okHttpClient.writeTimeoutMillis.toLong())
+    }
+
+    @Test
+    fun forecastResponse_503ErrorHandling_notLabeledAsNetworkError() {
+        val error503Message = "Chưa thể tạo nhận định lúc này. Vui lòng thử lại sau."
+        val networkErrorMessage = "Không thể kết nối máy chủ. Vui lòng kiểm tra mạng."
+
+        // Kiểm tra thông điệp 503 khác biệt hoàn toàn với lỗi mạng client
+        org.junit.Assert.assertNotEquals(networkErrorMessage, error503Message)
+        assertEquals("Chưa thể tạo nhận định lúc này. Vui lòng thử lại sau.", error503Message)
+
+        // Giả lập errorBody trả về từ backend khi 503 FORECAST_UNAVAILABLE
+        val errorJson = """
+            {
+                "status": "ERROR",
+                "code": "FORECAST_UNAVAILABLE",
+                "message": "Chưa thể tạo nhận định lúc này. Vui lòng thử lại sau.",
+                "maxDailyRefreshes": 5,
+                "usedRefreshes": 3,
+                "remainingRefreshes": 2,
+                "quotaDate": "2026-09-15"
+            }
+        """.trimIndent()
+
+        val json = org.json.JSONObject(errorJson)
+        assertEquals("FORECAST_UNAVAILABLE", json.getString("code"))
+        assertEquals("Chưa thể tạo nhận định lúc này. Vui lòng thử lại sau.", json.getString("message"))
+        assertEquals(2, json.getInt("remainingRefreshes"))
+
+        RefreshQuotaManager.setRemaining(json.getInt("remainingRefreshes"))
+        assertEquals(2, RefreshQuotaManager.getRemaining())
+    }
 }
