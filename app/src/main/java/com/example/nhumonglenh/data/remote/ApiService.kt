@@ -132,4 +132,11 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Path("paymentOrderId") paymentOrderId: Long
     ): Call<PaymentOrderDto>
+
+    // 11. Cổ phiếu Mỹ (Stock Endpoints - Đợt 1 Backend)
+    @GET("/api/stocks")
+    fun getStocks(): Call<List<StockCatalogDto>>
+
+    @GET("/api/stocks/{symbol}")
+    fun getStockDetail(@Path("symbol") symbol: String): Call<StockDetailDto>
 }

@@ -1,36 +1,54 @@
 package com.example.nhumonglenh
 
 import android.content.Context
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Paint
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.setFragmentResultListener
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.nhumonglenh.data.local.AuthSessionManager
 import com.example.nhumonglenh.data.remote.CandleDto
 import com.example.nhumonglenh.data.remote.HoldingDto
 import com.example.nhumonglenh.data.remote.PortfolioSummaryDto
 import com.example.nhumonglenh.data.remote.RetrofitClient
+import com.example.nhumonglenh.data.remote.StockCatalogDto
+import com.example.nhumonglenh.data.remote.StockDetailDto
+import com.example.nhumonglenh.data.remote.WatchlistItemDto
+import com.example.nhumonglenh.data.remote.WatchlistRequest
 import com.example.nhumonglenh.databinding.FragmentTradingBinding
 import com.example.nhumonglenh.ui.trading.AuthHeaderFactory
+import com.example.nhumonglenh.ui.trading.AuthHttpPolicy
 import com.example.nhumonglenh.ui.trading.CandleFallbackPolicy
 import com.example.nhumonglenh.ui.trading.CandleReloadPolicy
 import com.example.nhumonglenh.ui.trading.ChartLabelFormatter
 import com.example.nhumonglenh.ui.trading.MarketStreamHelper
 import com.example.nhumonglenh.ui.trading.OrderTicketBottomSheet
 import com.example.nhumonglenh.ui.trading.PortfolioSyncPolicy
+import com.example.nhumonglenh.ui.trading.StockCatalogAdapter
+import com.example.nhumonglenh.ui.trading.StockReportPolicy
+import com.example.nhumonglenh.ui.trading.StockTradePolicy
+import com.example.nhumonglenh.ui.trading.StockWatchlistMatcher
 import com.example.nhumonglenh.ui.trading.TradingDataReadiness
 import com.example.nhumonglenh.ui.trading.TradingStateRestoration
+import com.example.nhumonglenh.ui.trading.WatchlistMutation
+import com.example.nhumonglenh.ui.trading.WatchlistStateReducer
+import com.example.nhumonglenh.ui.watchlist.WatchlistAdapter
+import com.example.nhumonglenh.ui.watchlist.WatchlistUiModel
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.CandleData
 import com.github.mikephil.charting.data.CandleDataSet
 import com.github.mikephil.charting.data.CandleEntry
+import com.google.android.material.tabs.TabLayout
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.WebSocket
@@ -44,15 +62,15 @@ import java.util.concurrent.TimeUnit
 
 /**
  * =====================================================================
- * TRADING FRAGMENT - GIAO DIỆN GIAO DỊCH CHUẨN CHART-FIRST (RC3)
+ * TRADING FRAGMENT - GIAO DIỆN GIAO DỊCH CHUẨN CHART-FIRST & CỔ PHIẾU HOA KỲ
  * =====================================================================
  * - Instrument Header: Symbol, full name, live price, 24h change %, live/offline badge.
- * - Chart-First: Candlestick chart chiếm không gian linh hoạt lớn nhất màn hình.
+ * - Mode Tabs: "Giao dịch" (Chart, Mua/Bán, Watchlist nhúng) và "Cổ phiếu" (8 mã cổ phiếu Mỹ).
  * - Compact Account Strip: Tiền mặt khả dụng & Số lượng đang giữ của mã hiện tại.
- * - Sticky Actions: Hai nút MUA và BÁN cố định phía dưới.
- * - Không có giá khởi tạo giả, không có số dư mặc định $10,000.
- * - Quản lý nến mã cũ - mã mới độc lập, không dùng cache mã khác.
- * - Quản lý vòng đời WebSocket và Portfolio theo onHiddenChanged.
+ * - Sticky Actions: Hai nút MUA và BÁN. Tự động vô hiệu hóa và cảnh báo an toàn khi stale=true hoặc thiếu giá.
+ * - Nhúng Watchlist trực tiếp dưới nút Mua/Bán; hiển thị khuyến nghị và link báo cáo mới nhất.
+ * - Không hiển thị tiêu đề báo cáo tiếng Anh (StockReportPolicy).
+ * - Quản lý độc lập nến và WebSocket giữa Crypto/Vàng và Cổ phiếu.
  * =====================================================================
  */
 class TradingFragment : Fragment() {
@@ -79,9 +97,20 @@ class TradingFragment : Fragment() {
     private var userHoldingsAvgBuyPrice: Double = 0.0
     private var portfolioHoldingsList: List<HoldingDto> = emptyList()
 
+    // Trạng thái cổ phiếu
+    private var isStockDetailStale: Boolean = false
+
+    // Adapters
+    private lateinit var stockCatalogAdapter: StockCatalogAdapter
+    private lateinit var embeddedWatchlistAdapter: WatchlistAdapter
+    private val cachedWatchlistSymbols = mutableSetOf<String>()
+
     // Calls đang chạy
     private var activeCandleCall: Call<List<CandleDto>>? = null
     private var activePortfolioCall: Call<PortfolioSummaryDto>? = null
+    private var activeStockDetailCall: Call<StockDetailDto>? = null
+    private var activeStockCatalogCall: Call<List<StockCatalogDto>>? = null
+    private var activeEmbeddedWatchlistCall: Call<List<WatchlistItemDto>>? = null
 
     // WebSocket Client
     private var binanceWebSocket: WebSocket? = null
@@ -115,25 +144,36 @@ class TradingFragment : Fragment() {
                 context?.let { ctx ->
                     Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
                 }
-                // Đồng bộ lại số dư ví thật sau khi khớp lệnh đúng 1 lần
                 loadPortfolioSilently()
             }
         }
 
-        // 2. Cấu hình giao diện Biểu đồ Nến Dark Theme
+        // 2. Cấu hình Tabs "Giao dịch" vs "Cổ phiếu"
+        setupTabs()
+
+        // 3. Cấu hình Adapter danh sách Cổ phiếu Mỹ
+        setupStockCatalog()
+
+        // 4. Cấu hình Adapter Watchlist nhúng
+        setupEmbeddedWatchlist()
+
+        // 5. Cấu hình nút Theo dõi trên Header
+        setupWatchlistToggleAction()
+
+        // 6. Cấu hình giao diện Biểu đồ Nến Dark Theme
         setupCandleChartStyle()
 
-        // 3. Cấu hình các nút đặt lệnh MUA / BÁN
+        // 7. Cấu hình các nút đặt lệnh MUA / BÁN
         setupTradeActions()
 
-        // 4. Khởi động với symbol đã lưu hoặc mặc định BTCUSDT (không dùng giá giả)
+        // 8. Khởi động với symbol đã lưu hoặc mặc định BTCUSDT (không dùng giá giả)
         val initialSymbol = TradingStateRestoration.resolveInitialSymbol(savedInstanceState?.getString(KEY_SAVED_SYMBOL))
         switchMarketSymbol(initialSymbol, isInitial = true)
 
-        // 5. Tải danh mục đầu tư thật lần đầu
+        // 9. Tải danh mục đầu tư thật lần đầu
         loadPortfolio()
 
-        // 6. Chạm thẻ tài sản để làm mới số dư chủ động
+        // 10. Chạm thẻ tài sản để làm mới số dư chủ động
         binding?.cardAccountStrip?.setOnClickListener {
             context?.let { c ->
                 Toast.makeText(c, getString(R.string.trading_toast_syncing_balance), Toast.LENGTH_SHORT).show()
@@ -150,14 +190,14 @@ class TradingFragment : Fragment() {
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
         if (hidden) {
-            // Khi tab bị ẩn: dừng WebSocket và hủy các call mạng đang dở
             disconnectWebSocket()
             activeCandleCall?.cancel()
             activeCandleCall = null
             activePortfolioCall?.cancel()
             activePortfolioCall = null
+            activeStockDetailCall?.cancel()
+            activeStockDetailCall = null
         } else {
-            // Khi quay lại tab: kiểm tra nếu biểu đồ trống hoặc đổi symbol thì nạp lại nến
             val shouldReloadCandles = CandleReloadPolicy.shouldReloadOnTabVisible(
                 hasCandleData = candleEntries.isNotEmpty(),
                 loadedCandleSymbol = loadedCandleSymbol,
@@ -166,14 +206,15 @@ class TradingFragment : Fragment() {
             if (shouldReloadCandles) {
                 loadCandleData(currentSymbol)
             }
-            // Kiểm tra dữ liệu cũ hơn 30s thì mới làm mới portfolio
             if (PortfolioSyncPolicy.isStale(lastPortfolioFetchTime)) {
                 loadPortfolioSilently()
             }
-            // Kết nối lại WebSocket nếu chưa có
-            if (binanceWebSocket == null) {
+            if (!StockTradePolicy.isStock(currentSymbol) && binanceWebSocket == null) {
                 connectWebSocketForSymbol(currentSymbol)
+            } else if (StockTradePolicy.isStock(currentSymbol)) {
+                fetchStockDetail(currentSymbol)
             }
+            loadEmbeddedWatchlist()
         }
     }
 
@@ -183,6 +224,12 @@ class TradingFragment : Fragment() {
         activeCandleCall = null
         activePortfolioCall?.cancel()
         activePortfolioCall = null
+        activeStockDetailCall?.cancel()
+        activeStockDetailCall = null
+        activeStockCatalogCall?.cancel()
+        activeStockCatalogCall = null
+        activeEmbeddedWatchlistCall?.cancel()
+        activeEmbeddedWatchlistCall = null
         super.onDestroyView()
         _binding = null
     }
@@ -195,6 +242,347 @@ class TradingFragment : Fragment() {
     private fun disconnectWebSocket() {
         binanceWebSocket?.close(1000, "Disconnecting")
         binanceWebSocket = null
+    }
+
+    private fun setupTabs() {
+        val b = binding ?: return
+        b.tabLayoutTradingMode.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                when (tab?.position) {
+                    0 -> {
+                        b.layoutTradingContainer.visibility = View.VISIBLE
+                        b.layoutStockCatalogContainer.visibility = View.GONE
+                        loadEmbeddedWatchlist()
+                    }
+                    1 -> {
+                        b.layoutTradingContainer.visibility = View.GONE
+                        b.layoutStockCatalogContainer.visibility = View.VISIBLE
+                        loadStockCatalog()
+                    }
+                }
+            }
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+            override fun onTabReselected(tab: TabLayout.Tab?) {
+                if (tab?.position == 1) {
+                    loadStockCatalog()
+                }
+            }
+        })
+    }
+
+    private fun setupStockCatalog() {
+        val b = binding ?: return
+        stockCatalogAdapter = StockCatalogAdapter(
+            items = emptyList(),
+            onItemClick = { stock ->
+                b.tabLayoutTradingMode.getTabAt(0)?.select()
+                switchMarketSymbol(stock.symbol)
+            },
+            onWatchlistToggle = { stock ->
+                toggleWatchlistForSymbol(stock.symbol)
+            }
+        )
+        b.rvStockCatalog.layoutManager = LinearLayoutManager(requireContext())
+        b.rvStockCatalog.adapter = stockCatalogAdapter
+    }
+
+    private fun loadStockCatalog() {
+        val b = binding ?: return
+        b.pbStockCatalogLoading.visibility = View.VISIBLE
+
+        activeStockCatalogCall?.cancel()
+        val call = RetrofitClient.apiService.getStocks()
+        activeStockCatalogCall = call
+
+        call.enqueue(object : Callback<List<StockCatalogDto>> {
+            override fun onResponse(call: Call<List<StockCatalogDto>>, response: Response<List<StockCatalogDto>>) {
+                if (activeStockCatalogCall !== call) return
+                if (!isAdded || _binding == null) return
+                b.pbStockCatalogLoading.visibility = View.GONE
+
+                if (response.code() == 401 || response.code() == 403) {
+                    AuthSessionManager.handleUnauthorized(activity)
+                    return
+                }
+
+                if (!response.isSuccessful) {
+                    Log.w(TAG, "Lỗi khi tải danh mục cổ phiếu: code ${response.code()}")
+                    context?.let { ctx ->
+                        Toast.makeText(ctx, getString(R.string.stock_catalog_load_failed), Toast.LENGTH_SHORT).show()
+                    }
+                    return
+                }
+
+                val stocks = response.body() ?: emptyList()
+
+                val authHeader = AuthHeaderFactory.createBearerHeader(jwtToken)
+                if (authHeader != null) {
+                    RetrofitClient.apiService.getWatchlist(authHeader).enqueue(object : Callback<List<WatchlistItemDto>> {
+                        override fun onResponse(wCall: Call<List<WatchlistItemDto>>, wResp: Response<List<WatchlistItemDto>>) {
+                            if (!isAdded || _binding == null) return
+                            if (wResp.code() == 401 || wResp.code() == 403) {
+                                AuthSessionManager.handleUnauthorized(activity)
+                                return
+                            }
+                            if (wResp.isSuccessful) {
+                                val watchlist = wResp.body() ?: emptyList()
+                                cachedWatchlistSymbols.clear()
+                                watchlist.mapNotNull { it.symbol.trim().uppercase(Locale.ROOT) }.forEach {
+                                    cachedWatchlistSymbols.add(it)
+                                }
+                                val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, watchlist)
+                                stockCatalogAdapter.submitList(uiModels)
+                                updateWatchlistToggleButton()
+                            } else {
+                                Log.w(TAG, "Không thể tải watchlist khi load catalog: code ${wResp.code()}")
+                                val currentWatchlistItems = cachedWatchlistSymbols.map { WatchlistItemDto(symbol = it) }
+                                val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, currentWatchlistItems)
+                                stockCatalogAdapter.submitList(uiModels)
+                            }
+                        }
+
+                        override fun onFailure(wCall: Call<List<WatchlistItemDto>>, t: Throwable) {
+                            if (!isAdded || _binding == null) return
+                            Log.e(TAG, "Lỗi kết nối khi tải watchlist cho catalog: ${t.message}")
+                            val currentWatchlistItems = cachedWatchlistSymbols.map { WatchlistItemDto(symbol = it) }
+                            val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, currentWatchlistItems)
+                            stockCatalogAdapter.submitList(uiModels)
+                        }
+                    })
+                } else {
+                    val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, emptyList())
+                    stockCatalogAdapter.submitList(uiModels)
+                }
+            }
+
+            override fun onFailure(call: Call<List<StockCatalogDto>>, t: Throwable) {
+                if (activeStockCatalogCall !== call) return
+                if (!isAdded || _binding == null) return
+                b.pbStockCatalogLoading.visibility = View.GONE
+                Log.e(TAG, "Lỗi mạng khi tải danh mục cổ phiếu: ${t.message}")
+                context?.let { ctx ->
+                    Toast.makeText(ctx, getString(R.string.network_error_msg), Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
+    }
+
+    private fun setupEmbeddedWatchlist() {
+        val b = binding ?: return
+        embeddedWatchlistAdapter = WatchlistAdapter(
+            items = emptyList(),
+            onClick = { item ->
+                switchMarketSymbol(item.symbol)
+            },
+            onReportClick = { reportUrl ->
+                openReportUrl(reportUrl)
+            }
+        )
+        b.rvEmbeddedWatchlist.layoutManager = LinearLayoutManager(requireContext())
+        b.rvEmbeddedWatchlist.adapter = embeddedWatchlistAdapter
+    }
+
+    private fun loadEmbeddedWatchlist() {
+        val b = binding ?: return
+        val authHeader = AuthHeaderFactory.createBearerHeader(jwtToken) ?: return
+
+        activeEmbeddedWatchlistCall?.cancel()
+        val call = RetrofitClient.apiService.getWatchlist(authHeader)
+        activeEmbeddedWatchlistCall = call
+
+        call.enqueue(object : Callback<List<WatchlistItemDto>> {
+            override fun onResponse(call: Call<List<WatchlistItemDto>>, response: Response<List<WatchlistItemDto>>) {
+                if (activeEmbeddedWatchlistCall !== call) return
+                if (!isAdded || _binding == null) return
+
+                if (AuthHttpPolicy.isUnauthorized(response.code())) {
+                    AuthSessionManager.handleUnauthorized(activity)
+                    return
+                }
+
+                if (response.isSuccessful) {
+                    val items = response.body()
+                    if (!items.isNullOrEmpty()) {
+                        cachedWatchlistSymbols.clear()
+                        items.mapNotNull { it.symbol.trim().uppercase(Locale.ROOT) }.forEach {
+                            cachedWatchlistSymbols.add(it)
+                        }
+                        updateWatchlistToggleButton()
+
+                        val uiModels = items.map { dto ->
+                            val sym = dto.symbol.trim().uppercase(Locale.ROOT)
+                            val isStockItem = StockTradePolicy.isStock(sym)
+                            WatchlistUiModel(
+                                symbol = sym,
+                                fullName = dto.name ?: getFriendlyName(sym),
+                                price = dto.currentPrice,
+                                changePercent = dto.change24h,
+                                priceAsOf = dto.priceAsOf,
+                                recommendation = dto.recommendation,
+                                latestReportTitle = dto.latestReportTitle,
+                                latestReportUrl = dto.latestReportUrl,
+                                isStock = isStockItem
+                            )
+                        }
+                        b.rvEmbeddedWatchlist.visibility = View.VISIBLE
+                        b.tvEmbeddedWatchlistEmpty.visibility = View.GONE
+                        embeddedWatchlistAdapter.updateData(uiModels)
+                    } else {
+                        cachedWatchlistSymbols.clear()
+                        updateWatchlistToggleButton()
+                        b.rvEmbeddedWatchlist.visibility = View.GONE
+                        b.tvEmbeddedWatchlistEmpty.visibility = View.VISIBLE
+                    }
+                } else {
+                    Log.w(TAG, "Không thể tải danh sách theo dõi: code ${response.code()}")
+                    context?.let { ctx ->
+                        Toast.makeText(ctx, getString(R.string.watchlist_load_failed), Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+
+            override fun onFailure(call: Call<List<WatchlistItemDto>>, t: Throwable) {
+                if (activeEmbeddedWatchlistCall !== call) return
+                if (!isAdded || _binding == null) return
+                Log.e(TAG, "Lỗi mạng khi tải embedded watchlist: ${t.message}")
+                context?.let { ctx ->
+                    Toast.makeText(ctx, getString(R.string.network_error_msg), Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
+    }
+
+    private fun setupWatchlistToggleAction() {
+        binding?.btnTradingWatchlistToggle?.setOnClickListener {
+            toggleWatchlistForSymbol(currentSymbol)
+        }
+    }
+
+    private fun updateWatchlistToggleButton() {
+        val b = binding ?: return
+        val cleanSym = currentSymbol.trim().uppercase(Locale.ROOT)
+        val isWatchlisted = cachedWatchlistSymbols.contains(cleanSym)
+        if (isWatchlisted) {
+            b.btnTradingWatchlistToggle.text = getString(R.string.btn_watchlist_remove)
+            b.btnTradingWatchlistToggle.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.tv_surface))
+            b.btnTradingWatchlistToggle.setTextColor(ContextCompat.getColor(requireContext(), R.color.tv_text_secondary))
+        } else {
+            b.btnTradingWatchlistToggle.text = getString(R.string.btn_watchlist_toggle_add)
+            b.btnTradingWatchlistToggle.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.tv_green))
+            b.btnTradingWatchlistToggle.setTextColor(ContextCompat.getColor(requireContext(), R.color.white))
+        }
+    }
+
+    private fun toggleWatchlistForSymbol(symbol: String) {
+        val cleanSym = symbol.trim().uppercase(Locale.ROOT)
+        val authHeader = AuthHeaderFactory.createBearerHeader(jwtToken) ?: return
+        val isCurrentlyWatchlisted = cachedWatchlistSymbols.contains(cleanSym)
+
+        if (isCurrentlyWatchlisted) {
+            RetrofitClient.apiService.removeFromWatchlist(authHeader, cleanSym).enqueue(object : Callback<Map<String, String>> {
+                override fun onResponse(call: Call<Map<String, String>>, response: Response<Map<String, String>>) {
+                    if (AuthHttpPolicy.isUnauthorized(response.code())) {
+                        AuthSessionManager.handleUnauthorized(activity)
+                        return
+                    }
+                    val updated = WatchlistStateReducer.reduce(
+                        cachedWatchlistSymbols,
+                        WatchlistMutation.Remove(cleanSym),
+                        isSuccess = response.isSuccessful
+                    )
+                    cachedWatchlistSymbols.clear()
+                    cachedWatchlistSymbols.addAll(updated)
+                    updateWatchlistToggleButton()
+
+                    if (response.isSuccessful) {
+                        loadEmbeddedWatchlist()
+                        loadStockCatalog()
+                        context?.let {
+                            Toast.makeText(it, getString(R.string.watchlist_remove_success, cleanSym), Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        Log.w(TAG, "Xóa khỏi watchlist thất bại: code ${response.code()}")
+                        context?.let {
+                            Toast.makeText(it, getString(R.string.watchlist_update_failed), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+
+                override fun onFailure(call: Call<Map<String, String>>, t: Throwable) {
+                    Log.e(TAG, "Lỗi mạng khi xóa khỏi watchlist: ${t.message}")
+                    val updated = WatchlistStateReducer.reduce(
+                        cachedWatchlistSymbols,
+                        WatchlistMutation.Remove(cleanSym),
+                        isSuccess = false
+                    )
+                    cachedWatchlistSymbols.clear()
+                    cachedWatchlistSymbols.addAll(updated)
+                    updateWatchlistToggleButton()
+                    context?.let {
+                        Toast.makeText(it, getString(R.string.network_error_msg), Toast.LENGTH_SHORT).show()
+                    }
+                }
+            })
+        } else {
+            RetrofitClient.apiService.addToWatchlist(authHeader, WatchlistRequest(cleanSym)).enqueue(object : Callback<WatchlistItemDto> {
+                override fun onResponse(call: Call<WatchlistItemDto>, response: Response<WatchlistItemDto>) {
+                    if (AuthHttpPolicy.isUnauthorized(response.code())) {
+                        AuthSessionManager.handleUnauthorized(activity)
+                        return
+                    }
+                    val updated = WatchlistStateReducer.reduce(
+                        cachedWatchlistSymbols,
+                        WatchlistMutation.Add(cleanSym),
+                        isSuccess = response.isSuccessful
+                    )
+                    cachedWatchlistSymbols.clear()
+                    cachedWatchlistSymbols.addAll(updated)
+                    updateWatchlistToggleButton()
+
+                    if (response.isSuccessful) {
+                        loadEmbeddedWatchlist()
+                        loadStockCatalog()
+                        context?.let {
+                            Toast.makeText(it, getString(R.string.watchlist_add_success, cleanSym), Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        Log.w(TAG, "Thêm vào watchlist thất bại: code ${response.code()}")
+                        context?.let {
+                            Toast.makeText(it, getString(R.string.watchlist_update_failed), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+
+                override fun onFailure(call: Call<WatchlistItemDto>, t: Throwable) {
+                    Log.e(TAG, "Lỗi mạng khi thêm vào watchlist: ${t.message}")
+                    val updated = WatchlistStateReducer.reduce(
+                        cachedWatchlistSymbols,
+                        WatchlistMutation.Add(cleanSym),
+                        isSuccess = false
+                    )
+                    cachedWatchlistSymbols.clear()
+                    cachedWatchlistSymbols.addAll(updated)
+                    updateWatchlistToggleButton()
+                    context?.let {
+                        Toast.makeText(it, getString(R.string.network_error_msg), Toast.LENGTH_SHORT).show()
+                    }
+                }
+            })
+        }
+    }
+
+    private fun openReportUrl(url: String?) {
+        if (url.isNullOrBlank()) return
+        try {
+            val customTabsIntent = CustomTabsIntent.Builder().build()
+            customTabsIntent.launchUrl(requireContext(), Uri.parse(url))
+        } catch (e: Exception) {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            } catch (e2: Exception) {
+                Toast.makeText(requireContext(), getString(R.string.report_open_error), Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     /**
@@ -228,21 +616,23 @@ class TradingFragment : Fragment() {
                 resetAxisMaximum()
             }
 
-            // Tắt trục Y bên Phải cho thoáng
+            // Tắt trục Y bên Phải
             axisRight.isEnabled = false
         }
     }
 
     /**
-     * Chuyển đổi mã tài sản hiển thị biểu đồ Nến (BTCUSDT, ETHUSDT, XAUUSD...)
+     * Chuyển đổi mã tài sản hiển thị biểu đồ Nến (BTCUSDT, ETHUSDT, AAPL, MSFT...)
      */
     fun switchMarketSymbol(symbol: String, isInitial: Boolean = false) {
-        val sym = symbol.uppercase()
+        val sym = symbol.uppercase(Locale.ROOT)
         currentSymbol = sym
         (activity as? Activity2)?.updateActiveSymbol(sym)
 
         val b = binding ?: return
         val ctx = context ?: return
+
+        val isStock = StockTradePolicy.isStock(sym)
 
         // 1. Cập nhật Tiêu đề Header
         b.tvHeaderSymbol.text = formatSymbolDisplay(sym)
@@ -252,46 +642,168 @@ class TradingFragment : Fragment() {
             getFriendlyName(sym)
         }
 
-        // 2. Xóa giá khởi tạo giả: đưa về null / "—", KHÔNG gán 78000 / 3550 / 2500
+        // 2. Xóa giá hiển thị cũ, đưa về trạng thái chờ
         currentAssetPrice = null
         previousAssetPrice = null
         baselinePeriodPrice = null
+        isStockDetailStale = false
 
         b.tvCurrentPrice.text = "—"
         b.tvCurrentPrice.setTextColor(ContextCompat.getColor(ctx, R.color.tv_text_primary))
         b.tvPriceChange.text = "—"
         b.tvPriceChange.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.tv_surface))
 
-        // Xóa nến cũ trên chart khi chuyển mã để tránh biểu đồ mã cũ hiển thị nhầm cho mã mới
         candleEntries.clear()
         b.candleChart.clear()
-
-        // Trạng thái kết nối ban đầu (chưa nhận tick thì KHÔNG được hiện LIVE)
-        val streamName = MarketStreamHelper.resolveWebSocketStream(sym)
-        if (streamName == null) {
-            b.tvLiveStatus.text = getString(R.string.trading_no_live_badge)
-            b.tvLiveStatus.setTextColor(ContextCompat.getColor(ctx, R.color.tv_text_secondary))
-        } else {
-            b.tvLiveStatus.text = getString(R.string.trading_connecting_badge)
-            b.tvLiveStatus.setTextColor(ContextCompat.getColor(ctx, R.color.tv_yellow))
-        }
 
         if (!isInitial) {
             Toast.makeText(ctx, getString(R.string.trading_toast_switch_symbol, sym), Toast.LENGTH_SHORT).show()
         }
 
-        // Cập nhật trạng thái nút Mua/Bán (bị disable vì giá đang null)
+        updateWatchlistToggleButton()
         updateTradeActionsState()
 
-        // 3. Tải dữ liệu nến từ Backend
+        // 3. Tải nến ngày
         loadCandleData(sym)
 
-        // 4. Kết nối WebSocket stream tương ứng
-        connectWebSocketForSymbol(sym)
+        // 4. Luồng xử lý Cổ phiếu vs Crypto/Gold
+        if (isStock) {
+            disconnectWebSocket()
+            b.tvLiveStatus.text = getString(R.string.trading_no_live_badge)
+            b.tvLiveStatus.setTextColor(ContextCompat.getColor(ctx, R.color.tv_text_secondary))
+            fetchStockDetail(sym)
+        } else {
+            b.llStockMetaRow.visibility = View.GONE
+            b.tvTradeWarningMessage.visibility = View.GONE
 
-        // 5. Cập nhật số dư & lượng coin sở hữu cho mã đang chọn
+            val streamName = MarketStreamHelper.resolveWebSocketStream(sym)
+            if (streamName == null) {
+                b.tvLiveStatus.text = getString(R.string.trading_no_live_badge)
+                b.tvLiveStatus.setTextColor(ContextCompat.getColor(ctx, R.color.tv_text_secondary))
+            } else {
+                b.tvLiveStatus.text = getString(R.string.trading_connecting_badge)
+                b.tvLiveStatus.setTextColor(ContextCompat.getColor(ctx, R.color.tv_yellow))
+            }
+            connectWebSocketForSymbol(sym)
+        }
+
+        // 5. Cập nhật số dư & lượng tài sản sở hữu
         updateHoldingsForCurrentSymbol()
         updatePortfolioDisplay()
+        loadEmbeddedWatchlist()
+    }
+
+    private fun fetchStockDetail(symbol: String) {
+        activeStockDetailCall?.cancel()
+        val call = RetrofitClient.apiService.getStockDetail(symbol)
+        activeStockDetailCall = call
+
+        val b = binding ?: return
+        val ctx = context ?: return
+
+        call.enqueue(object : Callback<StockDetailDto> {
+            override fun onResponse(call: Call<StockDetailDto>, response: Response<StockDetailDto>) {
+                if (activeStockDetailCall !== call) return
+                if (!isAdded || _binding == null) return
+
+                if (response.code() == 401 || response.code() == 403) {
+                    AuthSessionManager.handleUnauthorized(activity)
+                    return
+                }
+
+                val detail = response.body()
+                if (response.isSuccessful && detail != null) {
+                    val price = detail.currentPrice
+                    isStockDetailStale = detail.stale == true
+
+                    if (price != null && price > 0.0) {
+                        currentAssetPrice = price
+                        b.tvCurrentPrice.text = String.format(Locale.US, "$%,.2f", price)
+                        b.tvCurrentPrice.setTextColor(ContextCompat.getColor(ctx, R.color.tv_text_primary))
+                    } else {
+                        currentAssetPrice = null
+                        b.tvCurrentPrice.text = "—"
+                    }
+
+                    if (detail.change24h != null) {
+                        val sign = if (detail.change24h >= 0) "+" else ""
+                        b.tvPriceChange.text = String.format(Locale.US, "%s%.2f%%", sign, detail.change24h)
+                        val colorRes = if (detail.change24h >= 0) R.color.tv_green else R.color.tv_red
+                        b.tvPriceChange.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, colorRes))
+                    } else {
+                        b.tvPriceChange.text = "—"
+                        b.tvPriceChange.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.tv_surface))
+                    }
+
+                    // Stock metadata: recommendation & latest report
+                    if (!detail.recommendation.isNullOrBlank()) {
+                        b.tvStockRecommendation.text = detail.recommendation
+                        b.tvStockRecommendation.visibility = View.VISIBLE
+                    } else {
+                        b.tvStockRecommendation.visibility = View.GONE
+                    }
+
+                    if (StockReportPolicy.shouldShowReportButton(detail.latestReportUrl)) {
+                        b.btnStockReport.text = StockReportPolicy.resolveReportButtonLabel(detail.latestReportTitle)
+                        b.btnStockReport.visibility = View.VISIBLE
+                        b.btnStockReport.setOnClickListener {
+                            openReportUrl(detail.latestReportUrl)
+                        }
+                    } else {
+                        b.btnStockReport.visibility = View.GONE
+                    }
+
+                    b.llStockMetaRow.visibility = if (b.tvStockRecommendation.visibility == View.VISIBLE || b.btnStockReport.visibility == View.VISIBLE) {
+                        View.VISIBLE
+                    } else {
+                        View.GONE
+                    }
+
+                    val tradeEnabled = StockTradePolicy.isTradeEnabled(
+                        isStock = true,
+                        stale = detail.stale,
+                        currentPrice = detail.currentPrice
+                    )
+                    val statusMsg = StockTradePolicy.resolveTradeStatusMessage(
+                        isStock = true,
+                        stale = detail.stale,
+                        currentPrice = detail.currentPrice
+                    )
+
+                    if (!tradeEnabled) {
+                        b.tvTradeWarningMessage.text = statusMsg ?: getString(R.string.stock_trade_disabled_warning)
+                        b.tvTradeWarningMessage.visibility = View.VISIBLE
+                        b.btnBuy.isEnabled = false
+                        b.btnBuy.alpha = 0.5f
+                        b.btnSell.isEnabled = false
+                        b.btnSell.alpha = 0.5f
+                    } else {
+                        b.tvTradeWarningMessage.visibility = View.GONE
+                        updateTradeActionsState()
+                    }
+                } else {
+                    isStockDetailStale = true
+                    b.tvTradeWarningMessage.text = getString(R.string.stock_trade_disabled_warning)
+                    b.tvTradeWarningMessage.visibility = View.VISIBLE
+                    b.btnBuy.isEnabled = false
+                    b.btnBuy.alpha = 0.5f
+                    b.btnSell.isEnabled = false
+                    b.btnSell.alpha = 0.5f
+                }
+            }
+
+            override fun onFailure(call: Call<StockDetailDto>, t: Throwable) {
+                if (activeStockDetailCall !== call) return
+                if (!isAdded || _binding == null) return
+                isStockDetailStale = true
+                b.tvTradeWarningMessage.text = getString(R.string.stock_trade_disabled_warning)
+                b.tvTradeWarningMessage.visibility = View.VISIBLE
+                b.btnBuy.isEnabled = false
+                b.btnBuy.alpha = 0.5f
+                b.btnSell.isEnabled = false
+                b.btnSell.alpha = 0.5f
+            }
+        })
     }
 
     private fun releaseCandleCall(call: Call<List<CandleDto>>?) {
@@ -362,7 +874,6 @@ class TradingFragment : Fragment() {
 
     private fun handleCandleLoadFallback(symbol: String) {
         val b = binding ?: return
-        val ctx = context ?: return
 
         val decision = CandleFallbackPolicy.decide(
             currentSymbol = symbol,
@@ -378,242 +889,180 @@ class TradingFragment : Fragment() {
         } else {
             b.tvStateMessage.visibility = View.GONE
         }
-
-        b.tvLiveStatus.text = getString(decision.badgeTextRes)
-        b.tvLiveStatus.setTextColor(ContextCompat.getColor(ctx, decision.statusColorRes))
     }
 
-    /**
-     * Vẽ tập dữ liệu Nến lên MPAndroidChart
-     */
     private fun renderCandleChart(candles: List<CandleDto>, symbol: String) {
         val b = binding ?: return
         val ctx = context ?: return
+
         candleEntries.clear()
+        val timeLabels = ArrayList<String>()
 
         for (i in candles.indices) {
             val c = candles[i]
-            val high = c.high.toFloat()
-            val low = c.low.toFloat()
-            val open = c.open.toFloat()
-            val close = c.close.toFloat()
-            candleEntries.add(CandleEntry(i.toFloat(), high, low, open, close))
+            candleEntries.add(CandleEntry(i.toFloat(), c.high.toFloat(), c.low.toFloat(), c.open.toFloat(), c.close.toFloat()))
+            timeLabels.add(c.time)
         }
 
+        if (candleEntries.isEmpty()) {
+            b.candleChart.clear()
+            b.tvStateMessage.text = getString(R.string.trading_chart_empty)
+            b.tvStateMessage.visibility = View.VISIBLE
+            return
+        }
+
+        b.tvStateMessage.visibility = View.GONE
         loadedCandleSymbol = symbol
 
-        if (candles.isNotEmpty()) {
-            baselinePeriodPrice = candles.first().open
-            currentAssetPrice = candles.last().close
-            previousAssetPrice = currentAssetPrice
-            val basePrice = baselinePeriodPrice ?: 0.0
-            val curPrice = currentAssetPrice ?: 0.0
-            val changePercent = if (basePrice > 0) {
-                ((curPrice - basePrice) / basePrice) * 100.0
-            } else 0.0
-            b.tvCurrentPrice.text = String.format(Locale.US, "$%,.2f", curPrice)
-            updatePriceChangeDisplay(changePercent)
-            updateTradeActionsState()
-            updatePortfolioDisplay()
+        b.candleChart.xAxis.valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+            override fun getFormattedValue(value: Float): String {
+                val index = value.toInt()
+                if (index in timeLabels.indices) {
+                    val raw = timeLabels[index]
+                    return if (raw.length >= 10) raw.substring(5, 10) else raw
+                }
+                return ""
+            }
         }
 
         val dataSet = CandleDataSet(candleEntries, ChartLabelFormatter.formatDailyDatasetLabel(symbol)).apply {
-            color = ContextCompat.getColor(ctx, R.color.white)
-            shadowColor = ContextCompat.getColor(ctx, R.color.tv_border)
-            shadowWidth = 0.8f
-
-            increasingColor = ContextCompat.getColor(ctx, R.color.tv_green)
-            increasingPaintStyle = Paint.Style.FILL
-
+            setDrawIcons(false)
+            shadowColor = ContextCompat.getColor(ctx, R.color.tv_text_secondary)
+            shadowWidth = 1.2f
             decreasingColor = ContextCompat.getColor(ctx, R.color.tv_red)
             decreasingPaintStyle = Paint.Style.FILL
-
-            neutralColor = ContextCompat.getColor(ctx, R.color.white)
+            increasingColor = ContextCompat.getColor(ctx, R.color.tv_green)
+            increasingPaintStyle = Paint.Style.FILL
+            neutralColor = ContextCompat.getColor(ctx, R.color.tv_text_secondary)
             setDrawValues(false)
+            highLightColor = ContextCompat.getColor(ctx, R.color.white)
         }
 
-        this.candleDataSet = dataSet
+        candleDataSet = dataSet
         b.candleChart.data = CandleData(dataSet)
-        b.candleChart.axisLeft.resetAxisMinimum()
-        b.candleChart.axisLeft.resetAxisMaximum()
         b.candleChart.invalidate()
     }
 
-    /**
-     * Kết nối WebSocket / Ticker tương ứng với mã tài sản
-     */
     private fun connectWebSocketForSymbol(symbol: String) {
         disconnectWebSocket()
 
-        val sym = symbol.uppercase()
-        val streamName = MarketStreamHelper.resolveWebSocketStream(sym)
-        if (streamName != null) {
-            connectBinanceStream(streamName)
-        } else {
-            Log.d(TAG, "Symbol $sym không có live WebSocket stream, sử dụng dữ liệu nến backend")
+        if (StockTradePolicy.isStock(symbol)) {
+            return
         }
-    }
 
-    /**
-     * Kết nối Binance Public WebSocket API
-     */
-    private fun connectBinanceStream(streamName: String) {
-        val streamUrl = MarketStreamHelper.buildWebSocketUrl(streamName)
-        val request = Request.Builder()
-            .url(streamUrl)
-            .build()
+        val streamName = MarketStreamHelper.resolveWebSocketStream(symbol) ?: return
+        val wsUrl = MarketStreamHelper.buildWebSocketUrl(streamName)
+        val request = Request.Builder().url(wsUrl).build()
 
         binanceWebSocket = okHttpClient.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: okhttp3.Response) {
-                Log.d(TAG, "Binance WebSocket connected: $streamName")
                 activity?.runOnUiThread {
-                    context?.let { ctx ->
-                        // Đang kết nối, chờ message đầu tiên mới chuyển sang LIVE
+                    if (currentSymbol.equals(symbol, ignoreCase = true)) {
                         binding?.tvLiveStatus?.text = getString(R.string.trading_waiting_price_badge)
-                        binding?.tvLiveStatus?.setTextColor(ContextCompat.getColor(ctx, R.color.tv_yellow))
+                        binding?.tvLiveStatus?.setTextColor(ContextCompat.getColor(requireContext(), R.color.tv_yellow))
                     }
                 }
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
-                try {
-                    val json = JSONObject(text)
-                    if (json.has("k")) {
-                        val k = json.getJSONObject("k")
-                        val open = k.getString("o").toFloat()
-                        val high = k.getString("h").toFloat()
-                        val low = k.getString("l").toFloat()
-                        val close = k.getString("c").toDouble()
-                        val isClosed = k.optBoolean("x", false)
-
-                        activity?.runOnUiThread {
-                            context?.let { ctx ->
-                                binding?.tvLiveStatus?.text = getString(R.string.trading_live_badge)
-                                binding?.tvLiveStatus?.setTextColor(ContextCompat.getColor(ctx, R.color.tv_green))
-                            }
-                            onLivePriceTick(open, high, low, close, isClosed)
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Lỗi phân tích WebSocket JSON: ${e.message}")
+                activity?.runOnUiThread {
+                    handleWebSocketMessage(text, symbol)
                 }
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: okhttp3.Response?) {
-                Log.w(TAG, "WebSocket disconnected: ${t.message}")
                 activity?.runOnUiThread {
-                    context?.let { ctx ->
+                    if (currentSymbol.equals(symbol, ignoreCase = true)) {
                         binding?.tvLiveStatus?.text = getString(R.string.trading_offline_badge)
-                        binding?.tvLiveStatus?.setTextColor(ContextCompat.getColor(ctx, R.color.tv_yellow))
+                        binding?.tvLiveStatus?.setTextColor(ContextCompat.getColor(requireContext(), R.color.tv_red))
                     }
                 }
             }
         })
     }
 
-    /**
-     * Cập nhật nến sống và nhịp giá
-     */
-    private fun onLivePriceTick(open: Float, high: Float, low: Float, close: Double, isClosed: Boolean) {
-        val b = binding ?: return
-        val ctx = context ?: return
+    private fun handleWebSocketMessage(jsonText: String, expectedSymbol: String) {
+        if (!currentSymbol.equals(expectedSymbol, ignoreCase = true) || _binding == null || !isAdded) return
 
-        val prev = currentAssetPrice ?: close
-        previousAssetPrice = prev
-        currentAssetPrice = close
-
-        // 1. Cập nhật giá Header
-        val priceColorRes = if (close >= prev) R.color.tv_green else R.color.tv_red
-        b.tvCurrentPrice.text = String.format(Locale.US, "$%,.2f", close)
-        b.tvCurrentPrice.setTextColor(ContextCompat.getColor(ctx, priceColorRes))
-
-        // Cập nhật % thay đổi
-        val basePrice = baselinePeriodPrice ?: 0.0
-        if (basePrice > 0.0) {
-            val change = ((close - basePrice) / basePrice) * 100.0
-            updatePriceChangeDisplay(change)
-        }
-
-        // Cập nhật trạng thái nút Mua/Bán
-        updateTradeActionsState()
-
-        // 2. Cập nhật nến trên biểu đồ
-        if (candleEntries.isNotEmpty()) {
-            val lastEntry = candleEntries.last()
-            lastEntry.high = Math.max(lastEntry.high, high)
-            lastEntry.low = Math.min(lastEntry.low, low)
-            lastEntry.close = close.toFloat()
-
-            if (isClosed) {
-                val newX = lastEntry.x + 1f
-                candleEntries.add(CandleEntry(newX, high, low, open, close.toFloat()))
-                if (candleEntries.size > 40) {
-                    candleEntries.removeAt(0)
-                }
+        try {
+            val json = JSONObject(jsonText)
+            val priceStr = json.optString("c")
+            val openPriceStr = json.optString("o")
+            if (priceStr.isNotEmpty()) {
+                val livePrice = priceStr.toDouble()
+                val openPrice = if (openPriceStr.isNotEmpty()) openPriceStr.toDoubleOrNull() else null
+                updateLivePriceDisplay(livePrice, openPrice)
             }
-
-            candleDataSet?.calcMinMax()
-            b.candleChart.data?.notifyDataChanged()
-            b.candleChart.notifyDataSetChanged()
-            b.candleChart.invalidate()
+        } catch (e: Exception) {
+            Log.e(TAG, "Lỗi phân tích JSON WebSocket: ${e.message}")
         }
-
-        // 3. Cập nhật dòng Compact Account Strip
-        updatePortfolioDisplay()
     }
 
-    private fun updatePriceChangeDisplay(changePercent: Double) {
+    private fun updateLivePriceDisplay(livePrice: Double, periodOpenPrice: Double?) {
         val b = binding ?: return
         val ctx = context ?: return
-        val isPositive = changePercent >= 0.0
-        val sign = if (isPositive) "+" else ""
-        val text = String.format(Locale.US, "%s%.2f%%", sign, changePercent)
-        b.tvPriceChange.text = text
-        val bgColorRes = if (isPositive) R.color.tv_green else R.color.tv_red
-        b.tvPriceChange.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, bgColorRes))
+
+        previousAssetPrice = currentAssetPrice
+        currentAssetPrice = livePrice
+
+        b.tvLiveStatus.text = getString(R.string.trading_live_badge)
+        b.tvLiveStatus.setTextColor(ContextCompat.getColor(ctx, R.color.tv_green))
+
+        b.tvCurrentPrice.text = String.format(Locale.US, "$%,.2f", livePrice)
+        val priceColor = when {
+            previousAssetPrice != null && livePrice > previousAssetPrice!! -> R.color.tv_green
+            previousAssetPrice != null && livePrice < previousAssetPrice!! -> R.color.tv_red
+            else -> R.color.tv_text_primary
+        }
+        b.tvCurrentPrice.setTextColor(ContextCompat.getColor(ctx, priceColor))
+
+        val baseline = periodOpenPrice ?: baselinePeriodPrice
+        if (baseline != null && baseline > 0) {
+            val changePercent = ((livePrice - baseline) / baseline) * 100
+            val sign = if (changePercent >= 0) "+" else ""
+            b.tvPriceChange.text = String.format(Locale.US, "%s%.2f%%", sign, changePercent)
+            val badgeColor = if (changePercent >= 0) R.color.tv_green else R.color.tv_red
+            b.tvPriceChange.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, badgeColor))
+        }
+
+        updateHoldingsForCurrentSymbol()
+        updatePortfolioDisplay()
+        updateTradeActionsState()
     }
 
-    /**
-     * Cập nhật dòng Compact Account Strip: Tiền khả dụng & Lượng coin sở hữu
-     */
     private fun updatePortfolioDisplay() {
         val b = binding ?: return
         val cash = userCashBalance
-        if (portfolioLoaded && cash != null) {
+        if (cash != null) {
             b.tvCashBalance.text = String.format(Locale.US, "$%,.2f USD", cash)
         } else {
             b.tvCashBalance.text = "—"
         }
 
-        val assetTicker = getAssetTicker(currentSymbol)
-        b.tvHoldingsLabel.text = getString(R.string.trading_holding_label_format, assetTicker)
+        val ticker = getAssetTicker(currentSymbol)
+        b.tvHoldingsLabel.text = getString(R.string.trading_holding_label_format, ticker)
         if (portfolioLoaded) {
-            b.tvHoldings.text = String.format(Locale.US, "%.4f %s", userHoldingsQuantity, assetTicker)
+            b.tvHoldings.text = String.format(Locale.US, "%.4f %s", userHoldingsQuantity, ticker)
         } else {
             b.tvHoldings.text = "—"
         }
     }
 
-    /**
-     * Cập nhật trạng thái enabled/disabled của nút MUA và BÁN
-     * Chỉ enable khi token, giá thật và portfolio thật đều hợp lệ
-     */
     private fun updateTradeActionsState() {
+        val isStock = StockTradePolicy.isStock(currentSymbol)
         val ready = TradingDataReadiness.isReadyForTrading(
             token = jwtToken,
             currentPrice = currentAssetPrice,
             portfolioLoaded = portfolioLoaded,
             userCashBalance = userCashBalance
-        )
+        ) && (!isStock || (!isStockDetailStale && currentAssetPrice != null && currentAssetPrice!! > 0.0))
+
         binding?.btnBuy?.isEnabled = ready
         binding?.btnBuy?.alpha = if (ready) 1.0f else 0.5f
         binding?.btnSell?.isEnabled = ready
         binding?.btnSell?.alpha = if (ready) 1.0f else 0.5f
     }
 
-    /**
-     * Gắn sự kiện Mua / Bán mở BottomSheet Order Ticket
-     */
     private fun setupTradeActions() {
         binding?.btnBuy?.setOnClickListener {
             openOrderTicket("BUY")
@@ -634,9 +1083,7 @@ class TradingFragment : Fragment() {
             return
         }
 
-        // Chỉ mở đúng 1 bottom sheet tại một thời điểm
         if (parentFragmentManager.findFragmentByTag(OrderTicketBottomSheet.TAG) != null) {
-            Log.d(TAG, "OrderTicketBottomSheet đang mở, không mở thêm")
             return
         }
 
@@ -654,9 +1101,6 @@ class TradingFragment : Fragment() {
         bottomSheet.show(parentFragmentManager, OrderTicketBottomSheet.TAG)
     }
 
-    /**
-     * Tải thông tin số dư tài sản từ Backend Server
-     */
     private fun loadPortfolio() {
         val authHeader = AuthHeaderFactory.createBearerHeader(jwtToken) ?: return
 
@@ -677,7 +1121,6 @@ class TradingFragment : Fragment() {
                     }
                     val p = response.body()
                     if (response.isSuccessful && p != null) {
-                        // Giữ đúng số dư thật của backend, không gán số dư giả
                         userCashBalance = p.cashBalanceUsd
                         portfolioLoaded = true
                         lastPortfolioFetchTime = System.currentTimeMillis()
@@ -702,9 +1145,6 @@ class TradingFragment : Fragment() {
         })
     }
 
-    /**
-     * Tải số dư ngầm không quấy rầy UI hay reset chart
-     */
     private fun loadPortfolioSilently() {
         val authHeader = AuthHeaderFactory.createBearerHeader(jwtToken) ?: return
 
@@ -765,12 +1205,25 @@ class TradingFragment : Fragment() {
 
     private fun getSavedToken(): String {
         val ctx = context ?: return ""
-        return com.example.nhumonglenh.data.local.AuthSessionManager.getToken(ctx)
+        return AuthSessionManager.getToken(ctx)
     }
 
     private fun formatSymbolDisplay(sym: String): String = OrderTicketBottomSheet.formatSymbolDisplay(sym)
 
     private fun getFriendlyName(sym: String): String {
+        if (StockTradePolicy.isStock(sym)) {
+            return when (sym) {
+                "AAPL" -> "Apple Inc."
+                "MSFT" -> "Microsoft Corporation"
+                "NVDA" -> "NVIDIA Corporation"
+                "TSLA" -> "Tesla, Inc."
+                "AMZN" -> "Amazon.com, Inc."
+                "META" -> "Meta Platforms, Inc."
+                "GOOGL" -> "Alphabet Inc."
+                "JPM" -> "JPMorgan Chase & Co."
+                else -> "Cổ phiếu Hoa Kỳ"
+            }
+        }
         return when {
             sym.contains("BTC") -> "Bitcoin / Tether"
             sym.contains("ETH") -> "Ethereum / Tether"

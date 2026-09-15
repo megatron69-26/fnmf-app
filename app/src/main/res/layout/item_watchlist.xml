@@ -55,20 +55,59 @@
                 android:textSize="11sp"
                 android:layout_marginTop="2dp" />
 
+            <!-- Khuyến nghị nếu có (cổ phiếu) -->
+            <TextView
+                android:id="@+id/tvRecommendation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="1dp"
+                android:background="@drawable/bg_pill_badge"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <!-- Báo cáo phân tích mới nhất nếu có -->
+            <TextView
+                android:id="@+id/btnReportLink"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:textColor="@color/tv_blue"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Cột GIỮA: Giá -->
-    <TextView
-        android:id="@+id/tvPrice"
+    <!-- Cột GIỮA: Giá & asOf -->
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1.5"
         android:gravity="end"
-        android:text="—"
-        android:textColor="@color/tv_text_primary"
-        android:textSize="14sp"
-        android:textStyle="bold" />
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvPrice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="@color/tv_text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvPriceAsOf"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/tv_text_secondary"
+            android:textSize="10sp"
+            android:layout_marginTop="1dp"
+            android:visibility="gone" />
+    </LinearLayout>
 
     <!-- Cột PHẢI: % Badge -->
     <TextView

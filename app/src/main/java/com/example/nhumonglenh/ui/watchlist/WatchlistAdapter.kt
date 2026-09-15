@@ -15,7 +15,8 @@ import com.example.nhumonglenh.R
 class WatchlistAdapter(
     private var items: List<WatchlistUiModel>,
     private val onClick: (WatchlistUiModel) -> Unit,
-    private val onLongClick: ((WatchlistUiModel) -> Unit)? = null
+    private val onLongClick: ((WatchlistUiModel) -> Unit)? = null,
+    private val onReportClick: ((String) -> Unit)? = null
 ) : RecyclerView.Adapter<WatchlistAdapter.ViewHolder>() {
 
     private val iconColors = listOf(
@@ -36,7 +37,10 @@ class WatchlistAdapter(
         val tvSymbol: TextView = view.findViewById(R.id.tvSymbol)
         val tvFullName: TextView = view.findViewById(R.id.tvFullName)
         val tvPrice: TextView = view.findViewById(R.id.tvPrice)
+        val tvPriceAsOf: TextView = view.findViewById(R.id.tvPriceAsOf)
         val tvChangePercent: TextView = view.findViewById(R.id.tvChangePercent)
+        val tvRecommendation: TextView = view.findViewById(R.id.tvRecommendation)
+        val btnReportLink: TextView = view.findViewById(R.id.btnReportLink)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -64,8 +68,19 @@ class WatchlistAdapter(
         holder.tvSymbol.text = item.symbol
         holder.tvFullName.text = item.fullName
 
-        // 3. Giá
-        holder.tvPrice.text = item.price?.let { formatPrice(it) } ?: "—"
+        // 3. Giá & asOf (nếu có, không sinh số 0 thay dữ liệu thiếu)
+        if (item.price != null && item.price > 0.0) {
+            holder.tvPrice.text = formatPrice(item.price)
+            if (!item.priceAsOf.isNullOrBlank()) {
+                holder.tvPriceAsOf.text = item.priceAsOf
+                holder.tvPriceAsOf.visibility = View.VISIBLE
+            } else {
+                holder.tvPriceAsOf.visibility = View.GONE
+            }
+        } else {
+            holder.tvPrice.text = "—"
+            holder.tvPriceAsOf.visibility = View.GONE
+        }
 
         // 4. % thay đổi
         val changeStr = if (item.changePercent != null) {
@@ -93,12 +108,36 @@ class WatchlistAdapter(
         }
         badgeBg.setColor(badgeColor)
 
-        // 5. Click chuyển sang biểu đồ nến
+        // 5. Khuyến nghị nếu có
+        if (!item.recommendation.isNullOrBlank()) {
+            holder.tvRecommendation.text = item.recommendation
+            holder.tvRecommendation.visibility = View.VISIBLE
+            val recColor = if (item.recommendation == "Nên cân nhắc mua") 0xFF089981.toInt() else 0xFFF23645.toInt()
+            holder.tvRecommendation.setTextColor(recColor)
+        } else {
+            holder.tvRecommendation.visibility = View.GONE
+        }
+
+        // 6. Link báo cáo mới nhất nếu có
+        if (!item.latestReportUrl.isNullOrBlank()) {
+            val reportLabel = com.example.nhumonglenh.ui.trading.StockReportPolicy.resolveReportButtonLabel(
+                item.latestReportTitle, item.latestReportUrl
+            )
+            holder.btnReportLink.text = reportLabel
+            holder.btnReportLink.visibility = View.VISIBLE
+            holder.btnReportLink.setOnClickListener {
+                onReportClick?.invoke(item.latestReportUrl)
+            }
+        } else {
+            holder.btnReportLink.visibility = View.GONE
+        }
+
+        // 7. Click chuyển sang biểu đồ nến
         holder.itemView.setOnClickListener {
             onClick(item)
         }
 
-        // 6. Long click để xóa khỏi Watchlist
+        // 8. Long click để xóa khỏi Watchlist
         holder.itemView.setOnLongClickListener {
             onLongClick?.invoke(item)
             true

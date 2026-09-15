@@ -6,5 +6,10 @@ data class WatchlistUiModel(
     val price: Double?,
     val changePercent: Double?,
     val iconColor: Int = 0,
-    val isOffline: Boolean = false
+    val isOffline: Boolean = false,
+    val priceAsOf: String? = null,
+    val recommendation: String? = null,
+    val latestReportTitle: String? = null,
+    val latestReportUrl: String? = null,
+    val isStock: Boolean = false
 )

@@ -352,12 +352,12 @@ class WatchlistFragment : Fragment() {
                 }
 
                 if (response.isSuccessful) {
-                    Toast.makeText(ctx, "Đã thêm " + symbol + " vào danh sách theo dõi", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(ctx, getString(R.string.watchlist_add_success, symbol), Toast.LENGTH_SHORT).show()
                     fetchCloudWatchlist()
                 } else if (response.code() == 400) {
                     Toast.makeText(ctx, "Mã " + symbol + " đã có trong danh sách theo dõi", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(ctx, "Không thể thêm " + symbol + " (Mã lỗi: " + response.code() + ")", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(ctx, getString(R.string.watchlist_add_failed, symbol), Toast.LENGTH_SHORT).show()
                 }
             }
 
@@ -420,7 +420,7 @@ class WatchlistFragment : Fragment() {
                 }
 
                 if (response.isSuccessful) {
-                    Toast.makeText(ctx, "Đã xóa " + symbol + " khỏi danh sách theo dõi", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(ctx, getString(R.string.watchlist_remove_success, symbol), Toast.LENGTH_SHORT).show()
                     // Xóa khỏi Room DB
                     viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                         try {
@@ -431,7 +431,7 @@ class WatchlistFragment : Fragment() {
                     }
                     fetchCloudWatchlist()
                 } else {
-                    Toast.makeText(ctx, "Không thể xóa " + symbol + " (Mã lỗi: " + response.code() + ")", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(ctx, getString(R.string.watchlist_remove_failed, symbol), Toast.LENGTH_SHORT).show()
                 }
             }
 

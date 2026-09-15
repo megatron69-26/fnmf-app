@@ -7,6 +7,7 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -15,9 +16,9 @@ import androidx.fragment.app.Fragment
 import com.example.nhumonglenh.data.local.AuthSessionManager
 import com.example.nhumonglenh.data.remote.NetworkConfig
 import com.example.nhumonglenh.ui.news.NewsFeedFragment
-import com.example.nhumonglenh.ui.profile.WalletProfileFragment
+import com.example.nhumonglenh.ui.portfolio.PortfolioFragment
+import com.example.nhumonglenh.ui.wallet.WalletFragment
 import com.example.nhumonglenh.ui.SystemBarInsets
-import com.example.nhumonglenh.ui.watchlist.WatchlistFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.button.MaterialButton
 
@@ -28,8 +29,8 @@ class Activity2 : AppCompatActivity() {
         private const val TAG_TRADING = "TAG_TRADING"
         private const val TAG_FORECAST = "TAG_FORECAST"
         private const val TAG_NEWS = "TAG_NEWS"
-        private const val TAG_WATCHLIST = "TAG_WATCHLIST"
-        private const val TAG_PROFILE = "TAG_PROFILE"
+        private const val TAG_PORTFOLIO = "TAG_PORTFOLIO"
+        private const val TAG_WALLET = "TAG_WALLET"
     }
 
     private lateinit var bottomNav: BottomNavigationView
@@ -58,6 +59,11 @@ class Activity2 : AppCompatActivity() {
 
         bottomNav = findViewById(R.id.bottom_navigation)
 
+        val btnProfileAvatar = findViewById<ImageButton>(R.id.btn_profile_avatar)
+        btnProfileAvatar?.setOnClickListener {
+            showProfileDialog()
+        }
+
         val tvHeaderUser = findViewById<TextView>(R.id.tv_header_user)
 
         val prefs = getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
@@ -80,7 +86,7 @@ class Activity2 : AppCompatActivity() {
                 .commit()
         } else {
             // 1. Xây dựng lại fragmentMap từ các Fragment đã được FragmentManager khôi phục
-            val navIds = listOf(R.id.nav_trading, R.id.nav_forecast, R.id.nav_news, R.id.nav_watchlist, R.id.nav_profile)
+            val navIds = listOf(R.id.nav_trading, R.id.nav_forecast, R.id.nav_news, R.id.nav_portfolio, R.id.nav_wallet)
             for (navId in navIds) {
                 val tag = getTagForNavId(navId)
                 val restoredFrag = supportFragmentManager.findFragmentByTag(tag)
@@ -139,7 +145,7 @@ class Activity2 : AppCompatActivity() {
     private fun handleDeepLink(intent: Intent?) {
         val data = intent?.data ?: return
         if ("fnmf".equals(data.scheme, ignoreCase = true) && "payment".equals(data.host, ignoreCase = true)) {
-            bottomNav.selectedItemId = R.id.nav_profile
+            bottomNav.selectedItemId = R.id.nav_wallet
         }
     }
 
@@ -153,8 +159,8 @@ class Activity2 : AppCompatActivity() {
             R.id.nav_trading -> TAG_TRADING
             R.id.nav_forecast -> TAG_FORECAST
             R.id.nav_news -> TAG_NEWS
-            R.id.nav_watchlist -> TAG_WATCHLIST
-            R.id.nav_profile -> TAG_PROFILE
+            R.id.nav_portfolio -> TAG_PORTFOLIO
+            R.id.nav_wallet -> TAG_WALLET
             else -> "TAG_$itemId"
         }
     }
@@ -174,8 +180,8 @@ class Activity2 : AppCompatActivity() {
                 R.id.nav_trading -> tradingFragment ?: TradingFragment().also { tradingFragment = it }
                 R.id.nav_forecast -> ForecastFragment()
                 R.id.nav_news -> NewsFeedFragment()
-                R.id.nav_watchlist -> WatchlistFragment()
-                R.id.nav_profile -> WalletProfileFragment()
+                R.id.nav_portfolio -> PortfolioFragment()
+                R.id.nav_wallet -> WalletFragment()
                 else -> return
             }
             fragmentMap[itemId] = target
@@ -201,13 +207,46 @@ class Activity2 : AppCompatActivity() {
     }
 
     /**
-     * Cho phép WatchlistFragment gọi để chuyển về tab Trading và chọn mã tương ứng
+     * Cho phép WatchlistFragment/TradingFragment gọi để chuyển về tab Trading và chọn mã tương ứng
      */
     fun switchToTradingSymbol(symbol: String) {
         val clean = symbol.trim().uppercase(java.util.Locale.ROOT)
         activeMarketSymbol = clean
         bottomNav.selectedItemId = R.id.nav_trading
         tradingFragment?.switchMarketSymbol(clean)
+    }
+
+    /**
+     * Hiển thị hộp thoại Hồ sơ tài khoản khi bấm avatar góc phải trên
+     */
+    fun showProfileDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_profile, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        val tvEmail = dialogView.findViewById<TextView>(R.id.tv_profile_dialog_email)
+        val tvVersion = dialogView.findViewById<TextView>(R.id.tv_profile_dialog_version)
+        val btnClose = dialogView.findViewById<Button>(R.id.btn_close_profile)
+        val btnLogout = dialogView.findViewById<Button>(R.id.btn_dialog_logout)
+
+        val savedEmail = AuthSessionManager.getUserEmail(this)
+        tvEmail.text = if (savedEmail.isNotBlank()) savedEmail else "—"
+        tvVersion.text = BuildConfig.VERSION_NAME
+
+        btnClose.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        btnLogout.setOnClickListener {
+            dialog.dismiss()
+            showLogoutConfirmationDialog()
+        }
+
+        dialog.show()
     }
 
     /**

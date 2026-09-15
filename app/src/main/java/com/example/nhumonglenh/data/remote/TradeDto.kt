@@ -33,7 +33,8 @@ data class PortfolioSummaryDto(
     val totalNetWorth: Double?,
     val totalPnL: Double?,
     val totalPnLPercent: Double?,
-    val holdings: List<HoldingDto>?
+    val holdings: List<HoldingDto>?,
+    val fullyValued: Boolean? = true
 )
 
 data class HoldingDto(
@@ -88,10 +89,33 @@ data class WatchlistItemDto(
     val currentPrice: Double? = null,
     val change24h: Double? = null,
     val displayOrder: Int? = null,
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    val priceAsOf: String? = null,
+    val stale: Boolean? = false,
+    val recommendation: String? = null,
+    val latestReportTitle: String? = null,
+    val latestReportUrl: String? = null
 )
 
 data class WatchlistRequest(
     val symbol: String,
     val displayOrder: Int? = 1
+)
+
+data class StockCatalogDto(
+    val symbol: String,
+    val name: String,
+    val category: String? = "STOCK"
+)
+
+data class StockDetailDto(
+    val symbol: String,
+    val name: String,
+    val currentPrice: Double?,
+    val change24h: Double?,
+    val priceAsOf: String?,
+    val stale: Boolean? = false,
+    val recommendation: String? = null,
+    val latestReportTitle: String? = null,
+    val latestReportUrl: String? = null
 )

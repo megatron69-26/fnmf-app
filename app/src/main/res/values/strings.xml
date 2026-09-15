@@ -176,4 +176,36 @@
     <string name="refresh_news_empty">Chưa có bản tin mới</string>
     <string name="refresh_server_error_format">Lỗi máy chủ (%1$d). Vui lòng thử lại.</string>
     <string name="refresh_unknown_error">Đã xảy ra lỗi không xác định. Vui lòng thử lại.</string>
+
+    <!-- Phase 2 Stock & Navigation Strings -->
+    <string name="nav_title_portfolio">Danh mục</string>
+    <string name="nav_title_wallet">Ví</string>
+    <string name="tab_trading">Giao dịch</string>
+    <string name="tab_stocks">Cổ phiếu</string>
+    <string name="btn_watchlist_add">Quan tâm</string>
+    <string name="btn_watchlist_remove">Đã quan tâm</string>
+    <string name="stock_trade_disabled_warning">Dữ liệu cổ phiếu tạm thời chưa sẵn sàng để đặt lệnh. Vui lòng thử lại sau.</string>
+    <string name="btn_view_latest_report">Xem báo cáo mới nhất</string>
+    <string name="profile_dialog_title">Thông tin tài khoản</string>
+    <string name="profile_app_version">Phiên bản 1.1.21</string>
+    <string name="profile_user_email">Tài khoản: %1$s</string>
+    <string name="portfolio_title">Danh mục đầu tư</string>
+    <string name="wallet_title">Ví tiền mặt</string>
+    <string name="wallet_balance_header">SỐ DƯ TIỀN MẶT KHẢ DỤNG</string>
+    <string name="wallet_action_deposit">Nạp tiền</string>
+    <string name="wallet_action_withdraw">Rút tiền</string>
+
+    <!-- Watchlist & Stock Catalog Polish Strings -->
+    <string name="watchlist_add_success">Đã thêm %1$s vào danh sách quan tâm</string>
+    <string name="watchlist_remove_success">Đã bỏ quan tâm %1$s</string>
+    <string name="watchlist_update_failed">Cập nhật danh sách quan tâm thất bại. Vui lòng thử lại.</string>
+    <string name="watchlist_add_failed">Không thể thêm %1$s vào danh sách theo dõi. Vui lòng thử lại.</string>
+    <string name="watchlist_remove_failed">Không thể xóa %1$s khỏi danh sách theo dõi. Vui lòng thử lại.</string>
+    <string name="stock_catalog_load_failed">Không thể tải danh sách cổ phiếu. Vui lòng thử lại.</string>
+    <string name="payment_cancel_success">Đã hủy yêu cầu thanh toán #%1$d</string>
+    <string name="payment_cancel_failed">Không thể hủy yêu cầu thanh toán. Vui lòng thử lại.</string>
+    <string name="payment_cancel_network_error">Lỗi mạng khi hủy lệnh thanh toán. Vui lòng thử lại.</string>
+    <string name="report_open_error">Không thể mở đường dẫn báo cáo</string>
+    <string name="btn_watchlist_toggle_add">+ Quan tâm</string>
+    <string name="watchlist_load_failed">Không thể tải danh sách theo dõi. Vui lòng thử lại.</string>
 </resources>
