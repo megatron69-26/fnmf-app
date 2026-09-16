@@ -19,7 +19,7 @@ object AuthHeaderFactory {
  * Các symbol khác (ví dụ: USOIL) trả về null để không fallback nhầm vào BTC.
  */
 object MarketStreamHelper {
-    const val DEFAULT_BINANCE_WS_BASE_URL = "wss://data-stream.binance.vision:443/ws/"
+    const val DEFAULT_BINANCE_WS_BASE_URL = "wss://data-stream.binance.vision/ws/"
 
     fun buildWebSocketUrl(streamName: String, baseUrl: String = DEFAULT_BINANCE_WS_BASE_URL): String {
         val normalizedBase = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
@@ -30,9 +30,9 @@ object MarketStreamHelper {
     fun resolveWebSocketStream(symbol: String): String? {
         val sym = symbol.uppercase().trim()
         return when {
-            sym == "BTCUSDT" || sym == "BTC" -> "btcusdt@kline_1s"
-            sym == "ETHUSDT" || sym == "ETH" -> "ethusdt@kline_1s"
-            sym == "XAUUSD" || sym == "XAU" || sym == "PAXGUSDT" -> "paxgusdt@kline_1s"
+            sym == "BTCUSDT" || sym == "BTC" -> "btcusdt@kline_1m"
+            sym == "ETHUSDT" || sym == "ETH" -> "ethusdt@kline_1m"
+            sym == "XAUUSD" || sym == "XAU" || sym == "PAXGUSDT" -> "paxgusdt@kline_1m"
             else -> null
         }
     }
@@ -197,6 +197,15 @@ object CandleReloadPolicy {
 object ChartLabelFormatter {
     fun formatDailyDatasetLabel(symbol: String): String {
         return "$symbol • 1D"
+    }
+
+    fun formatChartDatasetLabel(symbol: String, interval: String = "1m"): String {
+        val norm = interval.trim().lowercase()
+        return if (norm == "daily" || norm == "1d") {
+            "$symbol • 1D"
+        } else {
+            "$symbol • 1m"
+        }
     }
 }
 

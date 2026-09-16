@@ -147,13 +147,13 @@ class TradingPolishUnitTest {
     // -------------------------------------------------------------
     @Test
     fun testMarketStreamHelper_resolveWebSocketStream() {
-        assertEquals("btcusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("BTCUSDT"))
-        assertEquals("btcusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("BTC"))
-        assertEquals("ethusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("ETHUSDT"))
-        assertEquals("ethusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("ETH"))
-        assertEquals("paxgusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("XAUUSD"))
-        assertEquals("paxgusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("XAU"))
-        assertEquals("paxgusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("PAXGUSDT"))
+        assertEquals("btcusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("BTCUSDT"))
+        assertEquals("btcusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("BTC"))
+        assertEquals("ethusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("ETHUSDT"))
+        assertEquals("ethusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("ETH"))
+        assertEquals("paxgusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("XAUUSD"))
+        assertEquals("paxgusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("XAU"))
+        assertEquals("paxgusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("PAXGUSDT"))
 
         // Unknown or non-streamable symbol MUST return null and NEVER fallback to BTC
         assertNull("USOIL must return null stream", MarketStreamHelper.resolveWebSocketStream("USOIL"))
@@ -505,27 +505,27 @@ class TradingPolishUnitTest {
     @Test
     fun testMarketStreamHelper_binanceVisionWebSocketUrl() {
         assertEquals(
-            "wss://data-stream.binance.vision:443/ws/",
+            "wss://data-stream.binance.vision/ws/",
             MarketStreamHelper.DEFAULT_BINANCE_WS_BASE_URL
         )
 
         // BTC stream
         val btcStream = MarketStreamHelper.resolveWebSocketStream("BTCUSDT")
-        assertEquals("btcusdt@kline_1s", btcStream)
+        assertEquals("btcusdt@kline_1m", btcStream)
         val btcUrl = MarketStreamHelper.buildWebSocketUrl(btcStream!!)
-        assertEquals("wss://data-stream.binance.vision:443/ws/btcusdt@kline_1s", btcUrl)
+        assertEquals("wss://data-stream.binance.vision/ws/btcusdt@kline_1m", btcUrl)
 
         // ETH stream
         val ethStream = MarketStreamHelper.resolveWebSocketStream("ETHUSDT")
-        assertEquals("ethusdt@kline_1s", ethStream)
+        assertEquals("ethusdt@kline_1m", ethStream)
         val ethUrl = MarketStreamHelper.buildWebSocketUrl(ethStream!!)
-        assertEquals("wss://data-stream.binance.vision:443/ws/ethusdt@kline_1s", ethUrl)
+        assertEquals("wss://data-stream.binance.vision/ws/ethusdt@kline_1m", ethUrl)
 
         // XAU reference stream (PAXG)
         val xauStream = MarketStreamHelper.resolveWebSocketStream("XAUUSD")
-        assertEquals("paxgusdt@kline_1s", xauStream)
+        assertEquals("paxgusdt@kline_1m", xauStream)
         val xauUrl = MarketStreamHelper.buildWebSocketUrl(xauStream!!)
-        assertEquals("wss://data-stream.binance.vision:443/ws/paxgusdt@kline_1s", xauUrl)
+        assertEquals("wss://data-stream.binance.vision/ws/paxgusdt@kline_1m", xauUrl)
 
         // Unsupported symbols return null
         assertNull(MarketStreamHelper.resolveWebSocketStream("USOIL"))

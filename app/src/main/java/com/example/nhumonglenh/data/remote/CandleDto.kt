@@ -10,5 +10,7 @@ data class CandleDto(
     val high: Double,
     val low: Double,
     val close: Double,
-    val volume: Double
+    val volume: Double,
+    val openTime: Long? = null,
+    val isClosed: Boolean = true
 )

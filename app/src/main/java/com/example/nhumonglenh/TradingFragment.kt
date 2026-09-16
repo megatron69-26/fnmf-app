@@ -38,7 +38,11 @@ import com.example.nhumonglenh.ui.trading.StockCatalogAdapter
 import com.example.nhumonglenh.ui.trading.StockReportPolicy
 import com.example.nhumonglenh.ui.trading.StockTradePolicy
 import com.example.nhumonglenh.ui.trading.StockWatchlistMatcher
+import com.example.nhumonglenh.ui.trading.SocketCallbackGuard
+import com.example.nhumonglenh.ui.trading.SocketReconnectPolicy
 import com.example.nhumonglenh.ui.trading.TradingDataReadiness
+import com.example.nhumonglenh.ui.trading.TradingLifecyclePolicy
+import com.example.nhumonglenh.ui.trading.TradingResumeAction
 import com.example.nhumonglenh.ui.trading.TradingStateRestoration
 import com.example.nhumonglenh.ui.trading.WatchlistMutation
 import com.example.nhumonglenh.ui.trading.WatchlistStateReducer
@@ -59,6 +63,12 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import android.os.Handler
+import android.os.Looper
+import com.example.nhumonglenh.ui.trading.BinanceKlineParser
+import com.example.nhumonglenh.ui.trading.CandleSeriesReducer
+import com.example.nhumonglenh.ui.trading.CandleTimeFormatter
+import com.example.nhumonglenh.ui.trading.MarketSymbolMatcher
 
 /**
  * =====================================================================
@@ -81,7 +91,9 @@ class TradingFragment : Fragment() {
     private var jwtToken: String = ""
 
     // Dữ liệu nến trong bộ nhớ
+    private val currentCandles = ArrayList<CandleDto>()
     private val candleEntries = ArrayList<CandleEntry>()
+    private val timeLabels = ArrayList<String>()
     private var candleDataSet: CandleDataSet? = null
     private var loadedCandleSymbol: String? = null
 
@@ -112,8 +124,14 @@ class TradingFragment : Fragment() {
     private var activeStockCatalogCall: Call<List<StockCatalogDto>>? = null
     private var activeEmbeddedWatchlistCall: Call<List<WatchlistItemDto>>? = null
 
-    // WebSocket Client
+    // WebSocket Client & Quản lý vòng đời / Race condition
     private var binanceWebSocket: WebSocket? = null
+    private var activeSocketGeneration: Long = 0L
+    private var isFragmentVisible: Boolean = true
+    private var reconnectAttempts: Int = 0
+    private val reconnectHandler = Handler(Looper.getMainLooper())
+    private var reconnectRunnable: Runnable? = null
+
     private val okHttpClient = OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS)
         .build()
@@ -187,9 +205,44 @@ class TradingFragment : Fragment() {
         outState.putString(KEY_SAVED_SYMBOL, currentSymbol)
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (!isHidden) {
+            isFragmentVisible = true
+            val isStock = StockTradePolicy.isStock(currentSymbol)
+            val action = TradingLifecyclePolicy.decideResumeAction(
+                isStock = isStock,
+                hasActiveCandleCall = activeCandleCall != null,
+                hasCandles = currentCandles.isNotEmpty(),
+                hasActiveSocket = binanceWebSocket != null
+            )
+            when (action) {
+                TradingResumeAction.LOAD_INITIAL_CANDLES -> {
+                    reconnectAttempts = 0
+                    activeSocketGeneration++
+                    loadCandleData(currentSymbol, activeSocketGeneration)
+                }
+                TradingResumeAction.CONNECT_WEBSOCKET -> {
+                    reconnectAttempts = 0
+                    connectWebSocketForSymbol(currentSymbol, activeSocketGeneration)
+                }
+                TradingResumeAction.DO_NOTHING -> {
+                    // Không gửi REST lần 2 nếu call đang chạy hoặc là stock hoặc socket còn active
+                }
+            }
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        isFragmentVisible = false
+        disconnectWebSocket()
+    }
+
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
         if (hidden) {
+            isFragmentVisible = false
             disconnectWebSocket()
             activeCandleCall?.cancel()
             activeCandleCall = null
@@ -197,21 +250,28 @@ class TradingFragment : Fragment() {
             activePortfolioCall = null
             activeStockDetailCall?.cancel()
             activeStockDetailCall = null
+            activeStockCatalogCall?.cancel()
+            activeStockCatalogCall = null
+            activeEmbeddedWatchlistCall?.cancel()
+            activeEmbeddedWatchlistCall = null
         } else {
+            isFragmentVisible = true
+            reconnectAttempts = 0
             val shouldReloadCandles = CandleReloadPolicy.shouldReloadOnTabVisible(
-                hasCandleData = candleEntries.isNotEmpty(),
+                hasCandleData = currentCandles.isNotEmpty(),
                 loadedCandleSymbol = loadedCandleSymbol,
                 currentSymbol = currentSymbol
             )
             if (shouldReloadCandles) {
-                loadCandleData(currentSymbol)
+                activeSocketGeneration++
+                loadCandleData(currentSymbol, activeSocketGeneration)
+            } else if (!StockTradePolicy.isStock(currentSymbol) && binanceWebSocket == null) {
+                connectWebSocketForSymbol(currentSymbol, activeSocketGeneration)
             }
             if (PortfolioSyncPolicy.isStale(lastPortfolioFetchTime)) {
                 loadPortfolioSilently()
             }
-            if (!StockTradePolicy.isStock(currentSymbol) && binanceWebSocket == null) {
-                connectWebSocketForSymbol(currentSymbol)
-            } else if (StockTradePolicy.isStock(currentSymbol)) {
+            if (StockTradePolicy.isStock(currentSymbol)) {
                 fetchStockDetail(currentSymbol)
             }
             loadEmbeddedWatchlist()
@@ -219,6 +279,7 @@ class TradingFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        isFragmentVisible = false
         disconnectWebSocket()
         activeCandleCall?.cancel()
         activeCandleCall = null
@@ -240,8 +301,15 @@ class TradingFragment : Fragment() {
     }
 
     private fun disconnectWebSocket() {
-        binanceWebSocket?.close(1000, "Disconnecting")
+        cancelReconnect()
+        val ws = binanceWebSocket
         binanceWebSocket = null
+        ws?.close(1000, "Disconnecting")
+    }
+
+    private fun cancelReconnect() {
+        reconnectRunnable?.let { reconnectHandler.removeCallbacks(it) }
+        reconnectRunnable = null
     }
 
     private fun setupTabs() {
@@ -592,6 +660,7 @@ class TradingFragment : Fragment() {
         val chart = binding?.candleChart ?: return
         val ctx = context ?: return
         chart.apply {
+            setNoDataText("")
             setBackgroundColor(ContextCompat.getColor(ctx, R.color.tv_bg))
             description.isEnabled = false
             legend.textColor = ContextCompat.getColor(ctx, R.color.white)
@@ -629,6 +698,22 @@ class TradingFragment : Fragment() {
         currentSymbol = sym
         (activity as? Activity2)?.updateActiveSymbol(sym)
 
+        activeSocketGeneration++
+        val generation = activeSocketGeneration
+
+        activeCandleCall?.cancel()
+        activeCandleCall = null
+        activeStockDetailCall?.cancel()
+        activeStockDetailCall = null
+        disconnectWebSocket()
+        reconnectAttempts = 0
+
+        currentCandles.clear()
+        candleEntries.clear()
+        timeLabels.clear()
+        candleDataSet = null
+        loadedCandleSymbol = null
+
         val b = binding ?: return
         val ctx = context ?: return
 
@@ -653,7 +738,6 @@ class TradingFragment : Fragment() {
         b.tvPriceChange.text = "—"
         b.tvPriceChange.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.tv_surface))
 
-        candleEntries.clear()
         b.candleChart.clear()
 
         if (!isInitial) {
@@ -663,12 +747,11 @@ class TradingFragment : Fragment() {
         updateWatchlistToggleButton()
         updateTradeActionsState()
 
-        // 3. Tải nến ngày
-        loadCandleData(sym)
+        // 3. Tải nến (loadCandleData sẽ kết nối WebSocket đúng 1 lần sau khi nạp xong hoặc fallback)
+        loadCandleData(sym, generation)
 
         // 4. Luồng xử lý Cổ phiếu vs Crypto/Gold
         if (isStock) {
-            disconnectWebSocket()
             b.tvLiveStatus.text = getString(R.string.trading_no_live_badge)
             b.tvLiveStatus.setTextColor(ContextCompat.getColor(ctx, R.color.tv_text_secondary))
             fetchStockDetail(sym)
@@ -684,7 +767,6 @@ class TradingFragment : Fragment() {
                 b.tvLiveStatus.text = getString(R.string.trading_connecting_badge)
                 b.tvLiveStatus.setTextColor(ContextCompat.getColor(ctx, R.color.tv_yellow))
             }
-            connectWebSocketForSymbol(sym)
         }
 
         // 5. Cập nhật số dư & lượng tài sản sở hữu
@@ -819,19 +901,21 @@ class TradingFragment : Fragment() {
     }
 
     /**
-     * Tải dữ liệu nến từ Backend qua Retrofit
+     * Tải dữ liệu nến từ Backend qua Retrofit (1m cho Crypto/Commodity, daily cho Cổ phiếu)
      */
-    private fun loadCandleData(symbol: String) {
+    private fun loadCandleData(symbol: String, generation: Long = activeSocketGeneration) {
         setLoadingState(true)
 
         activeCandleCall?.cancel()
-        val call = RetrofitClient.apiService.getCandles(symbol, "daily")
+        val isStock = StockTradePolicy.isStock(symbol)
+        val interval = if (isStock) "daily" else "1m"
+        val call = RetrofitClient.apiService.getCandles(symbol, interval)
         activeCandleCall = call
 
         call.enqueue(object : Callback<List<CandleDto>> {
             override fun onResponse(call: Call<List<CandleDto>>, response: Response<List<CandleDto>>) {
                 try {
-                    if (call.isCanceled || !isAdded || _binding == null) return
+                    if (call.isCanceled || generation != activeSocketGeneration || !isAdded || _binding == null) return
                     setLoadingState(false)
 
                     if (response.code() == 401 || response.code() == 403) {
@@ -841,18 +925,27 @@ class TradingFragment : Fragment() {
 
                     if (response.code() == 503) {
                         context?.let { ctx ->
-                            Toast.makeText(ctx, "Nguồn dữ liệu thị trường tạm thời không khả dụng", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(ctx, getString(R.string.trading_err_no_candles), Toast.LENGTH_SHORT).show()
                         }
                         handleCandleLoadFallback(symbol)
+                        if (!isStock && isFragmentVisible && generation == activeSocketGeneration) {
+                            connectWebSocketForSymbol(symbol, generation)
+                        }
                         return
                     }
 
                     val candles = response.body()
                     if (response.isSuccessful && !candles.isNullOrEmpty()) {
                         renderCandleChart(candles, symbol)
+                        if (!isStock && isFragmentVisible && generation == activeSocketGeneration) {
+                            connectWebSocketForSymbol(symbol, generation)
+                        }
                     } else {
                         Log.w(TAG, "API nến rỗng hoặc lỗi code: ${response.code()} cho symbol $symbol")
                         handleCandleLoadFallback(symbol)
+                        if (!isStock && isFragmentVisible && generation == activeSocketGeneration) {
+                            connectWebSocketForSymbol(symbol, generation)
+                        }
                     }
                 } finally {
                     releaseCandleCall(call)
@@ -861,10 +954,13 @@ class TradingFragment : Fragment() {
 
             override fun onFailure(call: Call<List<CandleDto>>, t: Throwable) {
                 try {
-                    if (call.isCanceled || !isAdded || _binding == null) return
+                    if (call.isCanceled || generation != activeSocketGeneration || !isAdded || _binding == null) return
                     setLoadingState(false)
                     Log.e(TAG, "Lỗi kết nối Retrofit nến: ${t.message}")
                     handleCandleLoadFallback(symbol)
+                    if (!isStock && isFragmentVisible && generation == activeSocketGeneration) {
+                        connectWebSocketForSymbol(symbol, generation)
+                    }
                 } finally {
                     releaseCandleCall(call)
                 }
@@ -878,11 +974,14 @@ class TradingFragment : Fragment() {
         val decision = CandleFallbackPolicy.decide(
             currentSymbol = symbol,
             loadedCandleSymbol = loadedCandleSymbol,
-            hasCachedCandles = candleEntries.isNotEmpty()
+            hasCachedCandles = currentCandles.isNotEmpty()
         )
 
+        b.pbLoading.visibility = View.GONE
         if (decision.shouldClearChart) {
+            currentCandles.clear()
             candleEntries.clear()
+            timeLabels.clear()
             b.candleChart.clear()
             b.tvStateMessage.text = getString(R.string.trading_err_no_candles)
             b.tvStateMessage.visibility = View.VISIBLE
@@ -895,14 +994,19 @@ class TradingFragment : Fragment() {
         val b = binding ?: return
         val ctx = context ?: return
 
+        currentCandles.clear()
+        currentCandles.addAll(candles)
+
         candleEntries.clear()
-        val timeLabels = ArrayList<String>()
+        timeLabels.clear()
 
         for (i in candles.indices) {
             val c = candles[i]
             candleEntries.add(CandleEntry(i.toFloat(), c.high.toFloat(), c.low.toFloat(), c.open.toFloat(), c.close.toFloat()))
             timeLabels.add(c.time)
         }
+
+        b.pbLoading.visibility = View.GONE
 
         if (candleEntries.isEmpty()) {
             b.candleChart.clear()
@@ -919,13 +1023,19 @@ class TradingFragment : Fragment() {
                 val index = value.toInt()
                 if (index in timeLabels.indices) {
                     val raw = timeLabels[index]
-                    return if (raw.length >= 10) raw.substring(5, 10) else raw
+                    return CandleTimeFormatter.formatChartAxisLabel(raw)
                 }
                 return ""
             }
         }
 
-        val dataSet = CandleDataSet(candleEntries, ChartLabelFormatter.formatDailyDatasetLabel(symbol)).apply {
+        val isStock = StockTradePolicy.isStock(symbol)
+        val datasetLabel = if (isStock) {
+            ChartLabelFormatter.formatDailyDatasetLabel(symbol)
+        } else {
+            ChartLabelFormatter.formatChartDatasetLabel(symbol, "1m")
+        }
+        val dataSet = CandleDataSet(candleEntries, datasetLabel).apply {
             setDrawIcons(false)
             shadowColor = ContextCompat.getColor(ctx, R.color.tv_text_secondary)
             shadowWidth = 1.2f
@@ -941,12 +1051,17 @@ class TradingFragment : Fragment() {
         candleDataSet = dataSet
         b.candleChart.data = CandleData(dataSet)
         b.candleChart.invalidate()
+
+        if (currentAssetPrice == null && candles.isNotEmpty()) {
+            val last = candles.last()
+            updateLivePriceDisplay(last.close, last.open)
+        }
     }
 
-    private fun connectWebSocketForSymbol(symbol: String) {
+    private fun connectWebSocketForSymbol(symbol: String, generation: Long = activeSocketGeneration) {
         disconnectWebSocket()
 
-        if (StockTradePolicy.isStock(symbol)) {
+        if (StockTradePolicy.isStock(symbol) || !isFragmentVisible || generation != activeSocketGeneration) {
             return
         }
 
@@ -954,48 +1069,160 @@ class TradingFragment : Fragment() {
         val wsUrl = MarketStreamHelper.buildWebSocketUrl(streamName)
         val request = Request.Builder().url(wsUrl).build()
 
-        binanceWebSocket = okHttpClient.newWebSocket(request, object : WebSocketListener() {
+        val b = binding
+        val ctx = context
+        if (b != null && ctx != null) {
+            b.tvLiveStatus.text = getString(R.string.trading_connecting_badge)
+            b.tvLiveStatus.setTextColor(ContextCompat.getColor(ctx, R.color.tv_yellow))
+        }
+
+        val ws = okHttpClient.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: okhttp3.Response) {
                 activity?.runOnUiThread {
-                    if (currentSymbol.equals(symbol, ignoreCase = true)) {
-                        binding?.tvLiveStatus?.text = getString(R.string.trading_waiting_price_badge)
-                        binding?.tvLiveStatus?.setTextColor(ContextCompat.getColor(requireContext(), R.color.tv_yellow))
-                    }
+                    if (!SocketCallbackGuard.isCallbackAllowed(
+                            callbackSocket = webSocket,
+                            activeSocket = binanceWebSocket,
+                            callbackGeneration = generation,
+                            activeGeneration = activeSocketGeneration,
+                            callbackSymbol = symbol,
+                            activeSymbol = currentSymbol,
+                            isFragmentVisible = isFragmentVisible
+                        ) || !isAdded || _binding == null
+                    ) return@runOnUiThread
+
+                    binding?.tvLiveStatus?.text = getString(R.string.trading_waiting_price_badge)
+                    binding?.tvLiveStatus?.setTextColor(ContextCompat.getColor(requireContext(), R.color.tv_yellow))
                 }
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
                 activity?.runOnUiThread {
-                    handleWebSocketMessage(text, symbol)
+                    if (!SocketCallbackGuard.isCallbackAllowed(
+                            callbackSocket = webSocket,
+                            activeSocket = binanceWebSocket,
+                            callbackGeneration = generation,
+                            activeGeneration = activeSocketGeneration,
+                            callbackSymbol = symbol,
+                            activeSymbol = currentSymbol,
+                            isFragmentVisible = isFragmentVisible
+                        ) || !isAdded || _binding == null
+                    ) return@runOnUiThread
+
+                    handleWebSocketMessage(text, symbol, generation, webSocket)
                 }
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: okhttp3.Response?) {
                 activity?.runOnUiThread {
-                    if (currentSymbol.equals(symbol, ignoreCase = true)) {
-                        binding?.tvLiveStatus?.text = getString(R.string.trading_offline_badge)
-                        binding?.tvLiveStatus?.setTextColor(ContextCompat.getColor(requireContext(), R.color.tv_red))
+                    val decision = SocketReconnectPolicy.decideFailureAction(
+                        callbackSocket = webSocket,
+                        activeSocket = binanceWebSocket,
+                        callbackGeneration = generation,
+                        activeGeneration = activeSocketGeneration,
+                        currentAttempt = reconnectAttempts,
+                        isVisible = isFragmentVisible
+                    )
+
+                    if (decision.shouldClearActiveSocket) {
+                        binanceWebSocket = null
                     }
+
+                    if (!decision.shouldScheduleReconnect) {
+                        if (webSocket === binanceWebSocket) {
+                            val currentContext = context ?: return@runOnUiThread
+                            binding?.tvLiveStatus?.text = getString(R.string.trading_offline_badge)
+                            binding?.tvLiveStatus?.setTextColor(ContextCompat.getColor(currentContext, R.color.tv_red))
+                        }
+                        return@runOnUiThread
+                    }
+
+                    val currentContext = context ?: return@runOnUiThread
+                    binding?.tvLiveStatus?.text = getString(R.string.trading_offline_badge)
+                    binding?.tvLiveStatus?.setTextColor(ContextCompat.getColor(currentContext, R.color.tv_red))
+
+                    reconnectAttempts = decision.nextAttempt
+                    reconnectRunnable = Runnable {
+                        if (generation == activeSocketGeneration && isFragmentVisible) {
+                            connectWebSocketForSymbol(symbol, generation)
+                        }
+                    }
+                    reconnectHandler.postDelayed(reconnectRunnable!!, decision.delayMs)
                 }
             }
         })
+        binanceWebSocket = ws
     }
 
-    private fun handleWebSocketMessage(jsonText: String, expectedSymbol: String) {
-        if (!currentSymbol.equals(expectedSymbol, ignoreCase = true) || _binding == null || !isAdded) return
+    private fun handleWebSocketMessage(jsonText: String, expectedSymbol: String, generation: Long, socket: WebSocket? = null) {
+        if (!SocketCallbackGuard.isCallbackAllowed(
+                callbackSocket = socket ?: binanceWebSocket,
+                activeSocket = binanceWebSocket,
+                callbackGeneration = generation,
+                activeGeneration = activeSocketGeneration,
+                callbackSymbol = expectedSymbol,
+                activeSymbol = currentSymbol,
+                isFragmentVisible = isFragmentVisible
+            ) || _binding == null || !isAdded
+        ) return
 
-        try {
-            val json = JSONObject(jsonText)
-            val priceStr = json.optString("c")
-            val openPriceStr = json.optString("o")
-            if (priceStr.isNotEmpty()) {
-                val livePrice = priceStr.toDouble()
-                val openPrice = if (openPriceStr.isNotEmpty()) openPriceStr.toDoubleOrNull() else null
-                updateLivePriceDisplay(livePrice, openPrice)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Lỗi phân tích JSON WebSocket: ${e.message}")
+        val event = BinanceKlineParser.parse(jsonText) ?: return
+
+        if (!MarketSymbolMatcher.matches(event.symbol, currentSymbol)) {
+            return
         }
+
+        // Nhận được kline chuẩn từ Binance -> reset bộ đếm reconnect về 0
+        reconnectAttempts = 0
+
+        val lastCandle = currentCandles.lastOrNull()
+        val lastOpenTime = lastCandle?.openTime ?: lastCandle?.let { CandleTimeFormatter.parseTimeToMillis(it.time) } ?: 0L
+
+        if (lastCandle != null && event.openTime < lastOpenTime) {
+            // Event cũ hơn nến hiện tại -> bỏ qua
+            return
+        }
+
+        val isSameMinute = lastCandle != null && event.openTime == lastOpenTime
+        val updatedSeries = CandleSeriesReducer.reduce(currentCandles, event, maxCandles = 30)
+        currentCandles.clear()
+        currentCandles.addAll(updatedSeries)
+
+        val b = binding ?: return
+
+        if (b.candleChart.data != null && candleDataSet != null && candleEntries.isNotEmpty() && currentCandles.isNotEmpty()) {
+            if (isSameMinute) {
+                // Cùng phút: Chỉ cập nhật cây nến cuối cùng trên biểu đồ
+                val lastIdx = candleEntries.size - 1
+                val lastC = currentCandles.last()
+                val lastEntry = candleEntries[lastIdx]
+                lastEntry.high = lastC.high.toFloat()
+                lastEntry.low = lastC.low.toFloat()
+                lastEntry.open = lastC.open.toFloat()
+                lastEntry.close = lastC.close.toFloat()
+
+                candleDataSet?.notifyDataSetChanged()
+                b.candleChart.data?.notifyDataChanged()
+                b.candleChart.notifyDataSetChanged()
+                b.candleChart.invalidate()
+            } else {
+                // Sang phút mới (hoặc lần đầu): Đồng bộ lại toàn bộ 30 entries và timeLabels từ currentCandles
+                candleEntries.clear()
+                timeLabels.clear()
+                for (i in currentCandles.indices) {
+                    val c = currentCandles[i]
+                    candleEntries.add(CandleEntry(i.toFloat(), c.high.toFloat(), c.low.toFloat(), c.open.toFloat(), c.close.toFloat()))
+                    timeLabels.add(c.time)
+                }
+                candleDataSet?.notifyDataSetChanged()
+                b.candleChart.data?.notifyDataChanged()
+                b.candleChart.notifyDataSetChanged()
+                b.candleChart.invalidate()
+            }
+        } else if (currentCandles.isNotEmpty()) {
+            renderCandleChart(currentCandles, currentSymbol)
+        }
+
+        updateLivePriceDisplay(event.close, event.open)
     }
 
     private fun updateLivePriceDisplay(livePrice: Double, periodOpenPrice: Double?) {
