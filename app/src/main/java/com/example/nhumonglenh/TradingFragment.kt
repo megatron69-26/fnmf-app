@@ -427,45 +427,71 @@ class TradingFragment : Fragment() {
                 }
 
                 val stocks = response.body() ?: emptyList()
-
                 val authHeader = AuthHeaderFactory.createBearerHeader(jwtToken)
-                if (authHeader != null) {
-                    RetrofitClient.apiService.getWatchlist(authHeader).enqueue(object : Callback<List<WatchlistItemDto>> {
-                        override fun onResponse(wCall: Call<List<WatchlistItemDto>>, wResp: Response<List<WatchlistItemDto>>) {
-                            if (!isAdded || _binding == null) return
-                            if (wResp.code() == 401 || wResp.code() == 403) {
-                                AuthSessionManager.handleUnauthorized(activity)
-                                return
-                            }
-                            if (wResp.isSuccessful) {
-                                val watchlist = wResp.body() ?: emptyList()
-                                cachedWatchlistSymbols.clear()
-                                watchlist.mapNotNull { it.symbol.trim().uppercase(Locale.ROOT) }.forEach {
-                                    cachedWatchlistSymbols.add(it)
-                                }
-                                val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, watchlist)
-                                stockCatalogAdapter.submitList(uiModels)
-                                updateWatchlistToggleButton()
-                            } else {
-                                Log.w(TAG, "Không thể tải watchlist khi load catalog: code ${wResp.code()}")
-                                val currentWatchlistItems = cachedWatchlistSymbols.map { WatchlistItemDto(symbol = it) }
-                                val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, currentWatchlistItems)
-                                stockCatalogAdapter.submitList(uiModels)
-                            }
-                        }
 
-                        override fun onFailure(wCall: Call<List<WatchlistItemDto>>, t: Throwable) {
-                            if (!isAdded || _binding == null) return
-                            Log.e(TAG, "Lỗi kết nối khi tải watchlist cho catalog: ${t.message}")
-                            val currentWatchlistItems = cachedWatchlistSymbols.map { WatchlistItemDto(symbol = it) }
-                            val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, currentWatchlistItems)
+                RetrofitClient.apiService.getMarketPrices().enqueue(object : Callback<List<com.example.nhumonglenh.data.remote.MarketPriceDto>> {
+                    override fun onResponse(pCall: Call<List<com.example.nhumonglenh.data.remote.MarketPriceDto>>, pResp: Response<List<com.example.nhumonglenh.data.remote.MarketPriceDto>>) {
+                        val prices = if (pResp.isSuccessful) pResp.body() else emptyList()
+                        if (authHeader != null) {
+                            RetrofitClient.apiService.getWatchlist(authHeader).enqueue(object : Callback<List<WatchlistItemDto>> {
+                                override fun onResponse(wCall: Call<List<WatchlistItemDto>>, wResp: Response<List<WatchlistItemDto>>) {
+                                    if (!isAdded || _binding == null) return
+                                    if (wResp.code() == 401 || wResp.code() == 403) {
+                                        AuthSessionManager.handleUnauthorized(activity)
+                                        return
+                                    }
+                                    if (wResp.isSuccessful) {
+                                        val watchlist = wResp.body() ?: emptyList()
+                                        cachedWatchlistSymbols.clear()
+                                        watchlist.mapNotNull { it.symbol.trim().uppercase(Locale.ROOT) }.forEach {
+                                            cachedWatchlistSymbols.add(it)
+                                        }
+                                        val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, watchlist, prices)
+                                        stockCatalogAdapter.submitList(uiModels)
+                                        updateWatchlistToggleButton()
+                                    } else {
+                                        Log.w(TAG, "Không thể tải watchlist khi load catalog: code ${wResp.code()}")
+                                        val currentWatchlistItems = cachedWatchlistSymbols.map { WatchlistItemDto(symbol = it) }
+                                        val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, currentWatchlistItems, prices)
+                                        stockCatalogAdapter.submitList(uiModels)
+                                    }
+                                }
+
+                                override fun onFailure(wCall: Call<List<WatchlistItemDto>>, t: Throwable) {
+                                    if (!isAdded || _binding == null) return
+                                    Log.e(TAG, "Lỗi kết nối khi tải watchlist cho catalog: ${t.message}")
+                                    val currentWatchlistItems = cachedWatchlistSymbols.map { WatchlistItemDto(symbol = it) }
+                                    val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, currentWatchlistItems, prices)
+                                    stockCatalogAdapter.submitList(uiModels)
+                                }
+                            })
+                        } else {
+                            val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, emptyList(), prices)
                             stockCatalogAdapter.submitList(uiModels)
                         }
-                    })
-                } else {
-                    val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, emptyList())
-                    stockCatalogAdapter.submitList(uiModels)
-                }
+                    }
+
+                    override fun onFailure(pCall: Call<List<com.example.nhumonglenh.data.remote.MarketPriceDto>>, t: Throwable) {
+                        if (authHeader != null) {
+                            RetrofitClient.apiService.getWatchlist(authHeader).enqueue(object : Callback<List<WatchlistItemDto>> {
+                                override fun onResponse(wCall: Call<List<WatchlistItemDto>>, wResp: Response<List<WatchlistItemDto>>) {
+                                    if (!isAdded || _binding == null) return
+                                    val watchlist = if (wResp.isSuccessful) wResp.body() ?: emptyList() else cachedWatchlistSymbols.map { WatchlistItemDto(symbol = it) }
+                                    val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, watchlist, null)
+                                    stockCatalogAdapter.submitList(uiModels)
+                                }
+                                override fun onFailure(wCall: Call<List<WatchlistItemDto>>, t: Throwable) {
+                                    if (!isAdded || _binding == null) return
+                                    val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, cachedWatchlistSymbols.map { WatchlistItemDto(symbol = it) }, null)
+                                    stockCatalogAdapter.submitList(uiModels)
+                                }
+                            })
+                        } else {
+                            val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, emptyList(), null)
+                            stockCatalogAdapter.submitList(uiModels)
+                        }
+                    }
+                })
             }
 
             override fun onFailure(call: Call<List<StockCatalogDto>>, t: Throwable) {
@@ -1525,7 +1551,12 @@ class TradingFragment : Fragment() {
         return when {
             sym.contains("BTC") -> "Bitcoin / Tether"
             sym.contains("ETH") -> "Ethereum / Tether"
-            sym.contains("XAU") -> "Vàng Thế Giới (Gold Spot)"
+            sym.contains("XAU") || sym.contains("PAXG") -> "Vàng Thế Giới (Gold Spot)"
+            sym.contains("BNB") -> "BNB / Tether"
+            sym.contains("SOL") -> "Solana / Tether"
+            sym.contains("XRP") -> "XRP / Tether"
+            sym.contains("ADA") -> "Cardano / Tether"
+            sym.contains("DOGE") -> "Dogecoin / Tether"
             else -> "Tài sản tài chính"
         }
     }

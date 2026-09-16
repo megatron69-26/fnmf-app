@@ -40,12 +40,37 @@
             android:id="@+id/tvStockName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Apple Inc."
+            android:text="BNB (Binance)"
             android:textColor="@color/tv_text_secondary"
             android:textSize="12sp"
             android:layout_marginTop="2dp"
             android:maxLines="1"
             android:ellipsize="end" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="end"
+        android:layout_marginEnd="10dp">
+
+        <TextView
+            android:id="@+id/tvStockPrice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/tv_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvStockChange24h"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
     </LinearLayout>
 
     <com.google.android.material.button.MaterialButton

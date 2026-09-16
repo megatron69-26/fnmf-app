@@ -51,6 +51,24 @@ class StockCatalogAdapter(
             }
         iconBg.setColor(iconColor)
 
+        // Hiển thị Giá & % Biến động 24h
+        if (item.price != null && item.price > 0.0) {
+            b.tvStockPrice.visibility = android.view.View.VISIBLE
+            b.tvStockPrice.text = String.format(java.util.Locale.US, "$%,.2f", item.price)
+        } else {
+            b.tvStockPrice.visibility = android.view.View.GONE
+        }
+
+        if (item.change24h != null) {
+            b.tvStockChange24h.visibility = android.view.View.VISIBLE
+            val sign = if (item.change24h >= 0) "+" else ""
+            b.tvStockChange24h.text = String.format(java.util.Locale.US, "%s%.2f%%", sign, item.change24h)
+            val colorRes = if (item.change24h >= 0) R.color.tv_green else R.color.tv_red
+            b.tvStockChange24h.setTextColor(ContextCompat.getColor(context, colorRes))
+        } else {
+            b.tvStockChange24h.visibility = android.view.View.GONE
+        }
+
         // Nút Quan tâm / Đã quan tâm
         if (item.isWatchlisted) {
             b.btnWatchlistAction.text = context.getString(R.string.btn_watchlist_remove)

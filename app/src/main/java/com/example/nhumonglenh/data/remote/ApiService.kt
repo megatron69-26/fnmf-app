@@ -75,6 +75,19 @@ interface ApiService {
         @Body request: ForecastRefreshRequest
     ): Call<ForecastResponse>
 
+    // 7.3. Dự báo toàn thị trường dùng chung v1.1.24
+    @GET("/api/forecast/market")
+    fun getMarketForecast(
+        @Query("timeframe") timeframe: String = "24H_7D"
+    ): Call<ForecastResponse>
+
+    @POST("/api/forecast/market/refresh")
+    fun refreshMarketForecast(
+        @Header("Authorization") token: String,
+        @Header("Client-Request-ID") clientRequestId: String,
+        @Body request: ForecastRefreshRequest
+    ): Call<ForecastResponse>
+
     // 7.2. Lấy trạng thái hạn mức làm mới hàng ngày
     @GET("/api/refresh-quota/status")
     fun getRefreshQuotaStatus(

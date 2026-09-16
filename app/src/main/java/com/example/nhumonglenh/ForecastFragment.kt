@@ -42,12 +42,13 @@ class ForecastFragment : Fragment() {
     private var tvTechOutlook: TextView? = null
     private var tvFundOutlook: TextView? = null
     private var tvKeyDrivers: TextView? = null
+    private var tvForecastStaleWarning: TextView? = null
 
     private var activeCall: Call<ForecastResponse>? = null
     private var activeRefreshCall: Call<ForecastResponse>? = null
     private val isRefreshingInProgress = AtomicBoolean(false)
 
-    private var currentSymbol: String = "BTCUSDT"
+    private var currentSymbol: String = "MARKET"
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -65,6 +66,7 @@ class ForecastFragment : Fragment() {
         tvResult = view.findViewById(R.id.tvForecastResult)
         pbLoading = view.findViewById(R.id.pbForecastLoading)
         llContent = view.findViewById(R.id.llForecastContent)
+        tvForecastStaleWarning = view.findViewById(R.id.tvForecastStaleWarning)
         tvRecommendation = view.findViewById(R.id.tvRecommendation)
         tvConfidence = view.findViewById(R.id.tvConfidence)
         tvSupport = view.findViewById(R.id.tvSupport)
@@ -77,7 +79,7 @@ class ForecastFragment : Fragment() {
         updateQuotaLabel(RefreshQuotaManager.getRemaining())
         syncQuotaInBackground()
 
-        loadForecast(currentSymbol)
+        loadForecast("MARKET")
     }
 
     private fun setupPullToRefresh() {
@@ -109,13 +111,13 @@ class ForecastFragment : Fragment() {
 
         val clientRequestId = UUID.randomUUID().toString()
         val request = ForecastRefreshRequest(
-            symbol = currentSymbol,
+            symbol = "MARKET",
             timeframe = "24H_7D",
             clientRequestId = clientRequestId
         )
 
         activeRefreshCall?.cancel()
-        val call = RetrofitClient.apiService.refreshForecast(authHeader, clientRequestId, request)
+        val call = RetrofitClient.apiService.refreshMarketForecast(authHeader, clientRequestId, request)
         activeRefreshCall = call
 
         call.enqueue(object : Callback<ForecastResponse> {
@@ -210,6 +212,12 @@ class ForecastFragment : Fragment() {
         llContent?.visibility = View.VISIBLE
         tvResult?.visibility = View.GONE
 
+        if (forecast.stale == true) {
+            tvForecastStaleWarning?.visibility = View.VISIBLE
+        } else {
+            tvForecastStaleWarning?.visibility = View.GONE
+        }
+
         val recommendationCode = forecast.recommendation?.trim()?.uppercase(Locale.ROOT)
         val recText = UiTextLocalizer.recommendation(forecast.recommendation)
         tvRecommendation?.text = if (!recText.isNullOrBlank()) recText else "—"
@@ -266,18 +274,15 @@ class ForecastFragment : Fragment() {
     }
 
     fun setSymbol(symbol: String) {
-        val clean = symbol.trim().uppercase(Locale.ROOT)
-        if (clean.isNotBlank() && clean != currentSymbol) {
-            currentSymbol = clean
-            if (isAdded && view != null) {
-                loadForecast(clean)
-            }
+        // Compatibility hook for Activity2 navigation; loads market forecast
+        if (isAdded && view != null && llContent?.visibility != View.VISIBLE && pbLoading?.visibility != View.VISIBLE) {
+            loadForecast("MARKET")
         }
     }
 
-    fun loadForecast(symbol: String) {
-        currentSymbol = symbol.trim().uppercase(Locale.ROOT)
-        tvForecastSymbol?.text = currentSymbol
+    fun loadForecast(symbol: String = "MARKET") {
+        currentSymbol = "MARKET"
+        tvForecastSymbol?.text = "TOÀN THỊ TRƯỜNG"
         val pb = pbLoading ?: return
         val res = tvResult ?: return
         val content = llContent ?: return
@@ -287,7 +292,7 @@ class ForecastFragment : Fragment() {
         content.visibility = View.GONE
 
         activeCall?.cancel()
-        val call = RetrofitClient.apiService.getForecast(currentSymbol, "24H_7D")
+        val call = RetrofitClient.apiService.getMarketForecast("24H_7D")
         activeCall = call
 
         call.enqueue(object : Callback<ForecastResponse> {
@@ -350,6 +355,7 @@ class ForecastFragment : Fragment() {
         tvResult = null
         pbLoading = null
         llContent = null
+        tvForecastStaleWarning = null
         tvRecommendation = null
         tvConfidence = null
         tvSupport = null

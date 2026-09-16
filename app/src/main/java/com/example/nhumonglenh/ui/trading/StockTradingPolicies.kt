@@ -84,22 +84,29 @@ object StockReportPolicy {
 data class StockCatalogUiModel(
     val symbol: String,
     val name: String,
-    val isWatchlisted: Boolean
+    val isWatchlisted: Boolean,
+    val change24h: Double? = null,
+    val price: Double? = null
 )
 
 object StockWatchlistMatcher {
 
     fun matchCatalogWithWatchlist(
         catalog: List<StockCatalogDto>,
-        watchlist: List<WatchlistItemDto>
+        watchlist: List<WatchlistItemDto>,
+        prices: List<com.example.nhumonglenh.data.remote.MarketPriceDto>? = null
     ): List<StockCatalogUiModel> {
         val watchlistedSymbols = watchlist.mapNotNull { it.symbol?.trim()?.uppercase(Locale.ROOT) }.toSet()
+        val priceMap = prices?.associateBy { it.symbol.trim().uppercase(Locale.ROOT) } ?: emptyMap()
         return catalog.map { stock ->
             val clean = stock.symbol.trim().uppercase(Locale.ROOT)
+            val mp = priceMap[clean]
             StockCatalogUiModel(
                 symbol = clean,
                 name = stock.name,
-                isWatchlisted = watchlistedSymbols.contains(clean)
+                isWatchlisted = watchlistedSymbols.contains(clean),
+                change24h = mp?.change24h,
+                price = mp?.price
             )
         }
     }
@@ -224,7 +231,9 @@ object MarketDataProviderPolicy {
         }
         val sym = symbol.trim().uppercase(Locale.ROOT)
         return when (sym) {
-            "BTCUSDT", "BTC", "ETHUSDT", "ETH", "XAUUSD", "XAU", "PAXGUSDT" -> "Binance"
+            "BTCUSDT", "BTC", "ETHUSDT", "ETH", "XAUUSD", "XAU", "PAXGUSDT",
+            "BNBUSDT", "BNB", "SOLUSDT", "SOL", "XRPUSDT", "XRP",
+            "ADAUSDT", "ADA", "DOGEUSDT", "DOGE" -> "Binance"
             "AAPL", "MSFT", "NVDA", "GOOGL" -> "Alpaca"
             "TSLA", "AMZN", "META", "JPM" -> "Twelve Data"
             else -> "Binance"

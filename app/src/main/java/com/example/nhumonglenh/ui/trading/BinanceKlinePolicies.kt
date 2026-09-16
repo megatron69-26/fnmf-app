@@ -188,6 +188,11 @@ object MarketSymbolMatcher {
         if ((cur == "BTCUSDT" || cur == "BTC") && (ev == "BTCUSDT" || ev == "BTC")) return true
         if ((cur == "ETHUSDT" || cur == "ETH") && (ev == "ETHUSDT" || ev == "ETH")) return true
         if ((cur == "XAUUSD" || cur == "XAU" || cur == "PAXGUSDT") && (ev == "PAXGUSDT" || ev == "XAUUSD" || ev == "XAU")) return true
+        if ((cur == "BNBUSDT" || cur == "BNB") && (ev == "BNBUSDT" || ev == "BNB")) return true
+        if ((cur == "SOLUSDT" || cur == "SOL") && (ev == "SOLUSDT" || ev == "SOL")) return true
+        if ((cur == "XRPUSDT" || cur == "XRP") && (ev == "XRPUSDT" || ev == "XRP")) return true
+        if ((cur == "ADAUSDT" || cur == "ADA") && (ev == "ADAUSDT" || ev == "ADA")) return true
+        if ((cur == "DOGEUSDT" || cur == "DOGE") && (ev == "DOGEUSDT" || ev == "DOGE")) return true
         return false
     }
 }

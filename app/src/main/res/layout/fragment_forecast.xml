@@ -33,18 +33,18 @@
                 android:id="@+id/tvForecastTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-            android:text="Dự báo xu hướng thị trường"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textAlignment="center"
-            android:layout_marginBottom="4dp"/>
+                android:text="@string/forecast_market_title"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textAlignment="center"
+                android:layout_marginBottom="4dp"/>
         <TextView
             android:id="@+id/tvForecastSymbol"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="—"
-            tools:text="BTCUSDT"
+            android:text="TOÀN THỊ TRƯỜNG"
+            tools:text="TOÀN THỊ TRƯỜNG"
             android:textColor="#2962FF"
             android:textSize="14sp"
             android:textStyle="bold"
@@ -70,6 +70,21 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvForecastStaleWarning"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_percent_badge"
+                android:backgroundTint="#40E5A93C"
+                android:textColor="#FFD54F"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:padding="8dp"
+                android:layout_marginBottom="12dp"
+                android:text="@string/forecast_stale_warning"
+                android:visibility="gone" />
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

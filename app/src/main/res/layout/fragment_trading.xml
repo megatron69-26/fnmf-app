@@ -23,12 +23,12 @@
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Giao dịch" />
+            android:text="@string/tab_trading" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Cổ phiếu" />
+            android:text="@string/tab_stocks" />
     </com.google.android.material.tabs.TabLayout>
 
     <!-- 1. TAB GIAO DỊCH (Chart, Giá, Mua/Bán & Watchlist nhúng) -->

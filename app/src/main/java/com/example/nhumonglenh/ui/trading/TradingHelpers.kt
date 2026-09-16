@@ -33,6 +33,11 @@ object MarketStreamHelper {
             sym == "BTCUSDT" || sym == "BTC" -> "btcusdt@kline_1m"
             sym == "ETHUSDT" || sym == "ETH" -> "ethusdt@kline_1m"
             sym == "XAUUSD" || sym == "XAU" || sym == "PAXGUSDT" -> "paxgusdt@kline_1m"
+            sym == "BNBUSDT" || sym == "BNB" -> "bnbusdt@kline_1m"
+            sym == "SOLUSDT" || sym == "SOL" -> "solusdt@kline_1m"
+            sym == "XRPUSDT" || sym == "XRP" -> "xrpusdt@kline_1m"
+            sym == "ADAUSDT" || sym == "ADA" -> "adausdt@kline_1m"
+            sym == "DOGEUSDT" || sym == "DOGE" -> "dogeusdt@kline_1m"
             else -> null
         }
     }
