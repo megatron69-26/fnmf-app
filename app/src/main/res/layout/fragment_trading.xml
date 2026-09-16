@@ -100,15 +100,29 @@
                         android:minWidth="0dp"
                         android:minHeight="0dp" />
 
+                    <!-- Provider badge -->
+                    <TextView
+                        android:id="@+id/tvProviderBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_pill_badge"
+                        android:paddingHorizontal="6dp"
+                        android:paddingVertical="4dp"
+                        android:text="@string/provider_binance"
+                        android:textColor="@color/tv_cyan"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+
                     <!-- Timeframe indicator badge -->
                     <TextView
                         android:id="@+id/tvTimeframeBadge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
                         android:background="@drawable/bg_pill_badge"
-                        android:paddingHorizontal="8dp"
+                        android:paddingHorizontal="6dp"
                         android:paddingVertical="4dp"
-                        android:text="@string/trading_timeframe_default"
+                        android:text="@string/timeframe_1m"
                         android:textColor="@color/tv_text_secondary"
                         android:textSize="10sp"
                         android:textStyle="bold" />
@@ -118,9 +132,9 @@
                         android:id="@+id/tvLiveStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
+                        android:layout_marginStart="4dp"
                         android:background="@drawable/bg_pill_badge"
-                        android:paddingHorizontal="8dp"
+                        android:paddingHorizontal="6dp"
                         android:paddingVertical="4dp"
                         android:text="@string/trading_live_badge"
                         android:textColor="@color/tv_green"

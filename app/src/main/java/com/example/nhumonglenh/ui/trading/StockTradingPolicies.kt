@@ -1,5 +1,6 @@
 package com.example.nhumonglenh.ui.trading
 
+import com.example.nhumonglenh.R
 import com.example.nhumonglenh.data.remote.HoldingDto
 import com.example.nhumonglenh.data.remote.PortfolioSummaryDto
 import com.example.nhumonglenh.data.remote.StockCatalogDto
@@ -203,3 +204,88 @@ object WatchlistStateReducer {
     }
 }
 
+/**
+ * Quản lý ánh xạ nguồn cấp dữ liệu thị trường cố định (Fixed Provider Sharding):
+ * - BINANCE: BTCUSDT, ETHUSDT, XAUUSD (PAXGUSDT)
+ * - ALPACA: AAPL, MSFT, NVDA
+ * - TWELVE_DATA: TSLA, AMZN, META
+ * - ALPHA_VANTAGE: GOOGL, JPM
+ */
+object MarketDataProviderPolicy {
+    fun resolveProviderName(symbol: String, marketDataProvider: String? = null): String {
+        if (!marketDataProvider.isNullOrBlank()) {
+            return when (marketDataProvider.trim().uppercase(Locale.ROOT)) {
+                "BINANCE" -> "Binance"
+                "ALPACA" -> "Alpaca"
+                "TWELVE_DATA", "TWELVEDATA" -> "Twelve Data"
+                "ALPHA_VANTAGE", "ALPHAVANTAGE" -> "Alpha Vantage"
+                else -> marketDataProvider.trim()
+            }
+        }
+        val sym = symbol.trim().uppercase(Locale.ROOT)
+        return when (sym) {
+            "BTCUSDT", "BTC", "ETHUSDT", "ETH", "XAUUSD", "XAU", "PAXGUSDT" -> "Binance"
+            "AAPL", "MSFT", "NVDA", "GOOGL" -> "Alpaca"
+            "TSLA", "AMZN", "META", "JPM" -> "Twelve Data"
+            else -> "Binance"
+        }
+    }
+}
+
+/**
+ * Quản lý chính sách Polling định kỳ 60s cho Cổ phiếu Hoa Kỳ:
+ * - Chỉ chạy khi đang xem màn hình giao dịch (Tab Giao dịch) và là mã cổ phiếu.
+ * - Hủy ngay lập tức khi unmount, chuyển mã, sang tab danh mục hoặc background.
+ */
+object StockPollingPolicy {
+    const val STOCK_POLL_INTERVAL_MS = 60_000L
+
+    fun shouldPoll(
+        isStock: Boolean,
+        isFragmentVisible: Boolean,
+        isTradingTabSelected: Boolean
+    ): Boolean {
+        return isStock && isFragmentVisible && isTradingTabSelected
+    }
+
+    fun isPollResponseAllowed(
+        callbackGeneration: Long,
+        activeGeneration: Long,
+        callbackSymbol: String?,
+        activeSymbol: String?,
+        isFragmentVisible: Boolean
+    ): Boolean {
+        if (!isFragmentVisible) return false
+        if (callbackGeneration != activeGeneration) return false
+        if (callbackSymbol.isNullOrBlank() || activeSymbol.isNullOrBlank()) return false
+        return callbackSymbol.equals(activeSymbol, ignoreCase = true)
+    }
+}
+
+data class StatusBadgeState(
+    val textRes: Int,
+    val colorRes: Int
+)
+
+/**
+ * Quản lý hiển thị Badge trạng thái:
+ * - Khi stale = true -> "Dữ liệu có thể trễ" (màu vàng/cam)
+ * - Khi bình thường có giá -> "Trực tiếp" / "Đang cập nhật" (màu xanh)
+ * - Khi không có giá -> "Dữ liệu máy chủ" / "Mất kết nối"
+ */
+object StockBadgePolicy {
+    fun resolveStatusBadge(
+        isStock: Boolean,
+        isStale: Boolean?,
+        hasValidPrice: Boolean
+    ): StatusBadgeState {
+        if (isStock && isStale == true) {
+            return StatusBadgeState(R.string.trading_stale_badge, R.color.tv_yellow)
+        }
+        return if (hasValidPrice) {
+            StatusBadgeState(R.string.trading_live_badge, R.color.tv_green)
+        } else {
+            StatusBadgeState(R.string.trading_no_live_badge, R.color.tv_text_secondary)
+        }
+    }
+}

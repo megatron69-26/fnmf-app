@@ -117,5 +117,7 @@ data class StockDetailDto(
     val stale: Boolean? = false,
     val recommendation: String? = null,
     val latestReportTitle: String? = null,
-    val latestReportUrl: String? = null
+    val latestReportUrl: String? = null,
+    val marketDataProvider: String? = null,
+    val aiShard: String? = null
 )

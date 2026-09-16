@@ -31,10 +31,13 @@ import com.example.nhumonglenh.ui.trading.AuthHttpPolicy
 import com.example.nhumonglenh.ui.trading.CandleFallbackPolicy
 import com.example.nhumonglenh.ui.trading.CandleReloadPolicy
 import com.example.nhumonglenh.ui.trading.ChartLabelFormatter
+import com.example.nhumonglenh.ui.trading.MarketDataProviderPolicy
 import com.example.nhumonglenh.ui.trading.MarketStreamHelper
 import com.example.nhumonglenh.ui.trading.OrderTicketBottomSheet
 import com.example.nhumonglenh.ui.trading.PortfolioSyncPolicy
+import com.example.nhumonglenh.ui.trading.StockBadgePolicy
 import com.example.nhumonglenh.ui.trading.StockCatalogAdapter
+import com.example.nhumonglenh.ui.trading.StockPollingPolicy
 import com.example.nhumonglenh.ui.trading.StockReportPolicy
 import com.example.nhumonglenh.ui.trading.StockTradePolicy
 import com.example.nhumonglenh.ui.trading.StockWatchlistMatcher
@@ -131,6 +134,8 @@ class TradingFragment : Fragment() {
     private var reconnectAttempts: Int = 0
     private val reconnectHandler = Handler(Looper.getMainLooper())
     private var reconnectRunnable: Runnable? = null
+    private val stockPollingHandler = Handler(Looper.getMainLooper())
+    private var stockPollingRunnable: Runnable? = null
 
     private val okHttpClient = OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS)
@@ -230,6 +235,9 @@ class TradingFragment : Fragment() {
                     // Không gửi REST lần 2 nếu call đang chạy hoặc là stock hoặc socket còn active
                 }
             }
+            if (isStock) {
+                startStockPolling(currentSymbol, activeSocketGeneration)
+            }
         }
     }
 
@@ -237,6 +245,7 @@ class TradingFragment : Fragment() {
         super.onPause()
         isFragmentVisible = false
         disconnectWebSocket()
+        stopStockPolling()
     }
 
     override fun onHiddenChanged(hidden: Boolean) {
@@ -244,6 +253,7 @@ class TradingFragment : Fragment() {
         if (hidden) {
             isFragmentVisible = false
             disconnectWebSocket()
+            stopStockPolling()
             activeCandleCall?.cancel()
             activeCandleCall = null
             activePortfolioCall?.cancel()
@@ -272,7 +282,8 @@ class TradingFragment : Fragment() {
                 loadPortfolioSilently()
             }
             if (StockTradePolicy.isStock(currentSymbol)) {
-                fetchStockDetail(currentSymbol)
+                fetchStockDetail(currentSymbol, activeSocketGeneration)
+                startStockPolling(currentSymbol, activeSocketGeneration)
             }
             loadEmbeddedWatchlist()
         }
@@ -281,6 +292,7 @@ class TradingFragment : Fragment() {
     override fun onDestroyView() {
         isFragmentVisible = false
         disconnectWebSocket()
+        stopStockPolling()
         activeCandleCall?.cancel()
         activeCandleCall = null
         activePortfolioCall?.cancel()
@@ -298,6 +310,7 @@ class TradingFragment : Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         disconnectWebSocket()
+        stopStockPolling()
     }
 
     private fun disconnectWebSocket() {
@@ -312,6 +325,34 @@ class TradingFragment : Fragment() {
         reconnectRunnable = null
     }
 
+    private fun startStockPolling(symbol: String, generation: Long) {
+        stopStockPolling()
+        if (!StockTradePolicy.isStock(symbol) || !isFragmentVisible) return
+
+        stockPollingRunnable = object : Runnable {
+            override fun run() {
+                val isTradingTab = binding?.tabLayoutTradingMode?.selectedTabPosition == 0
+                if (!StockPollingPolicy.shouldPoll(
+                        isStock = StockTradePolicy.isStock(currentSymbol),
+                        isFragmentVisible = isFragmentVisible && !isHidden,
+                        isTradingTabSelected = isTradingTab
+                    ) || generation != activeSocketGeneration
+                ) {
+                    return
+                }
+                fetchStockDetail(currentSymbol, generation)
+                loadCandleData(currentSymbol, generation)
+                stockPollingHandler.postDelayed(this, StockPollingPolicy.STOCK_POLL_INTERVAL_MS)
+            }
+        }
+        stockPollingHandler.postDelayed(stockPollingRunnable!!, StockPollingPolicy.STOCK_POLL_INTERVAL_MS)
+    }
+
+    private fun stopStockPolling() {
+        stockPollingRunnable?.let { stockPollingHandler.removeCallbacks(it) }
+        stockPollingRunnable = null
+    }
+
     private fun setupTabs() {
         val b = binding ?: return
         b.tabLayoutTradingMode.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -320,11 +361,15 @@ class TradingFragment : Fragment() {
                     0 -> {
                         b.layoutTradingContainer.visibility = View.VISIBLE
                         b.layoutStockCatalogContainer.visibility = View.GONE
+                        if (StockTradePolicy.isStock(currentSymbol)) {
+                            startStockPolling(currentSymbol, activeSocketGeneration)
+                        }
                         loadEmbeddedWatchlist()
                     }
                     1 -> {
                         b.layoutTradingContainer.visibility = View.GONE
                         b.layoutStockCatalogContainer.visibility = View.VISIBLE
+                        stopStockPolling()
                         loadStockCatalog()
                     }
                 }
@@ -706,6 +751,7 @@ class TradingFragment : Fragment() {
         activeStockDetailCall?.cancel()
         activeStockDetailCall = null
         disconnectWebSocket()
+        stopStockPolling()
         reconnectAttempts = 0
 
         currentCandles.clear()
@@ -719,13 +765,15 @@ class TradingFragment : Fragment() {
 
         val isStock = StockTradePolicy.isStock(sym)
 
-        // 1. Cập nhật Tiêu đề Header
+        // 1. Cập nhật Tiêu đề Header & Provider badge
         b.tvHeaderSymbol.text = formatSymbolDisplay(sym)
         b.tvHeaderFullName.text = if (MarketStreamHelper.isGoldReferenceStream(sym)) {
             getString(R.string.trading_gold_paxg_reference)
         } else {
             getFriendlyName(sym)
         }
+        b.tvProviderBadge.text = MarketDataProviderPolicy.resolveProviderName(sym)
+        b.tvTimeframeBadge.text = "1m"
 
         // 2. Xóa giá hiển thị cũ, đưa về trạng thái chờ
         currentAssetPrice = null
@@ -754,7 +802,8 @@ class TradingFragment : Fragment() {
         if (isStock) {
             b.tvLiveStatus.text = getString(R.string.trading_no_live_badge)
             b.tvLiveStatus.setTextColor(ContextCompat.getColor(ctx, R.color.tv_text_secondary))
-            fetchStockDetail(sym)
+            fetchStockDetail(sym, generation)
+            startStockPolling(sym, generation)
         } else {
             b.llStockMetaRow.visibility = View.GONE
             b.tvTradeWarningMessage.visibility = View.GONE
@@ -775,7 +824,7 @@ class TradingFragment : Fragment() {
         loadEmbeddedWatchlist()
     }
 
-    private fun fetchStockDetail(symbol: String) {
+    private fun fetchStockDetail(symbol: String, generation: Long = activeSocketGeneration) {
         activeStockDetailCall?.cancel()
         val call = RetrofitClient.apiService.getStockDetail(symbol)
         activeStockDetailCall = call
@@ -785,7 +834,7 @@ class TradingFragment : Fragment() {
 
         call.enqueue(object : Callback<StockDetailDto> {
             override fun onResponse(call: Call<StockDetailDto>, response: Response<StockDetailDto>) {
-                if (activeStockDetailCall !== call) return
+                if (activeStockDetailCall !== call || generation != activeSocketGeneration || !symbol.equals(currentSymbol, ignoreCase = true)) return
                 if (!isAdded || _binding == null) return
 
                 if (response.code() == 401 || response.code() == 403) {
@@ -797,6 +846,18 @@ class TradingFragment : Fragment() {
                 if (response.isSuccessful && detail != null) {
                     val price = detail.currentPrice
                     isStockDetailStale = detail.stale == true
+
+                    // Update Provider Badge
+                    b.tvProviderBadge.text = MarketDataProviderPolicy.resolveProviderName(symbol, detail.marketDataProvider)
+
+                    // Update Status Badge (Stale vs Live)
+                    val badgeState = StockBadgePolicy.resolveStatusBadge(
+                        isStock = true,
+                        isStale = isStockDetailStale,
+                        hasValidPrice = price != null && price > 0.0
+                    )
+                    b.tvLiveStatus.text = getString(badgeState.textRes)
+                    b.tvLiveStatus.setTextColor(ContextCompat.getColor(ctx, badgeState.colorRes))
 
                     if (price != null && price > 0.0) {
                         currentAssetPrice = price
@@ -865,6 +926,13 @@ class TradingFragment : Fragment() {
                     }
                 } else {
                     isStockDetailStale = true
+                    val badgeState = StockBadgePolicy.resolveStatusBadge(
+                        isStock = true,
+                        isStale = true,
+                        hasValidPrice = false
+                    )
+                    b.tvLiveStatus.text = getString(badgeState.textRes)
+                    b.tvLiveStatus.setTextColor(ContextCompat.getColor(ctx, badgeState.colorRes))
                     b.tvTradeWarningMessage.text = getString(R.string.stock_trade_disabled_warning)
                     b.tvTradeWarningMessage.visibility = View.VISIBLE
                     b.btnBuy.isEnabled = false
@@ -875,9 +943,16 @@ class TradingFragment : Fragment() {
             }
 
             override fun onFailure(call: Call<StockDetailDto>, t: Throwable) {
-                if (activeStockDetailCall !== call) return
+                if (activeStockDetailCall !== call || generation != activeSocketGeneration || !symbol.equals(currentSymbol, ignoreCase = true)) return
                 if (!isAdded || _binding == null) return
                 isStockDetailStale = true
+                val badgeState = StockBadgePolicy.resolveStatusBadge(
+                    isStock = true,
+                    isStale = true,
+                    hasValidPrice = false
+                )
+                b.tvLiveStatus.text = getString(badgeState.textRes)
+                b.tvLiveStatus.setTextColor(ContextCompat.getColor(ctx, badgeState.colorRes))
                 b.tvTradeWarningMessage.text = getString(R.string.stock_trade_disabled_warning)
                 b.tvTradeWarningMessage.visibility = View.VISIBLE
                 b.btnBuy.isEnabled = false
@@ -901,21 +976,21 @@ class TradingFragment : Fragment() {
     }
 
     /**
-     * Tải dữ liệu nến từ Backend qua Retrofit (1m cho Crypto/Commodity, daily cho Cổ phiếu)
+     * Tải dữ liệu nến từ Backend qua Retrofit (1m cho cả Crypto/Commodity và Cổ phiếu)
      */
     private fun loadCandleData(symbol: String, generation: Long = activeSocketGeneration) {
         setLoadingState(true)
 
         activeCandleCall?.cancel()
         val isStock = StockTradePolicy.isStock(symbol)
-        val interval = if (isStock) "daily" else "1m"
+        val interval = "1m"
         val call = RetrofitClient.apiService.getCandles(symbol, interval)
         activeCandleCall = call
 
         call.enqueue(object : Callback<List<CandleDto>> {
             override fun onResponse(call: Call<List<CandleDto>>, response: Response<List<CandleDto>>) {
                 try {
-                    if (call.isCanceled || generation != activeSocketGeneration || !isAdded || _binding == null) return
+                    if (call.isCanceled || generation != activeSocketGeneration || !symbol.equals(currentSymbol, ignoreCase = true) || !isAdded || _binding == null) return
                     setLoadingState(false)
 
                     if (response.code() == 401 || response.code() == 403) {
@@ -954,7 +1029,7 @@ class TradingFragment : Fragment() {
 
             override fun onFailure(call: Call<List<CandleDto>>, t: Throwable) {
                 try {
-                    if (call.isCanceled || generation != activeSocketGeneration || !isAdded || _binding == null) return
+                    if (call.isCanceled || generation != activeSocketGeneration || !symbol.equals(currentSymbol, ignoreCase = true) || !isAdded || _binding == null) return
                     setLoadingState(false)
                     Log.e(TAG, "Lỗi kết nối Retrofit nến: ${t.message}")
                     handleCandleLoadFallback(symbol)
@@ -991,6 +1066,7 @@ class TradingFragment : Fragment() {
     }
 
     private fun renderCandleChart(candles: List<CandleDto>, symbol: String) {
+        if (!symbol.equals(currentSymbol, ignoreCase = true)) return
         val b = binding ?: return
         val ctx = context ?: return
 
@@ -1029,12 +1105,7 @@ class TradingFragment : Fragment() {
             }
         }
 
-        val isStock = StockTradePolicy.isStock(symbol)
-        val datasetLabel = if (isStock) {
-            ChartLabelFormatter.formatDailyDatasetLabel(symbol)
-        } else {
-            ChartLabelFormatter.formatChartDatasetLabel(symbol, "1m")
-        }
+        val datasetLabel = ChartLabelFormatter.formatChartDatasetLabel(symbol, "1m")
         val dataSet = CandleDataSet(candleEntries, datasetLabel).apply {
             setDrawIcons(false)
             shadowColor = ContextCompat.getColor(ctx, R.color.tv_text_secondary)

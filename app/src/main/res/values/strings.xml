@@ -208,4 +208,10 @@
     <string name="report_open_error">Không thể mở đường dẫn báo cáo</string>
     <string name="btn_watchlist_toggle_add">+ Quan tâm</string>
     <string name="watchlist_load_failed">Không thể tải danh sách theo dõi. Vui lòng thử lại.</string>
+    <string name="trading_stale_badge">Dữ liệu có thể trễ</string>
+    <string name="provider_binance">Binance</string>
+    <string name="provider_alpaca">Alpaca</string>
+    <string name="provider_twelve_data">Twelve Data</string>
+    <string name="provider_alpha_vantage">Alpha Vantage</string>
+    <string name="timeframe_1m">1m</string>
 </resources>

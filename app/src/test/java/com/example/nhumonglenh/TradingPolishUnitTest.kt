@@ -365,7 +365,7 @@ class TradingPolishUnitTest {
 
             // 7. No "Live 1s" in candle dataset label
             assertFalse("TradingFragment must not label daily candle dataset with 'Live 1s'", content.contains("(Live 1s)"))
-            assertTrue("TradingFragment must use ChartLabelFormatter", content.contains("ChartLabelFormatter.formatDailyDatasetLabel"))
+            assertTrue("TradingFragment must use ChartLabelFormatter", content.contains("ChartLabelFormatter.formatDailyDatasetLabel") || content.contains("ChartLabelFormatter.formatChartDatasetLabel"))
 
             // 8. Flight reference release helpers
             assertTrue("TradingFragment must implement releasePortfolioCall", content.contains("releasePortfolioCall"))
