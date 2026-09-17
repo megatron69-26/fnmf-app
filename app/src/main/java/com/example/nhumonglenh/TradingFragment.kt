@@ -439,6 +439,7 @@ class TradingFragment : Fragment() {
                         if (pResp.isSuccessful) {
                             cachedCatalogPrices = pResp.body() ?: emptyList()
                             refreshCatalogUI()
+                            renderEmbeddedWatchlistFromCache()
                         }
                     }
                     override fun onFailure(pCall: Call<List<com.example.nhumonglenh.data.remote.MarketPriceDto>>, t: Throwable) {
@@ -454,11 +455,14 @@ class TradingFragment : Fragment() {
                             if (!isAdded || _binding == null) return
                             if (wResp.isSuccessful) {
                                 val watchlist = wResp.body() ?: emptyList()
-                                cachedWatchlistSymbols.clear()
-                                watchlist.mapNotNull { it.symbol.trim().uppercase(Locale.ROOT) }.forEach {
-                                    cachedWatchlistSymbols.add(it)
+                                val valid = watchlist.mapNotNull {
+                                    val canon = canonicalTradingSymbol(it.symbol)
+                                    if (SUPPORTED_BINANCE_SYMBOLS.contains(canon)) canon else null
                                 }
+                                cachedWatchlistSymbols.clear()
+                                cachedWatchlistSymbols.addAll(valid)
                                 refreshCatalogUI()
+                                renderEmbeddedWatchlistFromCache()
                             }
                         }
                         override fun onFailure(wCall: Call<List<WatchlistItemDto>>, t: Throwable) {
@@ -489,6 +493,43 @@ class TradingFragment : Fragment() {
         updateWatchlistToggleButton()
     }
 
+    private fun renderEmbeddedWatchlistFromCache() {
+        val b = binding ?: return
+        val validSymbols = cachedWatchlistSymbols
+            .map { canonicalTradingSymbol(it) }
+            .filter { SUPPORTED_BINANCE_SYMBOLS.contains(it) }
+            .distinct()
+
+        if (validSymbols.isEmpty()) {
+            b.rvEmbeddedWatchlist.visibility = View.GONE
+            b.tvEmbeddedWatchlistEmpty.visibility = View.VISIBLE
+            embeddedWatchlistAdapter.updateData(emptyList())
+            return
+        }
+
+        val uiModels = validSymbols.map { sym ->
+            val priceDto = cachedCatalogPrices.firstOrNull {
+                canonicalTradingSymbol(it.symbol) == sym || it.symbol?.equals(sym, ignoreCase = true) == true
+            }
+            val price = priceDto?.price ?: if (canonicalTradingSymbol(currentSymbol) == sym) currentAssetPrice else null
+            val change = priceDto?.change24h
+            WatchlistUiModel(
+                symbol = sym,
+                fullName = getFriendlyName(sym),
+                price = price,
+                changePercent = change,
+                priceAsOf = null,
+                recommendation = null,
+                latestReportTitle = null,
+                latestReportUrl = null,
+                isStock = false
+            )
+        }
+
+        b.rvEmbeddedWatchlist.visibility = View.VISIBLE
+        b.tvEmbeddedWatchlistEmpty.visibility = View.GONE
+        embeddedWatchlistAdapter.updateData(uiModels)
+    }
 
     private fun setupEmbeddedWatchlist() {
         val b = binding ?: return
@@ -526,35 +567,49 @@ class TradingFragment : Fragment() {
                 if (response.isSuccessful) {
                     val items = response.body()
                     if (!items.isNullOrEmpty()) {
+                        val validItems = items.filter { dto ->
+                            val sym = canonicalTradingSymbol(dto.symbol)
+                            SUPPORTED_BINANCE_SYMBOLS.contains(sym)
+                        }
                         cachedWatchlistSymbols.clear()
-                        items.mapNotNull { it.symbol.trim().uppercase(Locale.ROOT) }.forEach {
-                            cachedWatchlistSymbols.add(it)
+                        validItems.forEach { dto ->
+                            cachedWatchlistSymbols.add(canonicalTradingSymbol(dto.symbol))
                         }
                         updateWatchlistToggleButton()
 
-                        val uiModels = items.map { dto ->
-                            val sym = dto.symbol.trim().uppercase(Locale.ROOT)
-                            val isStockItem = StockTradePolicy.isStock(sym)
-                            WatchlistUiModel(
-                                symbol = sym,
-                                fullName = dto.name ?: getFriendlyName(sym),
-                                price = dto.currentPrice,
-                                changePercent = dto.change24h,
-                                priceAsOf = dto.priceAsOf,
-                                recommendation = dto.recommendation,
-                                latestReportTitle = dto.latestReportTitle,
-                                latestReportUrl = dto.latestReportUrl,
-                                isStock = isStockItem
-                            )
+                        if (validItems.isNotEmpty()) {
+                            val distinctValidItems = validItems.distinctBy { canonicalTradingSymbol(it.symbol) }
+                            val uiModels = distinctValidItems.map { dto ->
+                                val sym = canonicalTradingSymbol(dto.symbol)
+                                val fallbackPriceDto = cachedCatalogPrices.firstOrNull {
+                                    canonicalTradingSymbol(it.symbol) == sym || it.symbol?.equals(sym, ignoreCase = true) == true
+                                }
+                                val price = dto.currentPrice ?: fallbackPriceDto?.price ?: if (canonicalTradingSymbol(currentSymbol) == sym) currentAssetPrice else null
+                                val change = dto.change24h ?: fallbackPriceDto?.change24h
+                                WatchlistUiModel(
+                                    symbol = sym,
+                                    fullName = dto.name?.takeIf { it.isNotBlank() } ?: getFriendlyName(sym),
+                                    price = price,
+                                    changePercent = change,
+                                    priceAsOf = dto.priceAsOf,
+                                    recommendation = dto.recommendation,
+                                    latestReportTitle = dto.latestReportTitle,
+                                    latestReportUrl = dto.latestReportUrl,
+                                    isStock = false
+                                )
+                            }
+                            b.rvEmbeddedWatchlist.visibility = View.VISIBLE
+                            b.tvEmbeddedWatchlistEmpty.visibility = View.GONE
+                            embeddedWatchlistAdapter.updateData(uiModels)
+                        } else {
+                            renderEmbeddedWatchlistFromCache()
                         }
-                        b.rvEmbeddedWatchlist.visibility = View.VISIBLE
-                        b.tvEmbeddedWatchlistEmpty.visibility = View.GONE
-                        embeddedWatchlistAdapter.updateData(uiModels)
                     } else {
                         cachedWatchlistSymbols.clear()
                         updateWatchlistToggleButton()
                         b.rvEmbeddedWatchlist.visibility = View.GONE
                         b.tvEmbeddedWatchlistEmpty.visibility = View.VISIBLE
+                        embeddedWatchlistAdapter.updateData(emptyList())
                     }
                 } else {
                     Log.w(TAG, "Không thể tải danh sách theo dõi: code ${response.code()}")
@@ -583,7 +638,7 @@ class TradingFragment : Fragment() {
 
     private fun updateWatchlistToggleButton() {
         val b = binding ?: return
-        val cleanSym = currentSymbol.trim().uppercase(Locale.ROOT)
+        val cleanSym = canonicalTradingSymbol(currentSymbol)
         val isWatchlisted = cachedWatchlistSymbols.contains(cleanSym)
         if (isWatchlisted) {
             b.btnTradingWatchlistToggle.text = getString(R.string.btn_watchlist_remove)
@@ -597,7 +652,7 @@ class TradingFragment : Fragment() {
     }
 
     private fun toggleWatchlistForSymbol(symbol: String) {
-        val cleanSym = symbol.trim().uppercase(Locale.ROOT)
+        val cleanSym = canonicalTradingSymbol(symbol)
         val authHeader = AuthHeaderFactory.createBearerHeader(jwtToken) ?: return
         val isCurrentlyWatchlisted = cachedWatchlistSymbols.contains(cleanSym)
 
@@ -615,6 +670,8 @@ class TradingFragment : Fragment() {
                     )
                     cachedWatchlistSymbols.clear()
                     cachedWatchlistSymbols.addAll(updated)
+                    renderEmbeddedWatchlistFromCache()
+                    refreshCatalogUI()
                     updateWatchlistToggleButton()
 
                     if (response.isSuccessful) {
@@ -640,6 +697,8 @@ class TradingFragment : Fragment() {
                     )
                     cachedWatchlistSymbols.clear()
                     cachedWatchlistSymbols.addAll(updated)
+                    renderEmbeddedWatchlistFromCache()
+                    refreshCatalogUI()
                     updateWatchlistToggleButton()
                     context?.let {
                         Toast.makeText(it, getString(R.string.network_error_msg), Toast.LENGTH_SHORT).show()
@@ -660,6 +719,8 @@ class TradingFragment : Fragment() {
                     )
                     cachedWatchlistSymbols.clear()
                     cachedWatchlistSymbols.addAll(updated)
+                    renderEmbeddedWatchlistFromCache()
+                    refreshCatalogUI()
                     updateWatchlistToggleButton()
 
                     if (response.isSuccessful) {
@@ -685,6 +746,8 @@ class TradingFragment : Fragment() {
                     )
                     cachedWatchlistSymbols.clear()
                     cachedWatchlistSymbols.addAll(updated)
+                    renderEmbeddedWatchlistFromCache()
+                    refreshCatalogUI()
                     updateWatchlistToggleButton()
                     context?.let {
                         Toast.makeText(it, getString(R.string.network_error_msg), Toast.LENGTH_SHORT).show()
@@ -1282,7 +1345,11 @@ class TradingFragment : Fragment() {
         b.tvLiveStatus.text = getString(R.string.trading_live_badge)
         b.tvLiveStatus.setTextColor(ContextCompat.getColor(ctx, R.color.tv_green))
 
-        b.tvCurrentPrice.text = String.format(Locale.US, "$%,.2f", livePrice)
+        b.tvCurrentPrice.text = when {
+            livePrice >= 1000 -> String.format(Locale.US, "$%,.2f", livePrice)
+            livePrice >= 1 -> String.format(Locale.US, "$%,.4f", livePrice)
+            else -> String.format(Locale.US, "$%.6f", livePrice)
+        }
         val priceColor = when {
             previousAssetPrice != null && livePrice > previousAssetPrice!! -> R.color.tv_green
             previousAssetPrice != null && livePrice < previousAssetPrice!! -> R.color.tv_red
@@ -1575,5 +1642,23 @@ class TradingFragment : Fragment() {
     companion object {
         private const val TAG = "FNMF_TradingFragment"
         const val KEY_SAVED_SYMBOL = "SAVED_MARKET_SYMBOL"
+        val SUPPORTED_BINANCE_SYMBOLS = setOf(
+            "BTCUSDT", "ETHUSDT", "XAUUSD", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT"
+        )
+
+        fun canonicalTradingSymbol(sym: String?): String {
+            val upper = sym?.trim()?.uppercase(Locale.ROOT) ?: return ""
+            return when (upper) {
+                "BTC" -> "BTCUSDT"
+                "ETH" -> "ETHUSDT"
+                "XAU", "PAXG", "PAXGUSDT", "GOLD" -> "XAUUSD"
+                "BNB" -> "BNBUSDT"
+                "SOL" -> "SOLUSDT"
+                "XRP" -> "XRPUSDT"
+                "ADA" -> "ADAUSDT"
+                "DOGE" -> "DOGEUSDT"
+                else -> upper
+            }
+        }
     }
 }

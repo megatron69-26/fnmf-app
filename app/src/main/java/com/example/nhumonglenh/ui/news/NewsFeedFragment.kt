@@ -110,6 +110,12 @@ class NewsFeedFragment : Fragment() {
                         }
                         binding.rvNews.visibility = View.VISIBLE
                         binding.tvNewsError.visibility = View.GONE
+                        if (result.isStale) {
+                            binding.tvNewsStaleWarning.visibility = View.VISIBLE
+                            binding.tvNewsStaleWarning.setText(R.string.news_stale_warning)
+                        } else {
+                            binding.tvNewsStaleWarning.visibility = View.GONE
+                        }
                         adapter.submit(result.news)
                     }
                     is NewsRepository.NewsRefreshResult.DegradedOrEmpty -> {
@@ -121,6 +127,8 @@ class NewsFeedFragment : Fragment() {
                         if (result.cachedNews.isNotEmpty()) {
                             binding.rvNews.visibility = View.VISIBLE
                             binding.tvNewsError.visibility = View.GONE
+                            binding.tvNewsStaleWarning.visibility = View.VISIBLE
+                            binding.tvNewsStaleWarning.setText(R.string.news_stale_warning)
                             adapter.submit(result.cachedNews)
                         }
                     }
@@ -135,6 +143,8 @@ class NewsFeedFragment : Fragment() {
                         if (result.cachedNews.isNotEmpty()) {
                             binding.rvNews.visibility = View.VISIBLE
                             binding.tvNewsError.visibility = View.GONE
+                            binding.tvNewsStaleWarning.visibility = View.VISIBLE
+                            binding.tvNewsStaleWarning.setText(R.string.news_stale_warning)
                             adapter.submit(result.cachedNews)
                         }
                     }
@@ -155,6 +165,8 @@ class NewsFeedFragment : Fragment() {
                         if (result.cachedNews.isNotEmpty()) {
                             binding.rvNews.visibility = View.VISIBLE
                             binding.tvNewsError.visibility = View.GONE
+                            binding.tvNewsStaleWarning.visibility = View.VISIBLE
+                            binding.tvNewsStaleWarning.setText(R.string.news_stale_warning)
                             adapter.submit(result.cachedNews)
                         }
                     }
@@ -163,6 +175,8 @@ class NewsFeedFragment : Fragment() {
                         if (result.cachedNews.isNotEmpty()) {
                             binding.rvNews.visibility = View.VISIBLE
                             binding.tvNewsError.visibility = View.GONE
+                            binding.tvNewsStaleWarning.visibility = View.VISIBLE
+                            binding.tvNewsStaleWarning.setText(R.string.news_stale_warning)
                             adapter.submit(result.cachedNews)
                         }
                     }
@@ -202,22 +216,32 @@ class NewsFeedFragment : Fragment() {
                     is NewsRepository.NewsResult.SyncSuccess -> {
                         binding.rvNews.visibility = View.VISIBLE
                         binding.tvNewsError.visibility = View.GONE
+                        if (result.isStale) {
+                            binding.tvNewsStaleWarning.visibility = View.VISIBLE
+                            binding.tvNewsStaleWarning.setText(R.string.news_stale_warning)
+                        } else {
+                            binding.tvNewsStaleWarning.visibility = View.GONE
+                        }
                         adapter.submit(result.news)
                     }
                     is NewsRepository.NewsResult.CacheFallback -> {
                         binding.rvNews.visibility = View.VISIBLE
                         binding.tvNewsError.visibility = View.VISIBLE
                         binding.tvNewsError.text = "Đang ngoại tuyến. Ứng dụng đang hiển thị tin tức đã lưu trên thiết bị."
+                        binding.tvNewsStaleWarning.visibility = View.VISIBLE
+                        binding.tvNewsStaleWarning.setText(R.string.news_stale_warning)
                         adapter.submit(result.news)
                     }
                     is NewsRepository.NewsResult.CacheWriteFailure -> {
                         binding.rvNews.visibility = View.GONE
+                        binding.tvNewsStaleWarning.visibility = View.GONE
                         binding.tvNewsError.visibility = View.VISIBLE
                         binding.tvNewsError.text = "Không thể lưu tin tức trên thiết bị. Vui lòng thử lại."
                         adapter.submit(emptyList())
                     }
                     is NewsRepository.NewsResult.Empty -> {
                         binding.rvNews.visibility = View.GONE
+                        binding.tvNewsStaleWarning.visibility = View.GONE
                         binding.tvNewsError.visibility = View.VISIBLE
                         binding.tvNewsError.text = if (result.message.isNotBlank()) result.message else "Chưa có bản tin mới"
                         adapter.submit(emptyList())

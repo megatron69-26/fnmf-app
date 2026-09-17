@@ -23,15 +23,36 @@ import java.util.Locale
 class NewsRepository private constructor(private val context: Context) {
 
     sealed class NewsResult {
-        data class SyncSuccess(val news: List<News>) : NewsResult()
-        data class CacheFallback(val news: List<News>, val reason: String) : NewsResult()
+        data class SyncSuccess(
+            val news: List<News>,
+            val isStale: Boolean = false,
+            val dataAsOf: String? = null,
+            val latestPublishedAt: String? = null
+        ) : NewsResult()
+        data class CacheFallback(val news: List<News>, val reason: String, val isStale: Boolean = true) : NewsResult()
         data class CacheWriteFailure(val error: Throwable) : NewsResult()
         data class Empty(val message: String) : NewsResult()
     }
 
     sealed class NewsRefreshResult {
-        data class Success(val news: List<News>, val remainingRefreshes: Int?, val quotaDate: String?) : NewsRefreshResult()
-        data class DegradedOrEmpty(val status: String, val message: String, val cachedNews: List<News>, val remainingRefreshes: Int?, val quotaDate: String?) : NewsRefreshResult()
+        data class Success(
+            val news: List<News>,
+            val remainingRefreshes: Int?,
+            val quotaDate: String?,
+            val isStale: Boolean = false,
+            val dataAsOf: String? = null,
+            val latestPublishedAt: String? = null
+        ) : NewsRefreshResult()
+        data class DegradedOrEmpty(
+            val status: String,
+            val message: String,
+            val cachedNews: List<News>,
+            val remainingRefreshes: Int?,
+            val quotaDate: String?,
+            val isStale: Boolean = false,
+            val dataAsOf: String? = null,
+            val latestPublishedAt: String? = null
+        ) : NewsRefreshResult()
         data class QuotaExhausted(val message: String, val cachedNews: List<News>) : NewsRefreshResult()
         data class Unauthorized(val message: String) : NewsRefreshResult()
         data class ServerError(val message: String, val cachedNews: List<News>, val remainingRefreshes: Int? = null) : NewsRefreshResult()
@@ -50,6 +71,9 @@ class NewsRepository private constructor(private val context: Context) {
         if (remoteResult.isSuccess) {
             val remoteResponse = remoteResult.getOrNull()
             val remoteNews = remoteResponse?.data ?: emptyList()
+            val isStale = remoteResponse?.stale ?: false
+            val dataAsOf = remoteResponse?.dataAsOf
+            val latestPublishedAt = remoteResponse?.latestPublishedAt
             val serverMsg = remoteResponse?.message?.takeIf { it.isNotBlank() } ?: "Chưa có bản tin mới"
             if (remoteNews.isNotEmpty()) {
                 // Ghi vào Room DB nguyên vẹn qua atomic transaction
@@ -115,7 +139,12 @@ class NewsRepository private constructor(private val context: Context) {
                 // Đọc lại từ Room DB làm Single Source of Truth
                 val roomNews = readNewsFromRoom(newsDao)
                 return@withContext if (roomNews.isNotEmpty()) {
-                    NewsResult.SyncSuccess(roomNews)
+                    NewsResult.SyncSuccess(
+                        news = roomNews,
+                        isStale = isStale,
+                        dataAsOf = dataAsOf,
+                        latestPublishedAt = latestPublishedAt
+                    )
                 } else {
                     NewsResult.Empty(serverMsg)
                 }
@@ -123,7 +152,7 @@ class NewsRepository private constructor(private val context: Context) {
                 // Server trả danh sách rỗng (status degraded hoặc chưa có tin mới)
                 val roomNews = readNewsFromRoom(newsDao)
                 return@withContext if (roomNews.isNotEmpty()) {
-                    NewsResult.CacheFallback(roomNews, serverMsg)
+                    NewsResult.CacheFallback(roomNews, serverMsg, isStale = true)
                 } else {
                     NewsResult.Empty(serverMsg)
                 }
@@ -169,7 +198,10 @@ class NewsRepository private constructor(private val context: Context) {
                     message = msg,
                     cachedNews = cached,
                     remainingRefreshes = response.remainingRefreshes,
-                    quotaDate = response.quotaDate
+                    quotaDate = response.quotaDate,
+                    isStale = response.stale,
+                    dataAsOf = response.dataAsOf,
+                    latestPublishedAt = response.latestPublishedAt
                 )
             }
 
@@ -178,7 +210,10 @@ class NewsRepository private constructor(private val context: Context) {
             NewsRefreshResult.Success(
                 news = if (updated.isNotEmpty()) updated else remoteNews,
                 remainingRefreshes = response.remainingRefreshes,
-                quotaDate = response.quotaDate
+                quotaDate = response.quotaDate,
+                isStale = response.stale,
+                dataAsOf = response.dataAsOf,
+                latestPublishedAt = response.latestPublishedAt
             )
         } catch (e: retrofit2.HttpException) {
             when (e.code()) {

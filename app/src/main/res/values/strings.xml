@@ -176,6 +176,7 @@
     <string name="refresh_news_empty">Chưa có bản tin mới</string>
     <string name="refresh_server_error_format">Lỗi máy chủ (%1$d). Vui lòng thử lại.</string>
     <string name="refresh_unknown_error">Đã xảy ra lỗi không xác định. Vui lòng thử lại.</string>
+    <string name="news_stale_warning">Đang hiển thị tin đã lưu gần nhất</string>
 
     <!-- Phase 2 Stock & Navigation Strings -->
     <string name="nav_title_portfolio">Danh mục</string>
