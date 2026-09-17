@@ -114,6 +114,8 @@ class TradingFragment : Fragment() {
 
     // Trạng thái cổ phiếu
     private var isStockDetailStale: Boolean = false
+    private var cachedCatalogStocks: List<StockCatalogDto> = emptyList()
+    private var cachedCatalogPrices: List<com.example.nhumonglenh.data.remote.MarketPriceDto> = emptyList()
 
     // Adapters
     private lateinit var stockCatalogAdapter: StockCatalogAdapter
@@ -427,71 +429,43 @@ class TradingFragment : Fragment() {
                 }
 
                 val stocks = response.body() ?: emptyList()
-                val authHeader = AuthHeaderFactory.createBearerHeader(jwtToken)
+                cachedCatalogStocks = stocks
+                stockCatalogAdapter.submitList(StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, emptyList(), emptyList()))
 
+                // Fire getMarketPrices independently
                 RetrofitClient.apiService.getMarketPrices().enqueue(object : Callback<List<com.example.nhumonglenh.data.remote.MarketPriceDto>> {
                     override fun onResponse(pCall: Call<List<com.example.nhumonglenh.data.remote.MarketPriceDto>>, pResp: Response<List<com.example.nhumonglenh.data.remote.MarketPriceDto>>) {
-                        val prices = if (pResp.isSuccessful) pResp.body() else emptyList()
-                        if (authHeader != null) {
-                            RetrofitClient.apiService.getWatchlist(authHeader).enqueue(object : Callback<List<WatchlistItemDto>> {
-                                override fun onResponse(wCall: Call<List<WatchlistItemDto>>, wResp: Response<List<WatchlistItemDto>>) {
-                                    if (!isAdded || _binding == null) return
-                                    if (wResp.code() == 401 || wResp.code() == 403) {
-                                        AuthSessionManager.handleUnauthorized(activity)
-                                        return
-                                    }
-                                    if (wResp.isSuccessful) {
-                                        val watchlist = wResp.body() ?: emptyList()
-                                        cachedWatchlistSymbols.clear()
-                                        watchlist.mapNotNull { it.symbol.trim().uppercase(Locale.ROOT) }.forEach {
-                                            cachedWatchlistSymbols.add(it)
-                                        }
-                                        val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, watchlist, prices)
-                                        stockCatalogAdapter.submitList(uiModels)
-                                        updateWatchlistToggleButton()
-                                    } else {
-                                        Log.w(TAG, "Không thể tải watchlist khi load catalog: code ${wResp.code()}")
-                                        val currentWatchlistItems = cachedWatchlistSymbols.map { WatchlistItemDto(symbol = it) }
-                                        val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, currentWatchlistItems, prices)
-                                        stockCatalogAdapter.submitList(uiModels)
-                                    }
-                                }
-
-                                override fun onFailure(wCall: Call<List<WatchlistItemDto>>, t: Throwable) {
-                                    if (!isAdded || _binding == null) return
-                                    Log.e(TAG, "Lỗi kết nối khi tải watchlist cho catalog: ${t.message}")
-                                    val currentWatchlistItems = cachedWatchlistSymbols.map { WatchlistItemDto(symbol = it) }
-                                    val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, currentWatchlistItems, prices)
-                                    stockCatalogAdapter.submitList(uiModels)
-                                }
-                            })
-                        } else {
-                            val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, emptyList(), prices)
-                            stockCatalogAdapter.submitList(uiModels)
+                        if (!isAdded || _binding == null) return
+                        if (pResp.isSuccessful) {
+                            cachedCatalogPrices = pResp.body() ?: emptyList()
+                            refreshCatalogUI()
                         }
                     }
-
                     override fun onFailure(pCall: Call<List<com.example.nhumonglenh.data.remote.MarketPriceDto>>, t: Throwable) {
-                        if (authHeader != null) {
-                            RetrofitClient.apiService.getWatchlist(authHeader).enqueue(object : Callback<List<WatchlistItemDto>> {
-                                override fun onResponse(wCall: Call<List<WatchlistItemDto>>, wResp: Response<List<WatchlistItemDto>>) {
-                                    if (!isAdded || _binding == null) return
-                                    val watchlist = if (wResp.isSuccessful) wResp.body() ?: emptyList() else cachedWatchlistSymbols.map { WatchlistItemDto(symbol = it) }
-                                    val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, watchlist, null)
-                                    stockCatalogAdapter.submitList(uiModels)
-                                }
-                                override fun onFailure(wCall: Call<List<WatchlistItemDto>>, t: Throwable) {
-                                    if (!isAdded || _binding == null) return
-                                    val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, cachedWatchlistSymbols.map { WatchlistItemDto(symbol = it) }, null)
-                                    stockCatalogAdapter.submitList(uiModels)
-                                }
-                            })
-                        } else {
-                            val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, emptyList(), null)
-                            stockCatalogAdapter.submitList(uiModels)
-                        }
+                        // Do nothing on error
                     }
                 })
+
+                // Fire getWatchlist independently
+                val authHeader = AuthHeaderFactory.createBearerHeader(jwtToken)
+                if (authHeader != null) {
+                    RetrofitClient.apiService.getWatchlist(authHeader).enqueue(object : Callback<List<WatchlistItemDto>> {
+                        override fun onResponse(wCall: Call<List<WatchlistItemDto>>, wResp: Response<List<WatchlistItemDto>>) {
+                            if (!isAdded || _binding == null) return
+                            if (wResp.isSuccessful) {
+                                val watchlist = wResp.body() ?: emptyList()
+                                cachedWatchlistSymbols.clear()
+                                watchlist.mapNotNull { it.symbol.trim().uppercase(Locale.ROOT) }.forEach {
+                                    cachedWatchlistSymbols.add(it)
+                                }
+                                refreshCatalogUI()
+                            }
+                        }
+                        override fun onFailure(wCall: Call<List<WatchlistItemDto>>, t: Throwable) {
+                            // Do nothing on error
+                        }
+                    })
+                }
             }
 
             override fun onFailure(call: Call<List<StockCatalogDto>>, t: Throwable) {
@@ -505,6 +479,16 @@ class TradingFragment : Fragment() {
             }
         })
     }
+
+    private fun refreshCatalogUI() {
+        val b = binding ?: return
+        if (cachedCatalogStocks.isEmpty()) return
+        val watchlist = cachedWatchlistSymbols.map { WatchlistItemDto(symbol = it, name = it) }
+        val uiModels = StockWatchlistMatcher.matchCatalogWithWatchlist(cachedCatalogStocks, watchlist, cachedCatalogPrices)
+        stockCatalogAdapter.submitList(uiModels)
+        updateWatchlistToggleButton()
+    }
+
 
     private fun setupEmbeddedWatchlist() {
         val b = binding ?: return
@@ -1279,45 +1263,11 @@ class TradingFragment : Fragment() {
             return
         }
 
-        val isSameMinute = lastCandle != null && event.openTime == lastOpenTime
         val updatedSeries = CandleSeriesReducer.reduce(currentCandles, event, maxCandles = 30)
         currentCandles.clear()
         currentCandles.addAll(updatedSeries)
 
-        val b = binding ?: return
-
-        if (b.candleChart.data != null && candleDataSet != null && candleEntries.isNotEmpty() && currentCandles.isNotEmpty()) {
-            if (isSameMinute) {
-                // Cùng phút: Chỉ cập nhật cây nến cuối cùng trên biểu đồ
-                val lastIdx = candleEntries.size - 1
-                val lastC = currentCandles.last()
-                val lastEntry = candleEntries[lastIdx]
-                lastEntry.high = lastC.high.toFloat()
-                lastEntry.low = lastC.low.toFloat()
-                lastEntry.open = lastC.open.toFloat()
-                lastEntry.close = lastC.close.toFloat()
-
-                candleDataSet?.notifyDataSetChanged()
-                b.candleChart.data?.notifyDataChanged()
-                b.candleChart.notifyDataSetChanged()
-                b.candleChart.invalidate()
-            } else {
-                // Sang phút mới (hoặc lần đầu): Đồng bộ lại toàn bộ 30 entries và timeLabels từ currentCandles
-                candleEntries.clear()
-                timeLabels.clear()
-                for (i in currentCandles.indices) {
-                    val c = currentCandles[i]
-                    candleEntries.add(CandleEntry(i.toFloat(), c.high.toFloat(), c.low.toFloat(), c.open.toFloat(), c.close.toFloat()))
-                    timeLabels.add(c.time)
-                }
-                candleDataSet?.notifyDataSetChanged()
-                b.candleChart.data?.notifyDataChanged()
-                b.candleChart.notifyDataSetChanged()
-                b.candleChart.invalidate()
-            }
-        } else if (currentCandles.isNotEmpty()) {
-            renderCandleChart(currentCandles, currentSymbol)
-        }
+        rebuildCandleChartFromSeries()
 
         updateLivePriceDisplay(event.close, event.open)
     }
@@ -1352,6 +1302,65 @@ class TradingFragment : Fragment() {
         updateHoldingsForCurrentSymbol()
         updatePortfolioDisplay()
         updateTradeActionsState()
+    }
+
+    private fun rebuildCandleChartFromSeries() {
+        val b = binding ?: return
+        if (currentCandles.isEmpty()) return
+
+        // Save viewport state before rebuild
+        val chart = b.candleChart
+        val wasAutoScaling = !chart.isScaleXEnabled || chart.viewPortHandler.let {
+            it.contentWidth() <= 0f
+        }
+        val savedMatrix = if (!wasAutoScaling && chart.data != null) {
+            android.graphics.Matrix(chart.viewPortHandler.matrixTouch)
+        } else null
+
+        // Rebuild entries and labels from currentCandles
+        candleEntries.clear()
+        timeLabels.clear()
+        for (i in currentCandles.indices) {
+            val c = currentCandles[i]
+            candleEntries.add(CandleEntry(
+                i.toFloat(),
+                c.high.toFloat(),
+                c.low.toFloat(),
+                c.open.toFloat(),
+                c.close.toFloat()
+            ))
+            timeLabels.add(CandleTimeFormatter.formatChartAxisLabel(c.time))
+        }
+
+        // Rebuild dataset
+        val dataSet = CandleDataSet(candleEntries, ChartLabelFormatter.formatChartDatasetLabel(currentSymbol, "1m")).apply {
+            color = ContextCompat.getColor(requireContext(), R.color.tv_text_secondary)
+            shadowColor = ContextCompat.getColor(requireContext(), R.color.tv_text_secondary)
+            shadowWidth = 0.7f
+            decreasingColor = ContextCompat.getColor(requireContext(), R.color.tv_red)
+            decreasingPaintStyle = Paint.Style.FILL
+            increasingColor = ContextCompat.getColor(requireContext(), R.color.tv_green)
+            increasingPaintStyle = Paint.Style.FILL
+            neutralColor = ContextCompat.getColor(requireContext(), R.color.tv_text_secondary)
+            setDrawValues(false)
+        }
+        candleDataSet = dataSet
+
+        chart.data = CandleData(dataSet)
+        chart.xAxis.valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+            override fun getFormattedValue(value: Float): String {
+                val idx = value.toInt()
+                return if (idx in timeLabels.indices) timeLabels[idx] else ""
+            }
+        }
+
+        // Restore viewport if user was zoomed/panned
+        if (savedMatrix != null) {
+            chart.viewPortHandler.refresh(savedMatrix, chart, true)
+        }
+
+        chart.notifyDataSetChanged()
+        chart.invalidate()
     }
 
     private fun updatePortfolioDisplay() {

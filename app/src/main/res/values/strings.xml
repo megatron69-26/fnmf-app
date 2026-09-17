@@ -199,6 +199,7 @@
     <string name="wallet_action_withdraw">Rút tiền</string>
 
     <!-- Watchlist & Stock Catalog Polish Strings -->
+    <string name="catalog_header_binance">5 TÀI SẢN BINANCE</string>
     <string name="watchlist_add_success">Đã thêm %1$s vào danh sách quan tâm</string>
     <string name="watchlist_remove_success">Đã bỏ quan tâm %1$s</string>
     <string name="watchlist_update_failed">Cập nhật danh sách quan tâm thất bại. Vui lòng thử lại.</string>
