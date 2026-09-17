@@ -11,6 +11,7 @@ import com.example.nhumonglenh.ui.trading.BinanceKlineParser
 import com.example.nhumonglenh.ui.trading.CandleSeriesReducer
 import com.example.nhumonglenh.ui.trading.MarketStreamHelper
 import com.example.nhumonglenh.ui.trading.MarketSymbolMatcher
+import com.example.nhumonglenh.ui.trading.PriceFormatter
 import com.example.nhumonglenh.ui.trading.StockWatchlistMatcher
 import com.example.nhumonglenh.ui.trading.WatchlistMutation
 import com.example.nhumonglenh.ui.trading.WatchlistStateReducer
@@ -376,4 +377,33 @@ class WatchlistAndNewsBehavioralTest {
         val invalidInterval = validJson.replace("\"i\": \"1m\"", "\"i\": \"5m\"") // not 1m
         assertNull(BinanceKlineParser.parse(invalidInterval))
     }
+
+    // =====================================================================
+    // 9. ADAPTIVE PRICE FORMATTER - NO ROUGH TRUNCATION (Zero-Precision Loss)
+    // =====================================================================
+
+    @Test
+    fun testPriceFormatter_adaptiveFormatting_preservesPrecisionForMicroPrices() {
+        // Micro-price tokens (< $1): DOGE, ADA must keep full decimals, not be truncated to $0.08 or $0.20
+        assertEquals("$0.08123", PriceFormatter.formatPrice(0.08123))
+        assertEquals("$0.08125", PriceFormatter.formatPrice(0.08125))
+        assertEquals("$0.2012", PriceFormatter.formatPrice(0.2012))
+        assertEquals("$0.2006", PriceFormatter.formatPrice(0.2006))
+
+        // Mid-price tokens ($1 - $100): XRP ($1.2996) must keep 4 decimals
+        assertEquals("$1.2996", PriceFormatter.formatPrice(1.2996))
+        assertEquals("$1.2988", PriceFormatter.formatPrice(1.2988))
+        assertEquals("$1.50", PriceFormatter.formatPrice(1.5))
+        assertEquals("$1.00", PriceFormatter.formatPrice(1.0))
+
+        // High-price tokens (>= $100): SOL, BNB, ETH, BTC must format standard $#,##0.00
+        assertEquals("$100.66", PriceFormatter.formatPrice(100.66))
+        assertEquals("$726.23", PriceFormatter.formatPrice(726.23))
+        assertEquals("$2,456.10", PriceFormatter.formatPrice(2456.1))
+        assertEquals("$76,443.61", PriceFormatter.formatPrice(76443.61))
+
+        // Sub-cent micro fractions (< 0.0001)
+        assertEquals("$0.000045", PriceFormatter.formatPrice(0.000045))
+    }
 }
+

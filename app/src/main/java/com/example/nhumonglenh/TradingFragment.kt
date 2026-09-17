@@ -35,6 +35,7 @@ import com.example.nhumonglenh.ui.trading.MarketDataProviderPolicy
 import com.example.nhumonglenh.ui.trading.MarketStreamHelper
 import com.example.nhumonglenh.ui.trading.OrderTicketBottomSheet
 import com.example.nhumonglenh.ui.trading.PortfolioSyncPolicy
+import com.example.nhumonglenh.ui.trading.PriceFormatter
 import com.example.nhumonglenh.ui.trading.StockBadgePolicy
 import com.example.nhumonglenh.ui.trading.StockCatalogAdapter
 import com.example.nhumonglenh.ui.trading.StockPollingPolicy
@@ -934,7 +935,7 @@ class TradingFragment : Fragment() {
 
                     if (price != null && price > 0.0) {
                         currentAssetPrice = price
-                        b.tvCurrentPrice.text = String.format(Locale.US, "$%,.2f", price)
+                        b.tvCurrentPrice.text = PriceFormatter.formatPrice(price)
                         b.tvCurrentPrice.setTextColor(ContextCompat.getColor(ctx, R.color.tv_text_primary))
                     } else {
                         currentAssetPrice = null
@@ -1345,11 +1346,7 @@ class TradingFragment : Fragment() {
         b.tvLiveStatus.text = getString(R.string.trading_live_badge)
         b.tvLiveStatus.setTextColor(ContextCompat.getColor(ctx, R.color.tv_green))
 
-        b.tvCurrentPrice.text = when {
-            livePrice >= 1000 -> String.format(Locale.US, "$%,.2f", livePrice)
-            livePrice >= 1 -> String.format(Locale.US, "$%,.4f", livePrice)
-            else -> String.format(Locale.US, "$%.6f", livePrice)
-        }
+        b.tvCurrentPrice.text = PriceFormatter.formatPrice(livePrice)
         val priceColor = when {
             previousAssetPrice != null && livePrice > previousAssetPrice!! -> R.color.tv_green
             previousAssetPrice != null && livePrice < previousAssetPrice!! -> R.color.tv_red

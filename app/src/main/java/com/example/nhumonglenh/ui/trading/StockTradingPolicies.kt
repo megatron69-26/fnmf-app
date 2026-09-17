@@ -173,7 +173,7 @@ object PortfolioValuationPolicy {
 
     fun formatHoldingAvgPrice(avgBuyPrice: Double?): String {
         if (avgBuyPrice == null || avgBuyPrice <= 0.0) return UNVALUED_PLACEHOLDER
-        return String.format(Locale.US, "$%,.2f", avgBuyPrice)
+        return PriceFormatter.formatPrice(avgBuyPrice)
     }
 }
 

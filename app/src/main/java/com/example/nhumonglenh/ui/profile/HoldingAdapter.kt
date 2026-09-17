@@ -9,6 +9,7 @@ import com.example.nhumonglenh.R
 import com.example.nhumonglenh.data.remote.HoldingDto
 import com.example.nhumonglenh.databinding.ItemHoldingBinding
 import com.example.nhumonglenh.ui.trading.PortfolioValuationPolicy
+import com.example.nhumonglenh.ui.trading.PriceFormatter
 import java.util.Locale
 import kotlin.math.abs
 
@@ -33,7 +34,7 @@ class HoldingAdapter(
 
         val currentPrice = item.currentPrice
         if (currentPrice != null && currentPrice > 0.0) {
-            holder.binding.tvHoldingCurrentPrice.text = String.format(Locale.US, "$%,.2f", currentPrice)
+            holder.binding.tvHoldingCurrentPrice.text = PriceFormatter.formatPrice(currentPrice)
             val pnl = item.unrealizedPnL
             if (pnl != null) {
                 val colorRes = if (pnl >= 0) R.color.tv_green else R.color.tv_red

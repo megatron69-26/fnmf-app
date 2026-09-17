@@ -54,7 +54,7 @@ class StockCatalogAdapter(
         // Hiển thị Giá & % Biến động 24h
         if (item.price != null && item.price > 0.0) {
             b.tvStockPrice.visibility = android.view.View.VISIBLE
-            b.tvStockPrice.text = String.format(java.util.Locale.US, "$%,.2f", item.price)
+            b.tvStockPrice.text = PriceFormatter.formatPrice(item.price)
         } else {
             b.tvStockPrice.visibility = android.view.View.GONE
         }

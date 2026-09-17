@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.nhumonglenh.R
+import com.example.nhumonglenh.ui.trading.PriceFormatter
 
 /**
  * WatchlistAdapter — kế thừa từ UI Hùng v3.1 kết hợp dữ liệu Live Backend & Room DB
@@ -154,10 +155,6 @@ class WatchlistAdapter(
     }
 
     private fun formatPrice(price: Double): String {
-        return when {
-            price >= 1000 -> "$%,.2f".format(price)
-            price >= 1 -> "$%,.4f".format(price)
-            else -> "$%.6f".format(price)
-        }
+        return PriceFormatter.formatPrice(price)
     }
 }

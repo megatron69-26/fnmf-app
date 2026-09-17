@@ -101,7 +101,7 @@ class OrderTicketBottomSheet : BottomSheetDialogFragment() {
         b.tvRemainingLabel.text = if (isBuy) getString(R.string.order_ticket_remaining_cash_label) else getString(R.string.order_ticket_remaining_asset_label)
 
         // 3. Current numbers
-        b.tvOrderMarketPrice.text = String.format(Locale.US, "$%,.2f", currentPrice)
+        b.tvOrderMarketPrice.text = PriceFormatter.formatPrice(currentPrice)
         b.tvOrderAvailableCash.text = String.format(Locale.US, "$%,.2f USD", availableCash)
         b.tvOrderOwnedQty.text = String.format(Locale.US, "%.4f %s", ownedQuantity, assetTicker)
 

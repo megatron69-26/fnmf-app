@@ -226,3 +226,44 @@ object TradingStateRestoration {
     }
 }
 
+/**
+ * Định dạng giá thích ứng (Adaptive Price Formatter) cho tiền mã hóa & tài sản tài chính:
+ * - >= $100: 2 chữ số thập phân (e.g. BTC $76,370.90, BNB $725.30, SOL $100.31)
+ * - >= $1: 2-4 chữ số thập phân (e.g. XRP $1.2988)
+ * - < $1: 4-6 chữ số thập phân (e.g. ADA $0.2006, DOGE $0.08125)
+ * - Tuyệt đối không làm tròn thô 2 chữ số gây mất mát độ chính xác giao dịch.
+ */
+object PriceFormatter {
+    fun formatPrice(price: Double): String {
+        return when {
+            price >= 100.0 -> String.format(java.util.Locale.US, "$%,.2f", price)
+            price >= 1.0 -> {
+                val s = String.format(java.util.Locale.US, "$%,.4f", price)
+                trimDecimals(s, minDecimals = 2)
+            }
+            price >= 0.0001 -> {
+                val s = String.format(java.util.Locale.US, "$%.6f", price)
+                trimDecimals(s, minDecimals = 2)
+            }
+            else -> {
+                val s = String.format(java.util.Locale.US, "$%.8f", price)
+                trimDecimals(s, minDecimals = 2)
+            }
+        }
+    }
+
+    private fun trimDecimals(formatted: String, minDecimals: Int = 2): String {
+        val trimmed = formatted.trimEnd('0')
+        return if (trimmed.endsWith('.')) {
+            trimmed + "0".repeat(minDecimals)
+        } else {
+            val decimalsCount = trimmed.substringAfter('.').length
+            if (decimalsCount < minDecimals) {
+                trimmed + "0".repeat(minDecimals - decimalsCount)
+            } else {
+                trimmed
+            }
+        }
+    }
+}
+
