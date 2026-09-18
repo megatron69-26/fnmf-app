@@ -72,6 +72,18 @@
             android:visibility="gone">
 
             <TextView
+                android:id="@+id/tvForecastTimestamp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#787B86"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:textAlignment="center"
+                android:layout_marginBottom="12dp"
+                android:visibility="gone"
+                tools:text="Cập nhật lúc 08:43, 18/09/2026" />
+
+            <TextView
                 android:id="@+id/tvForecastStaleWarning"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

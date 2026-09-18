@@ -96,10 +96,15 @@ object StockWatchlistMatcher {
         watchlist: List<WatchlistItemDto>,
         prices: List<com.example.nhumonglenh.data.remote.MarketPriceDto>? = null
     ): List<StockCatalogUiModel> {
-        val watchlistedSymbols = watchlist.mapNotNull { it.symbol?.trim()?.uppercase(Locale.ROOT) }.toSet()
-        val priceMap = prices?.associateBy { it.symbol.trim().uppercase(Locale.ROOT) } ?: emptyMap()
+        val watchlistedSymbols = watchlist.mapNotNull {
+            val sym = it.symbol?.trim()?.uppercase(Locale.ROOT)
+            com.example.nhumonglenh.TradingFragment.canonicalTradingSymbol(sym)
+        }.toSet()
+        val priceMap = prices?.associateBy {
+            com.example.nhumonglenh.TradingFragment.canonicalTradingSymbol(it.symbol)
+        } ?: emptyMap()
         return catalog.map { stock ->
-            val clean = stock.symbol.trim().uppercase(Locale.ROOT)
+            val clean = com.example.nhumonglenh.TradingFragment.canonicalTradingSymbol(stock.symbol)
             val mp = priceMap[clean]
             StockCatalogUiModel(
                 symbol = clean,

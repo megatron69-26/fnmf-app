@@ -431,7 +431,7 @@ class TradingFragment : Fragment() {
 
                 val stocks = response.body() ?: emptyList()
                 cachedCatalogStocks = stocks
-                stockCatalogAdapter.submitList(StockWatchlistMatcher.matchCatalogWithWatchlist(stocks, emptyList(), emptyList()))
+                refreshCatalogUI()
 
                 // Fire getMarketPrices independently
                 RetrofitClient.apiService.getMarketPrices().enqueue(object : Callback<List<com.example.nhumonglenh.data.remote.MarketPriceDto>> {
@@ -441,6 +441,7 @@ class TradingFragment : Fragment() {
                             cachedCatalogPrices = pResp.body() ?: emptyList()
                             refreshCatalogUI()
                             renderEmbeddedWatchlistFromCache()
+                            updatePriceChangeForCurrentSymbol()
                         }
                     }
                     override fun onFailure(pCall: Call<List<com.example.nhumonglenh.data.remote.MarketPriceDto>>, t: Throwable) {
@@ -579,14 +580,27 @@ class TradingFragment : Fragment() {
                         updateWatchlistToggleButton()
 
                         if (validItems.isNotEmpty()) {
+                            if (cachedCatalogPrices.isEmpty()) {
+                                RetrofitClient.apiService.getMarketPrices().enqueue(object : Callback<List<com.example.nhumonglenh.data.remote.MarketPriceDto>> {
+                                    override fun onResponse(pCall: Call<List<com.example.nhumonglenh.data.remote.MarketPriceDto>>, pResp: Response<List<com.example.nhumonglenh.data.remote.MarketPriceDto>>) {
+                                        if (!isAdded || _binding == null) return
+                                        if (pResp.isSuccessful) {
+                                            cachedCatalogPrices = pResp.body() ?: emptyList()
+                                            renderEmbeddedWatchlistFromCache()
+                                            updatePriceChangeForCurrentSymbol()
+                                        }
+                                    }
+                                    override fun onFailure(pCall: Call<List<com.example.nhumonglenh.data.remote.MarketPriceDto>>, t: Throwable) {}
+                                })
+                            }
                             val distinctValidItems = validItems.distinctBy { canonicalTradingSymbol(it.symbol) }
                             val uiModels = distinctValidItems.map { dto ->
                                 val sym = canonicalTradingSymbol(dto.symbol)
                                 val fallbackPriceDto = cachedCatalogPrices.firstOrNull {
                                     canonicalTradingSymbol(it.symbol) == sym || it.symbol?.equals(sym, ignoreCase = true) == true
                                 }
-                                val price = dto.currentPrice ?: fallbackPriceDto?.price ?: if (canonicalTradingSymbol(currentSymbol) == sym) currentAssetPrice else null
-                                val change = dto.change24h ?: fallbackPriceDto?.change24h
+                                val price = fallbackPriceDto?.price ?: dto.currentPrice ?: if (canonicalTradingSymbol(currentSymbol) == sym) currentAssetPrice else null
+                                val change = fallbackPriceDto?.change24h ?: dto.change24h
                                 WatchlistUiModel(
                                     symbol = sym,
                                     fullName = dto.name?.takeIf { it.isNotBlank() } ?: getFriendlyName(sym),
@@ -881,6 +895,7 @@ class TradingFragment : Fragment() {
         } else {
             b.llStockMetaRow.visibility = View.GONE
             b.tvTradeWarningMessage.visibility = View.GONE
+            updatePriceChangeForCurrentSymbol()
 
             val streamName = MarketStreamHelper.resolveWebSocketStream(sym)
             if (streamName == null) {
@@ -1336,6 +1351,32 @@ class TradingFragment : Fragment() {
         updateLivePriceDisplay(event.close, event.open)
     }
 
+    private fun updatePriceChangeForCurrentSymbol() {
+        val b = binding ?: return
+        val ctx = context ?: return
+        val canon = canonicalTradingSymbol(currentSymbol)
+        val priceDto = cachedCatalogPrices.firstOrNull { canonicalTradingSymbol(it.symbol) == canon }
+        if (priceDto != null) {
+            if (currentAssetPrice == null && priceDto.price != null && priceDto.price > 0.0) {
+                currentAssetPrice = priceDto.price
+                b.tvCurrentPrice.text = PriceFormatter.formatPrice(priceDto.price)
+                b.tvCurrentPrice.setTextColor(ContextCompat.getColor(ctx, R.color.tv_text_primary))
+            }
+            if (priceDto.change24h != null) {
+                val sign = if (priceDto.change24h >= 0) "+" else ""
+                b.tvPriceChange.text = String.format(Locale.US, "%s%.2f%%", sign, priceDto.change24h)
+                val colorRes = if (priceDto.change24h >= 0) R.color.tv_green else R.color.tv_red
+                b.tvPriceChange.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, colorRes))
+            } else {
+                b.tvPriceChange.text = "—"
+                b.tvPriceChange.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.tv_surface))
+            }
+        } else {
+            b.tvPriceChange.text = "—"
+            b.tvPriceChange.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.tv_surface))
+        }
+    }
+
     private fun updateLivePriceDisplay(livePrice: Double, periodOpenPrice: Double?) {
         val b = binding ?: return
         val ctx = context ?: return
@@ -1354,13 +1395,16 @@ class TradingFragment : Fragment() {
         }
         b.tvCurrentPrice.setTextColor(ContextCompat.getColor(ctx, priceColor))
 
-        val baseline = periodOpenPrice ?: baselinePeriodPrice
-        if (baseline != null && baseline > 0) {
-            val changePercent = ((livePrice - baseline) / baseline) * 100
-            val sign = if (changePercent >= 0) "+" else ""
-            b.tvPriceChange.text = String.format(Locale.US, "%s%.2f%%", sign, changePercent)
-            val badgeColor = if (changePercent >= 0) R.color.tv_green else R.color.tv_red
+        val canon = canonicalTradingSymbol(currentSymbol)
+        val priceDto = cachedCatalogPrices.firstOrNull { canonicalTradingSymbol(it.symbol) == canon }
+        if (priceDto?.change24h != null) {
+            val sign = if (priceDto.change24h >= 0) "+" else ""
+            b.tvPriceChange.text = String.format(Locale.US, "%s%.2f%%", sign, priceDto.change24h)
+            val badgeColor = if (priceDto.change24h >= 0) R.color.tv_green else R.color.tv_red
             b.tvPriceChange.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, badgeColor))
+        } else {
+            b.tvPriceChange.text = "—"
+            b.tvPriceChange.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(ctx, R.color.tv_surface))
         }
 
         updateHoldingsForCurrentSymbol()
@@ -1644,17 +1688,18 @@ class TradingFragment : Fragment() {
         )
 
         fun canonicalTradingSymbol(sym: String?): String {
-            val upper = sym?.trim()?.uppercase(Locale.ROOT) ?: return ""
-            return when (upper) {
-                "BTC" -> "BTCUSDT"
-                "ETH" -> "ETHUSDT"
-                "XAU", "PAXG", "PAXGUSDT", "GOLD" -> "XAUUSD"
-                "BNB" -> "BNBUSDT"
-                "SOL" -> "SOLUSDT"
-                "XRP" -> "XRPUSDT"
-                "ADA" -> "ADAUSDT"
-                "DOGE" -> "DOGEUSDT"
-                else -> upper
+            val raw = sym?.trim()?.uppercase(Locale.ROOT) ?: return ""
+            val clean = raw.replace("-", "").replace("_", "").replace("/", "")
+            return when (clean) {
+                "BTC", "BTCUSDT", "BTCUSD" -> "BTCUSDT"
+                "ETH", "ETHUSDT", "ETHUSD" -> "ETHUSDT"
+                "XAU", "XAUUSD", "PAXG", "PAXGUSDT", "GOLD" -> "XAUUSD"
+                "BNB", "BNBUSDT", "BNBUSD" -> "BNBUSDT"
+                "SOL", "SOLUSDT", "SOLUSD" -> "SOLUSDT"
+                "XRP", "XRPUSDT", "XRPUSD" -> "XRPUSDT"
+                "ADA", "ADAUSDT", "ADAUSD" -> "ADAUSDT"
+                "DOGE", "DOGEUSDT", "DOGEUSD" -> "DOGEUSDT"
+                else -> clean
             }
         }
     }

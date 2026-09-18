@@ -18,6 +18,7 @@ import com.example.nhumonglenh.data.remote.ForecastResponse
 import com.example.nhumonglenh.data.remote.RetrofitClient
 import com.example.nhumonglenh.data.repository.RefreshQuotaManager
 import com.example.nhumonglenh.ui.UiTextLocalizer
+import com.example.nhumonglenh.ui.forecast.ForecastDateTimeFormatter
 import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
@@ -32,6 +33,7 @@ class ForecastFragment : Fragment() {
     private var scrollForecast: ScrollView? = null
     private var tvForecastQuota: TextView? = null
     private var tvForecastSymbol: TextView? = null
+    private var tvForecastTimestamp: TextView? = null
     private var tvResult: TextView? = null
     private var pbLoading: ProgressBar? = null
     private var llContent: LinearLayout? = null
@@ -66,6 +68,7 @@ class ForecastFragment : Fragment() {
         tvResult = view.findViewById(R.id.tvForecastResult)
         pbLoading = view.findViewById(R.id.pbForecastLoading)
         llContent = view.findViewById(R.id.llForecastContent)
+        tvForecastTimestamp = view.findViewById(R.id.tvForecastTimestamp)
         tvForecastStaleWarning = view.findViewById(R.id.tvForecastStaleWarning)
         tvRecommendation = view.findViewById(R.id.tvRecommendation)
         tvConfidence = view.findViewById(R.id.tvConfidence)
@@ -211,6 +214,11 @@ class ForecastFragment : Fragment() {
     private fun displayForecastData(forecast: ForecastResponse) {
         llContent?.visibility = View.VISIBLE
         tvResult?.visibility = View.GONE
+
+        // Hiển thị ngày/giờ nhận định thực tế từ backend (Asia/Ho_Chi_Minh)
+        val timestampText = ForecastDateTimeFormatter.formatForecastTimestamp(forecast.createdAt, requireContext())
+        tvForecastTimestamp?.text = timestampText
+        tvForecastTimestamp?.visibility = View.VISIBLE
 
         if (forecast.stale == true) {
             tvForecastStaleWarning?.visibility = View.VISIBLE
@@ -363,6 +371,7 @@ class ForecastFragment : Fragment() {
         tvTechOutlook = null
         tvFundOutlook = null
         tvKeyDrivers = null
+        tvForecastTimestamp = null
         super.onDestroyView()
     }
 }

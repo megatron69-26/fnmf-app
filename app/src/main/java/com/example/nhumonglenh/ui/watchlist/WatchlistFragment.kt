@@ -197,36 +197,104 @@ class WatchlistFragment : Fragment() {
                         tvEmptyWatchlist?.visibility = View.VISIBLE
                         tvEmptyWatchlist?.text = "Danh mục theo dõi trống.\nBấm '+ Thêm' để theo dõi mã tài sản."
                         adapter?.updateData(emptyList())
+
+                        // Đồng bộ Room DB rỗng
+                        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                            try {
+                                val db = AppDatabase.getInstance(appContext)
+                                db.watchlistDao().clearAndInsertAll(userEmail, emptyList())
+                            } catch (e: Exception) {
+                                android.util.Log.w("WatchlistFragment", "Không thể ghi cache Room DB: " + e.javaClass.simpleName)
+                            }
+                        }
                     } else {
                         tvEmptyWatchlist?.visibility = View.GONE
-                        val uiItems = items.map { dto ->
+                        // Hiển thị ban đầu từ watchlist DTO
+                        val initialUiItems = items.map { dto ->
+                            val canon = com.example.nhumonglenh.TradingFragment.canonicalTradingSymbol(dto.symbol)
                             WatchlistUiModel(
-                                symbol = dto.symbol,
-                                fullName = dto.name ?: getFriendlyName(dto.symbol),
+                                symbol = canon,
+                                fullName = dto.name ?: getFriendlyName(canon),
                                 price = dto.currentPrice,
                                 changePercent = dto.change24h,
                                 isOffline = false
                             )
                         }
-                        adapter?.updateData(uiItems)
-                    }
+                        adapter?.updateData(initialUiItems)
 
-                    // Đồng bộ Room DB theo kết quả server (kể cả danh sách rỗng [] để tránh Watchlist ma khi xóa trên máy khác)
-                    viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                        try {
-                            val db = AppDatabase.getInstance(appContext)
-                            val itemsToCache = items.map { item ->
-                                WatchlistItem(
-                                    item.symbol,
-                                    item.currentPrice,
-                                    item.change24h,
-                                    userEmail
-                                )
+                        // Nguồn chân lý: Tải /api/market/prices để cập nhật giá & % biến động 24h chuẩn xác nhất cho cả 8 mã
+                        RetrofitClient.apiService.getMarketPrices().enqueue(object : Callback<List<com.example.nhumonglenh.data.remote.MarketPriceDto>> {
+                            override fun onResponse(
+                                pCall: Call<List<com.example.nhumonglenh.data.remote.MarketPriceDto>>,
+                                pResp: Response<List<com.example.nhumonglenh.data.remote.MarketPriceDto>>
+                            ) {
+                                if (!isAdded || view == null) return
+                                val priceMap = if (pResp.isSuccessful) {
+                                    pResp.body()?.associateBy {
+                                        com.example.nhumonglenh.TradingFragment.canonicalTradingSymbol(it.symbol)
+                                    } ?: emptyMap()
+                                } else {
+                                    emptyMap()
+                                }
+
+                                val mergedUiItems = items.map { dto ->
+                                    val canon = com.example.nhumonglenh.TradingFragment.canonicalTradingSymbol(dto.symbol)
+                                    val mp = priceMap[canon]
+                                    val finalPrice = mp?.price ?: dto.currentPrice
+                                    val finalChange = mp?.change24h ?: dto.change24h
+                                    WatchlistUiModel(
+                                        symbol = canon,
+                                        fullName = dto.name ?: getFriendlyName(canon),
+                                        price = finalPrice,
+                                        changePercent = finalChange,
+                                        isOffline = false
+                                    )
+                                }
+                                adapter?.updateData(mergedUiItems)
+
+                                // Đồng bộ Room DB với giá và % chuẩn xác đã merge
+                                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                                    try {
+                                        val db = AppDatabase.getInstance(appContext)
+                                        val itemsToCache = mergedUiItems.map { item ->
+                                            WatchlistItem(
+                                                item.symbol,
+                                                item.price,
+                                                item.changePercent,
+                                                userEmail
+                                            )
+                                        }
+                                        db.watchlistDao().clearAndInsertAll(userEmail, itemsToCache)
+                                    } catch (e: Exception) {
+                                        android.util.Log.w("WatchlistFragment", "Không thể ghi cache Room DB: " + e.javaClass.simpleName)
+                                    }
+                                }
                             }
-                            db.watchlistDao().clearAndInsertAll(userEmail, itemsToCache)
-                        } catch (e: Exception) {
-                            android.util.Log.w("WatchlistFragment", "Không thể ghi cache Room DB: " + e.message)
-                        }
+
+                            override fun onFailure(
+                                pCall: Call<List<com.example.nhumonglenh.data.remote.MarketPriceDto>>,
+                                t: Throwable
+                            ) {
+                                if (!isAdded || view == null) return
+                                // Lưu Room DB với dữ liệu ban đầu nếu không tải được giá mới
+                                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                                    try {
+                                        val db = AppDatabase.getInstance(appContext)
+                                        val itemsToCache = initialUiItems.map { item ->
+                                            WatchlistItem(
+                                                item.symbol,
+                                                item.price,
+                                                item.changePercent,
+                                                userEmail
+                                            )
+                                        }
+                                        db.watchlistDao().clearAndInsertAll(userEmail, itemsToCache)
+                                    } catch (e: Exception) {
+                                        android.util.Log.w("WatchlistFragment", "Không thể ghi cache Room DB: " + e.javaClass.simpleName)
+                                    }
+                                }
+                            }
+                        })
                     }
                 } else {
                     loadFromRoomCache(appContext, userEmail, syncDecision.reason)
@@ -259,7 +327,7 @@ class WatchlistFragment : Fragment() {
                     emptyList()
                 }
             } catch (e: Exception) {
-                android.util.Log.w("WatchlistFragment", "Không thể đọc cache Room DB: " + e.message)
+                android.util.Log.w("WatchlistFragment", "Không thể đọc cache Room DB: " + e.javaClass.simpleName)
                 emptyList()
             }
 
@@ -310,8 +378,9 @@ class WatchlistFragment : Fragment() {
             return
         }
 
-        // Danh sách các mã hợp lệ được hệ thống hỗ trợ (Loại bỏ USOIL vì chưa có nguồn WTI thật)
-        val supportedSymbols = listOf("BTCUSDT", "ETHUSDT", "XAUUSD")
+        val supportedSymbols = listOf(
+            "BTCUSDT", "ETHUSDT", "XAUUSD", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT"
+        )
         val currentSymbols = adapter?.getItems()?.map { it.symbol }?.toSet() ?: emptySet()
         val availableSymbols = supportedSymbols.filter { !currentSymbols.contains(it) }
 
@@ -426,7 +495,7 @@ class WatchlistFragment : Fragment() {
                         try {
                             AppDatabase.getInstance(appContext).watchlistDao().deleteByUserAndSymbol(userEmail, symbol)
                         } catch (e: Exception) {
-                            android.util.Log.w("WatchlistFragment", "Không thể xóa khỏi Room DB: " + e.message)
+                            android.util.Log.w("WatchlistFragment", "Không thể xóa khỏi Room DB: " + e.javaClass.simpleName)
                         }
                     }
                     fetchCloudWatchlist()
@@ -448,6 +517,11 @@ class WatchlistFragment : Fragment() {
         return when {
             symbol.contains("BTC") -> "Bitcoin"
             symbol.contains("ETH") -> "Ethereum"
+            symbol.contains("BNB") -> "BNB"
+            symbol.contains("SOL") -> "Solana"
+            symbol.contains("XRP") -> "Ripple"
+            symbol.contains("ADA") -> "Cardano"
+            symbol.contains("DOGE") -> "Dogecoin"
             symbol.contains("XAU") -> "Vàng giao ngay thế giới"
             else -> symbol
         }
