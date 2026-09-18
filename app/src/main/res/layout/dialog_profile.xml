@@ -24,13 +24,16 @@
             android:gravity="center_vertical"
             android:layout_marginBottom="16dp">
 
-            <ImageView
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:src="@android:drawable/ic_menu_myplaces"
-                app:tint="#FFFFFF"
+            <com.google.android.material.imageview.ShapeableImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/profile_avatar"
+                android:scaleType="centerCrop"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Circle"
+                app:strokeColor="#2A2E39"
+                app:strokeWidth="1dp"
                 android:layout_marginEnd="10dp"
-                android:contentDescription="Hồ sơ" />
+                android:contentDescription="@string/profile_dialog_title" />
 
             <TextView
                 android:layout_width="0dp"

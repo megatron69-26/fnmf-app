@@ -223,4 +223,11 @@
     <!-- Forecast Date/Time Formatting -->
     <string name="forecast_updated_at">Cập nhật lúc %1$s, %2$s</string>
     <string name="forecast_timestamp_unknown">Chưa rõ thời điểm cập nhật</string>
+
+    <!-- RC5 / v1.1.26 Ticker, Avatar & Wallet Strings -->
+    <string name="profile_avatar_desc">Hồ sơ tài khoản</string>
+    <string name="wallet_btn_deposit">+ NẠP TIỀN</string>
+    <string name="wallet_btn_withdraw">- RÚT TIỀN</string>
+    <string name="market_ticker_item_desc">%1$s: %2$s, %3$s</string>
+    <string name="market_ticker_stale_hint">Dữ liệu có thể trễ</string>
 </resources>

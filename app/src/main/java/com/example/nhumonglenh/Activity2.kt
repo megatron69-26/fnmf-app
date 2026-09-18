@@ -7,20 +7,30 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
-import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.nhumonglenh.data.local.AuthSessionManager
 import com.example.nhumonglenh.data.remote.NetworkConfig
+import com.example.nhumonglenh.data.remote.RetrofitClient
 import com.example.nhumonglenh.ui.news.NewsFeedFragment
 import com.example.nhumonglenh.ui.portfolio.PortfolioFragment
+import com.example.nhumonglenh.ui.ticker.MarketTickerAdapter
+import com.example.nhumonglenh.ui.ticker.MarketTickerViewModel
+import com.example.nhumonglenh.ui.ticker.MarketTickerViewModelFactory
 import com.example.nhumonglenh.ui.wallet.WalletFragment
 import com.example.nhumonglenh.ui.SystemBarInsets
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.button.MaterialButton
+import kotlinx.coroutines.launch
 
 class Activity2 : AppCompatActivity() {
 
@@ -32,6 +42,12 @@ class Activity2 : AppCompatActivity() {
         private const val TAG_PORTFOLIO = "TAG_PORTFOLIO"
         private const val TAG_WALLET = "TAG_WALLET"
     }
+
+    private val tickerViewModel: MarketTickerViewModel by viewModels {
+        MarketTickerViewModelFactory(RetrofitClient.apiService)
+    }
+    private lateinit var tickerAdapter: MarketTickerAdapter
+    private lateinit var rvMarketTicker: RecyclerView
 
     private lateinit var bottomNav: BottomNavigationView
     private val fragmentMap = mutableMapOf<Int, Fragment>()
@@ -59,9 +75,24 @@ class Activity2 : AppCompatActivity() {
 
         bottomNav = findViewById(R.id.bottom_navigation)
 
-        val btnProfileAvatar = findViewById<ImageButton>(R.id.btn_profile_avatar)
+        val btnProfileAvatar = findViewById<View>(R.id.btn_profile_avatar)
         btnProfileAvatar?.setOnClickListener {
             showProfileDialog()
+        }
+
+        rvMarketTicker = findViewById(R.id.rv_market_ticker)
+        rvMarketTicker.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        tickerAdapter = MarketTickerAdapter { symbol ->
+            switchToTradingSymbol(symbol)
+        }
+        rvMarketTicker.adapter = tickerAdapter
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                tickerViewModel.tickerItems.collect { items ->
+                    tickerAdapter.submitList(items)
+                }
+            }
         }
 
         val tvHeaderUser = findViewById<TextView>(R.id.tv_header_user)
@@ -293,5 +324,15 @@ class Activity2 : AppCompatActivity() {
         }
         startActivity(intent)
         finish()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        tickerViewModel.startPolling()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        tickerViewModel.stopPolling()
     }
 }

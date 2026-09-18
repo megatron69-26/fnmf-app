@@ -34,18 +34,37 @@
             android:layout_height="wrap_content"
             android:visibility="gone" />
 
-        <ImageButton
+        <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/btn_profile_avatar"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:minWidth="48dp"
             android:minHeight="48dp"
-            android:padding="10dp"
+            android:padding="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_myplaces"
-            app:tint="#FFFFFF"
-            android:contentDescription="Hồ sơ tài khoản" />
+            android:src="@drawable/profile_avatar"
+            android:scaleType="centerCrop"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Circle"
+            app:strokeColor="#2A2E39"
+            app:strokeWidth="1dp"
+            android:contentDescription="@string/profile_avatar_desc" />
     </LinearLayout>
+
+    <!-- Shared Market Ticker Bar (Fixed across all 5 modules) -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_market_ticker"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:minHeight="48dp"
+        android:background="#161A25"
+        android:orientation="horizontal"
+        android:overScrollMode="never"
+        android:scrollbars="none" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#242835" />
 
     <FrameLayout
         android:id="@+id/fragment_container"

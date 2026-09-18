@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:minHeight="48dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:clickable="true"
+    android:focusable="true"
+    android:background="?attr/selectableItemBackground"
+    android:paddingHorizontal="12dp">
+
+    <!-- Mã tài sản (e.g. BTC, ETH, XAU, ...) -->
+    <TextView
+        android:id="@+id/tv_ticker_symbol"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="BTC"
+        android:textColor="@color/tv_text_primary"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:layout_marginEnd="6dp" />
+
+    <!-- Giá hiện tại (format chuẩn PriceFormatter) -->
+    <TextView
+        android:id="@+id/tv_ticker_price"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="—"
+        android:textColor="#D1D4DC"
+        android:textSize="11sp"
+        android:layout_marginEnd="6dp" />
+
+    <!-- Biến động 24h (+ xanh, - đỏ, null -> —) -->
+    <TextView
+        android:id="@+id/tv_ticker_change"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="—"
+        android:textColor="@color/tv_text_secondary"
+        android:textSize="11sp"
+        android:textStyle="bold" />
+
+    <!-- Chỉ báo dữ liệu trễ / stale -->
+    <View
+        android:id="@+id/view_ticker_stale"
+        android:layout_width="6dp"
+        android:layout_height="6dp"
+        android:layout_marginStart="4dp"
+        android:background="#F39C12"
+        android:visibility="gone" />
+
+    <!-- Ngăn cách giữa các mã -->
+    <View
+        android:layout_width="1dp"
+        android:layout_height="16dp"
+        android:layout_marginStart="10dp"
+        android:background="#262B3D" />
+
+</LinearLayout>
