@@ -7,6 +7,8 @@ import com.example.nhumonglenh.data.local.NewsEntity
 import com.example.nhumonglenh.ui.news.ApiClient
 import com.example.nhumonglenh.ui.news.News
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -20,7 +22,7 @@ import java.util.Locale
  * 2. Offline: Đọc dữ liệu đã lưu trong Room DB (CacheFallback).
  * 3. Phân biệt rõ: SyncSuccess, CacheFallback, CacheWriteFailure, Empty.
  */
-class NewsRepository private constructor(private val context: Context) {
+class NewsRepository internal constructor(private val context: Context) {
 
     sealed class NewsResult {
         data class SyncSuccess(
@@ -57,6 +59,135 @@ class NewsRepository private constructor(private val context: Context) {
         data class Unauthorized(val message: String) : NewsRefreshResult()
         data class ServerError(val message: String, val cachedNews: List<News>, val remainingRefreshes: Int? = null) : NewsRefreshResult()
         data class NetworkError(val message: String, val cachedNews: List<News>) : NewsRefreshResult()
+    }
+
+    /**
+     * SharedPreferences lưu metadata đồng bộ tin tức bền vững qua app restart.
+     */
+    private val syncPrefs by lazy {
+        context.getSharedPreferences(PREFS_NEWS_SYNC, Context.MODE_PRIVATE)
+    }
+
+    fun getLastSyncTime(): Long {
+        if (lastSyncTimeMs > 0L) return lastSyncTimeMs
+        return syncPrefs.getLong(KEY_LAST_SYNC_TIME, 0L)
+    }
+
+    fun isLastSyncStale(): Boolean = syncPrefs.getBoolean(KEY_LAST_SYNC_STALE, false)
+    fun getLastDataAsOf(): String? = syncPrefs.getString(KEY_LAST_DATA_AS_OF, null)
+    fun getLastLatestPublishedAt(): String? = syncPrefs.getString(KEY_LAST_LATEST_PUBLISHED_AT, null)
+
+    fun recordSyncMetadata(timeMs: Long, isStale: Boolean, dataAsOf: String?, latestPublishedAt: String?) {
+        lastSyncTimeMs = timeMs
+        syncPrefs.edit()
+            .putLong(KEY_LAST_SYNC_TIME, timeMs)
+            .putBoolean(KEY_LAST_SYNC_STALE, isStale)
+            .putString(KEY_LAST_DATA_AS_OF, dataAsOf)
+            .putString(KEY_LAST_LATEST_PUBLISHED_AT, latestPublishedAt)
+            .apply()
+    }
+
+    fun clearSyncMetadata() {
+        lastSyncTimeMs = 0L
+        syncPrefs.edit().clear().apply()
+    }
+
+    /**
+     * Đọc ngay tức thì toàn bộ tin tức đã lưu trong Room Database.
+     */
+    fun getCachedNews(): List<News> {
+        val db = AppDatabase.getInstance(context)
+        return readNewsFromRoom(db.newsDao())
+    }
+
+    /**
+     * Đồng bộ tin tức nền với Single-Flight và Throttle 15 phút.
+     */
+    suspend fun syncNewsInBackground(force: Boolean = false): NewsResult = withContext(Dispatchers.IO) {
+        val db = AppDatabase.getInstance(context)
+        val newsDao = db.newsDao()
+
+        val now = System.currentTimeMillis()
+        val lastSync = getLastSyncTime()
+        if (!force && (now - lastSync < AUTO_SYNC_THROTTLE_MS)) {
+            val cached = readNewsFromRoom(newsDao)
+            if (cached.isNotEmpty()) {
+                return@withContext NewsResult.SyncSuccess(
+                    news = cached,
+                    isStale = isLastSyncStale(),
+                    dataAsOf = getLastDataAsOf(),
+                    latestPublishedAt = getLastLatestPublishedAt()
+                )
+            }
+        }
+
+        syncMutex.withLock {
+            val nowLocked = System.currentTimeMillis()
+            val lastSyncLocked = getLastSyncTime()
+            if (!force && (nowLocked - lastSyncLocked < AUTO_SYNC_THROTTLE_MS)) {
+                val cached = readNewsFromRoom(newsDao)
+                if (cached.isNotEmpty()) {
+                    return@withContext NewsResult.SyncSuccess(
+                        news = cached,
+                        isStale = isLastSyncStale(),
+                        dataAsOf = getLastDataAsOf(),
+                        latestPublishedAt = getLastLatestPublishedAt()
+                    )
+                }
+            }
+
+            val remoteResult = runCatching {
+                ApiClient.service(context).syncNews()
+            }
+
+            if (remoteResult.isSuccess) {
+                val remoteResponse = remoteResult.getOrNull()
+                val remoteNews = remoteResponse?.data ?: emptyList()
+                val isStale = remoteResponse?.stale ?: false
+                val dataAsOf = remoteResponse?.dataAsOf
+                val latestPublishedAt = remoteResponse?.latestPublishedAt
+                val serverMsg = remoteResponse?.message?.takeIf { it.isNotBlank() } ?: "Chưa có bản tin mới"
+
+                if (remoteNews.isNotEmpty()) {
+                    try {
+                        persistNewsToRoom(newsDao, remoteNews)
+                    } catch (e: Exception) {
+                        android.util.Log.e("NewsRepository", "Lỗi lưu cache Room DB: ${e.message}", e)
+                        return@withContext NewsResult.CacheWriteFailure(e)
+                    }
+                    val roomNews = readNewsFromRoom(newsDao)
+                    return@withContext if (roomNews.isNotEmpty()) {
+                        // CHỈ ghi metadata sau khi persist và đọc lại Room thành công!
+                        recordSyncMetadata(System.currentTimeMillis(), isStale, dataAsOf, latestPublishedAt)
+                        NewsResult.SyncSuccess(
+                            news = roomNews,
+                            isStale = isStale,
+                            dataAsOf = dataAsOf,
+                            latestPublishedAt = latestPublishedAt
+                        )
+                    } else {
+                        NewsResult.Empty(serverMsg)
+                    }
+                } else {
+                    // Response rỗng/degraded: KHÔNG ghi/cập nhật last_sync_time_ms!
+                    val roomNews = readNewsFromRoom(newsDao)
+                    return@withContext if (roomNews.isNotEmpty()) {
+                        NewsResult.CacheFallback(roomNews, serverMsg, isStale = true)
+                    } else {
+                        NewsResult.Empty(serverMsg)
+                    }
+                }
+            } else {
+                val err = remoteResult.exceptionOrNull()
+                android.util.Log.w("NewsRepository", "Không thể tải tin tức trực tuyến: ${err?.message}", err)
+                val cachedList = readNewsFromRoom(newsDao)
+                if (cachedList.isNotEmpty()) {
+                    val errorMsg = "Mất kết nối máy chủ. Đang hiển thị tin tức đã lưu trên thiết bị."
+                    return@withContext NewsResult.CacheFallback(cachedList, errorMsg)
+                }
+                return@withContext NewsResult.Empty("Chưa có bản tin mới")
+            }
+        }
     }
 
     suspend fun getNews(): NewsResult = withContext(Dispatchers.IO) {
@@ -139,6 +270,7 @@ class NewsRepository private constructor(private val context: Context) {
                 // Đọc lại từ Room DB làm Single Source of Truth
                 val roomNews = readNewsFromRoom(newsDao)
                 return@withContext if (roomNews.isNotEmpty()) {
+                    recordSyncMetadata(System.currentTimeMillis(), isStale, dataAsOf, latestPublishedAt)
                     NewsResult.SyncSuccess(
                         news = roomNews,
                         isStale = isStale,
@@ -207,6 +339,9 @@ class NewsRepository private constructor(private val context: Context) {
 
             persistNewsToRoom(newsDao, remoteNews)
             val updated = readNewsFromRoom(newsDao)
+            if (updated.isNotEmpty()) {
+                recordSyncMetadata(System.currentTimeMillis(), response.stale, response.dataAsOf, response.latestPublishedAt)
+            }
             NewsRefreshResult.Success(
                 news = if (updated.isNotEmpty()) updated else remoteNews,
                 remainingRefreshes = response.remainingRefreshes,
@@ -380,6 +515,17 @@ class NewsRepository private constructor(private val context: Context) {
     }
 
     companion object {
+        const val PREFS_NEWS_SYNC = "fnmf_news_sync_metadata"
+        const val KEY_LAST_SYNC_TIME = "last_sync_time_ms"
+        const val KEY_LAST_SYNC_STALE = "last_sync_stale"
+        const val KEY_LAST_DATA_AS_OF = "last_data_as_of"
+        const val KEY_LAST_LATEST_PUBLISHED_AT = "last_latest_published_at"
+
+        const val AUTO_SYNC_THROTTLE_MS = 15 * 60 * 1000L // 15 phút
+        @Volatile
+        var lastSyncTimeMs: Long = 0L
+        val syncMutex = Mutex()
+
         @Volatile
         private var INSTANCE: NewsRepository? = null
 
@@ -388,6 +534,8 @@ class NewsRepository private constructor(private val context: Context) {
                 INSTANCE ?: NewsRepository(context.applicationContext).also { INSTANCE = it }
             }
         }
+
+        fun createForTesting(context: Context): NewsRepository = NewsRepository(context)
 
         fun parseTimeToEpoch(timeStr: String?): Long {
             if (timeStr == null || timeStr.isBlank()) return 0L

@@ -81,13 +81,32 @@ class NewsFeedFragment : Fragment() {
 
         val authHeader = AuthSessionManager.getAuthHeader(appContext)
         if (authHeader.isNullOrBlank()) {
-            isRefreshingInProgress.set(false)
-            binding.swipeRefreshNews.isRefreshing = false
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.refresh_auth_required),
-                Toast.LENGTH_SHORT
-            ).show()
+            // Không có authHeader: cho phép người dùng khách pull-to-refresh đồng bộ tin tức nền
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                val repository = NewsRepository.getInstance(appContext)
+                val result = repository.syncNewsInBackground(force = true)
+                withContext(Dispatchers.Main) {
+                    if (_binding == null) return@withContext
+                    isRefreshingInProgress.set(false)
+                    binding.swipeRefreshNews.isRefreshing = false
+                    when (result) {
+                        is NewsRepository.NewsResult.SyncSuccess -> {
+                            binding.rvNews.visibility = View.VISIBLE
+                            binding.tvNewsError.visibility = View.GONE
+                            adapter.submit(result.news)
+                        }
+                        is NewsRepository.NewsResult.CacheFallback -> {
+                            if (adapter.itemCount == 0 && result.news.isNotEmpty()) {
+                                adapter.submit(result.news)
+                            }
+                            binding.tvNewsStaleWarning.visibility = View.VISIBLE
+                        }
+                        else -> {
+                            Toast.makeText(requireContext(), getString(R.string.refresh_auth_required), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
             return
         }
 
@@ -200,14 +219,28 @@ class NewsFeedFragment : Fragment() {
     }
 
     private fun fetchNews(adapter: NewsAdapter, appContext: Context) {
-        binding.pbNewsLoading.visibility = View.VISIBLE
-        binding.tvNewsError.visibility = View.GONE
-        binding.rvNews.visibility = View.GONE
+        val repository = NewsRepository.getInstance(appContext)
 
+        // 1. Đọc và hiển thị NGAY LẬP TỨC toàn bộ tin tức đã lưu trong Room Database
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            val repository = NewsRepository.getInstance(appContext)
-            val result = repository.getNews()
+            val cachedNews = repository.getCachedNews()
+            withContext(Dispatchers.Main) {
+                if (_binding == null) return@withContext
+                if (cachedNews.isNotEmpty()) {
+                    binding.rvNews.visibility = View.VISIBLE
+                    binding.pbNewsLoading.visibility = View.GONE
+                    binding.tvNewsError.visibility = View.GONE
+                    adapter.submit(cachedNews)
+                } else {
+                    // Cold start: Chưa từng có tin tức nào trong Room
+                    binding.pbNewsLoading.visibility = View.VISIBLE
+                    binding.rvNews.visibility = View.GONE
+                    binding.tvNewsError.visibility = View.GONE
+                }
+            }
 
+            // 2. Chạy background sync bất đồng bộ
+            val result = repository.syncNewsInBackground(force = false)
             withContext(Dispatchers.Main) {
                 if (_binding == null) return@withContext
                 binding.pbNewsLoading.visibility = View.GONE
@@ -225,26 +258,35 @@ class NewsFeedFragment : Fragment() {
                         adapter.submit(result.news)
                     }
                     is NewsRepository.NewsResult.CacheFallback -> {
-                        binding.rvNews.visibility = View.VISIBLE
-                        binding.tvNewsError.visibility = View.VISIBLE
-                        binding.tvNewsError.text = "Đang ngoại tuyến. Ứng dụng đang hiển thị tin tức đã lưu trên thiết bị."
-                        binding.tvNewsStaleWarning.visibility = View.VISIBLE
-                        binding.tvNewsStaleWarning.setText(R.string.news_stale_warning)
-                        adapter.submit(result.news)
+                        // GIỮ NGUYÊN danh sách tin tức cũ đã nạp từ Room, TUYỆT ĐỐI KHÔNG làm trắng màn hình
+                        if (adapter.itemCount == 0 && result.news.isNotEmpty()) {
+                            adapter.submit(result.news)
+                        }
+                        if (adapter.itemCount > 0) {
+                            binding.rvNews.visibility = View.VISIBLE
+                            binding.tvNewsStaleWarning.visibility = View.VISIBLE
+                            binding.tvNewsStaleWarning.setText(R.string.news_stale_warning)
+                            binding.tvNewsError.visibility = View.GONE
+                        } else {
+                            binding.tvNewsError.visibility = View.VISIBLE
+                            binding.tvNewsError.text = "Đang ngoại tuyến. Ứng dụng đang hiển thị tin tức đã lưu trên thiết bị."
+                        }
                     }
                     is NewsRepository.NewsResult.CacheWriteFailure -> {
-                        binding.rvNews.visibility = View.GONE
-                        binding.tvNewsStaleWarning.visibility = View.GONE
-                        binding.tvNewsError.visibility = View.VISIBLE
-                        binding.tvNewsError.text = "Không thể lưu tin tức trên thiết bị. Vui lòng thử lại."
-                        adapter.submit(emptyList())
+                        if (adapter.itemCount == 0) {
+                            binding.rvNews.visibility = View.GONE
+                            binding.tvNewsStaleWarning.visibility = View.GONE
+                            binding.tvNewsError.visibility = View.VISIBLE
+                            binding.tvNewsError.text = "Không thể lưu tin tức trên thiết bị. Vui lòng thử lại."
+                        }
                     }
                     is NewsRepository.NewsResult.Empty -> {
-                        binding.rvNews.visibility = View.GONE
-                        binding.tvNewsStaleWarning.visibility = View.GONE
-                        binding.tvNewsError.visibility = View.VISIBLE
-                        binding.tvNewsError.text = if (result.message.isNotBlank()) result.message else "Chưa có bản tin mới"
-                        adapter.submit(emptyList())
+                        if (adapter.itemCount == 0) {
+                            binding.rvNews.visibility = View.GONE
+                            binding.tvNewsStaleWarning.visibility = View.GONE
+                            binding.tvNewsError.visibility = View.VISIBLE
+                            binding.tvNewsError.text = if (result.message.isNotBlank()) result.message else "Chưa có bản tin mới"
+                        }
                     }
                 }
             }

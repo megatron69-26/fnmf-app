@@ -258,4 +258,123 @@ class RoomMigrationTest {
         assertEquals(600.0, wlCursor.getDouble(wlCursor.getColumnIndexOrThrow("price")), 0.001)
         wlCursor.close()
     }
+
+    @Test
+    fun testMigrate5To6_createsForecastTableAndPreservesAllData() {
+        // 1. Tạo CSDL ở version 5 với đầy đủ dữ liệu
+        var db = helper.createDatabase(testDb, 5).apply {
+            execSQL("INSERT INTO news_table (newsId, title, url, publishedAt, source, author, publishedAtRaw, imageUrl, summary, sentiment, confidence, bulletPoints, originalTitle, originalSummary, displayTitleVi, displaySummaryVi, bulletPointsVi, publisher) " +
+                    "VALUES ('news-v5', 'Fed Meeting v5', 'https://fnmf.com/news/5', 1730000000, 'Bloomberg', 'Alice', '2026-09-15', 'https://fnmf.com/img5.jpg', 'Summary 5', 'bullish', 95, 'Bullet 5', 'Fed Meeting v5', 'Summary 5', 'Cuộc họp Fed v5', 'Tóm tắt tiếng Việt', 'Gạch đầu dòng', 'Bloomberg')")
+            execSQL("INSERT INTO ai_analysis_table (newsId, summary, sentiment, confidenceScore, reason) " +
+                    "VALUES ('news-v5', 'AI Analysis 5', 'bullish', 95, 'Interest rate cuts incoming')")
+            execSQL("INSERT INTO watchlist_table (id, symbol, price, change24h, userEmail) " +
+                    "VALUES (55, 'BTCUSDT', 68000.0, 3.8, 'trader@fnmf.com')")
+            close()
+        }
+
+        // 2. Chạy Migration 5 -> 6 và đối chiếu tự động với schema 6.json
+        db = helper.runMigrationsAndValidate(testDb, 6, true, AppDatabase.MIGRATION_5_6)
+
+        // 3. Xác minh PRAGMA foreign_key_check
+        val fkCursor: Cursor = db.query("PRAGMA foreign_key_check;")
+        assertEquals("Không được có bất kỳ vi phạm foreign key nào sau migration 5->6", 0, fkCursor.count)
+        fkCursor.close()
+
+        // 4. Xác minh dữ liệu news, ai_analysis và watchlist được bảo toàn nguyên vẹn
+        val newsCursor: Cursor = db.query("SELECT newsId, displayTitleVi, publisher FROM news_table WHERE newsId = 'news-v5'")
+        assertTrue("Bản ghi News v5 phải được bảo toàn nguyên vẹn", newsCursor.moveToFirst())
+        assertEquals("Cuộc họp Fed v5", newsCursor.getString(newsCursor.getColumnIndexOrThrow("displayTitleVi")))
+        assertEquals("Bloomberg", newsCursor.getString(newsCursor.getColumnIndexOrThrow("publisher")))
+        newsCursor.close()
+
+        val aiCursor: Cursor = db.query("SELECT newsId, summary, confidenceScore FROM ai_analysis_table WHERE newsId = 'news-v5'")
+        assertTrue("Bản ghi AI Analysis phải được bảo toàn", aiCursor.moveToFirst())
+        assertEquals("AI Analysis 5", aiCursor.getString(aiCursor.getColumnIndexOrThrow("summary")))
+        assertEquals(95, aiCursor.getInt(aiCursor.getColumnIndexOrThrow("confidenceScore")))
+        aiCursor.close()
+
+        val wlCursor: Cursor = db.query("SELECT symbol, price, change24h FROM watchlist_table WHERE id = 55")
+        assertTrue("Bản ghi Watchlist phải được bảo toàn", wlCursor.moveToFirst())
+        assertEquals("BTCUSDT", wlCursor.getString(wlCursor.getColumnIndexOrThrow("symbol")))
+        assertEquals(68000.0, wlCursor.getDouble(wlCursor.getColumnIndexOrThrow("price")), 0.001)
+        wlCursor.close()
+
+        // 5. Xác minh bảng forecast_table mới được tạo và hỗ trợ đầy đủ các cột bao gồm trendPrediction
+        db.execSQL("INSERT INTO forecast_table (symbol, recommendation, confidenceScore, currentPrice, supportLevel, resistanceLevel, keyDriversJson, trendPrediction, technicalOutlook, fundamentalOutlook, analysisSource, createdAt, timeframe, stale, aiShard, candleCount, cachedAt) " +
+                "VALUES ('MARKET', 'BUY', 88, 65000.0, 63000.0, 68000.0, '[\"Dòng vốn mạnh\"]', 'BULLISH_UPTREND', 'Tích cực', 'Ổn định', 'GEMINI', '2026-09-18T20:00:00', '24H_7D', 0, 'gemini-shard-1', 30, 1726700000000)")
+
+        val forecastCursor: Cursor = db.query("SELECT symbol, recommendation, confidenceScore, currentPrice, trendPrediction, cachedAt FROM forecast_table WHERE symbol = 'MARKET'")
+        assertTrue("Bản ghi Forecast phải được truy vấn thành công từ forecast_table", forecastCursor.moveToFirst())
+        assertEquals("MARKET", forecastCursor.getString(forecastCursor.getColumnIndexOrThrow("symbol")))
+        assertEquals("BUY", forecastCursor.getString(forecastCursor.getColumnIndexOrThrow("recommendation")))
+        assertEquals(88, forecastCursor.getInt(forecastCursor.getColumnIndexOrThrow("confidenceScore")))
+        assertEquals(65000.0, forecastCursor.getDouble(forecastCursor.getColumnIndexOrThrow("currentPrice")), 0.001)
+        assertEquals("BULLISH_UPTREND", forecastCursor.getString(forecastCursor.getColumnIndexOrThrow("trendPrediction")))
+        assertEquals(1726700000000L, forecastCursor.getLong(forecastCursor.getColumnIndexOrThrow("cachedAt")))
+        forecastCursor.close()
+    }
+
+    @Test
+    fun testMigrate2To6_fullMigrationChainPreservesAllDataAndMatchesSchema6() {
+        // 1. Tạo CSDL ở version 2
+        var db = helper.createDatabase(testDb, 2).apply {
+            execSQL("INSERT INTO news_table (newsId, title, url, publishedAt) " +
+                    "VALUES ('n-chain-6', 'Original News v2 for 6', 'https://fnmf.com/6', 1726000000)")
+            execSQL("INSERT INTO ai_analysis_table (analysisId, newsId, summary, sentiment, confidenceScore, reason) " +
+                    "VALUES (10, 'n-chain-6', 'Old Summary v2 for 6', 'neutral', 50, 'Outdated')")
+            execSQL("INSERT INTO ai_analysis_table (analysisId, newsId, summary, sentiment, confidenceScore, reason) " +
+                    "VALUES (20, 'n-chain-6', 'Final AI Summary for 6', 'bullish', 99, 'Peak confidence')")
+            execSQL("INSERT INTO watchlist_table (id, symbol, price, change24h, userEmail) " +
+                    "VALUES (600, 'ETHUSDT', 3500.0, 5.1, 'chain6@fnmf.com')")
+            close()
+        }
+
+        // 2. Chạy chuỗi di trú liên tục 2 -> 3 -> 4 -> 5 -> 6 trực tiếp lên schema 6.json
+        db = helper.runMigrationsAndValidate(testDb, 6, true,
+            AppDatabase.MIGRATION_2_3,
+            AppDatabase.MIGRATION_3_4,
+            AppDatabase.MIGRATION_4_5,
+            AppDatabase.MIGRATION_5_6
+        )
+
+        // 3. Kiểm tra tính toàn vẹn khóa ngoại
+        val fkCursor: Cursor = db.query("PRAGMA foreign_key_check;")
+        assertEquals("Không được có bất kỳ vi phạm foreign key nào sau chuỗi migration 2->6", 0, fkCursor.count)
+        fkCursor.close()
+
+        // 4. Xác minh news_table bảo toàn và sẵn sàng cho các cột schema 6
+        val newsCursor: Cursor = db.query("SELECT newsId, title, publishedAt, displayTitleVi FROM news_table WHERE newsId = 'n-chain-6'")
+        assertTrue(newsCursor.moveToFirst())
+        assertEquals("Original News v2 for 6", newsCursor.getString(newsCursor.getColumnIndexOrThrow("title")))
+        assertEquals(1726000000L, newsCursor.getLong(newsCursor.getColumnIndexOrThrow("publishedAt")))
+        assertTrue(newsCursor.isNull(newsCursor.getColumnIndexOrThrow("displayTitleVi")))
+        newsCursor.close()
+
+        // 5. Xác minh ai_analysis_table chỉ giữ 1 bản ghi có MAX(analysisId) = 20
+        val aiCursor: Cursor = db.query("SELECT newsId, summary, sentiment, confidenceScore FROM ai_analysis_table WHERE newsId = 'n-chain-6'")
+        assertTrue(aiCursor.moveToFirst())
+        assertEquals(1, aiCursor.count)
+        assertEquals("Final AI Summary for 6", aiCursor.getString(aiCursor.getColumnIndexOrThrow("summary")))
+        assertEquals("bullish", aiCursor.getString(aiCursor.getColumnIndexOrThrow("sentiment")))
+        assertEquals(99, aiCursor.getInt(aiCursor.getColumnIndexOrThrow("confidenceScore")))
+        aiCursor.close()
+
+        // 6. Xác minh watchlist_table bảo toàn
+        val wlCursor: Cursor = db.query("SELECT symbol, price, change24h, userEmail FROM watchlist_table WHERE id = 600")
+        assertTrue(wlCursor.moveToFirst())
+        assertEquals("ETHUSDT", wlCursor.getString(wlCursor.getColumnIndexOrThrow("symbol")))
+        assertEquals(3500.0, wlCursor.getDouble(wlCursor.getColumnIndexOrThrow("price")), 0.001)
+        wlCursor.close()
+
+        // 7. Xác minh forecast_table sẵn sàng hoạt động
+        db.execSQL("INSERT INTO forecast_table (symbol, recommendation, confidenceScore, currentPrice, trendPrediction, cachedAt) " +
+                "VALUES ('MARKET', 'HOLD', 75, 66000.0, 'NEUTRAL_CONSOLIDATION', 1726800000000)")
+
+        val forecastCursor: Cursor = db.query("SELECT symbol, recommendation, trendPrediction FROM forecast_table WHERE symbol = 'MARKET'")
+        assertTrue(forecastCursor.moveToFirst())
+        assertEquals("MARKET", forecastCursor.getString(forecastCursor.getColumnIndexOrThrow("symbol")))
+        assertEquals("HOLD", forecastCursor.getString(forecastCursor.getColumnIndexOrThrow("recommendation")))
+        assertEquals("NEUTRAL_CONSOLIDATION", forecastCursor.getString(forecastCursor.getColumnIndexOrThrow("trendPrediction")))
+        forecastCursor.close()
+    }
 }

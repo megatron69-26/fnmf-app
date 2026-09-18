@@ -9,14 +9,15 @@ import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
 @Database(
-    entities = {WatchlistItem.class, NewsEntity.class, AiAnalysisEntity.class},
-    version = 5,
+    entities = {WatchlistItem.class, NewsEntity.class, AiAnalysisEntity.class, ForecastEntity.class},
+    version = 6,
     exportSchema = true
 )
 public abstract class AppDatabase extends RoomDatabase {
 
     public abstract WatchlistDao watchlistDao();
     public abstract NewsDao newsDao();
+    public abstract ForecastDao forecastDao();
 
     private static volatile AppDatabase INSTANCE;
 
@@ -91,6 +92,30 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    public static final Migration MIGRATION_5_6 = new Migration(5, 6) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS forecast_table (" +
+                    "symbol TEXT PRIMARY KEY NOT NULL, " +
+                    "recommendation TEXT, " +
+                    "confidenceScore INTEGER, " +
+                    "currentPrice REAL, " +
+                    "supportLevel REAL, " +
+                    "resistanceLevel REAL, " +
+                    "keyDriversJson TEXT, " +
+                    "trendPrediction TEXT, " +
+                    "technicalOutlook TEXT, " +
+                    "fundamentalOutlook TEXT, " +
+                    "analysisSource TEXT, " +
+                    "createdAt TEXT, " +
+                    "timeframe TEXT, " +
+                    "stale INTEGER, " +
+                    "aiShard TEXT, " +
+                    "candleCount INTEGER, " +
+                    "cachedAt INTEGER NOT NULL DEFAULT 0)");
+        }
+    };
+
     public static AppDatabase getInstance(Context context) {
         if (INSTANCE == null) {
             synchronized (AppDatabase.class) {
@@ -100,7 +125,7 @@ public abstract class AppDatabase extends RoomDatabase {
                         AppDatabase.class,
                         "fnmf_unified_mobile_db"
                     )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .fallbackToDestructiveMigrationOnDowngrade()
                     .build();
                 }

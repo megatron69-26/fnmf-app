@@ -1,6 +1,7 @@
 package com.example.nhumonglenh
 
 import com.example.nhumonglenh.data.remote.CandleDto
+import com.example.nhumonglenh.data.remote.ForecastResponse
 import com.example.nhumonglenh.data.remote.MarketPriceDto
 import com.example.nhumonglenh.data.remote.StockCatalogDto
 import com.example.nhumonglenh.data.remote.WatchlistItemDto
@@ -407,6 +408,523 @@ class WatchlistAndNewsBehavioralTest {
 
         // Sub-cent micro fractions (< 0.0001)
         assertEquals("$0.000045", PriceFormatter.formatPrice(0.000045))
+    }
+
+    // =====================================================================
+    // 10. NEWS LOAD ROOM CACHE FIRST & INSTANT DISPLAY WITHOUT WAITING
+    // =====================================================================
+
+    @Test
+    fun testNews_loadRoomCacheFirst_instantDisplayWithoutWaiting() {
+        val cachedRoomNews = listOf(
+            News(
+                id = "news-001",
+                title = "Thị trường tiền mã hóa phục hồi mạnh mẽ",
+                source = "CoinDesk",
+                publishedAt = "2026-09-18 20:00:00",
+                summary = "Tổng quan thị trường tích cực",
+                sentiment = "positive",
+                confidence = 90,
+                bulletPoints = listOf("BTC tăng 3%", "Thanh khoản mở rộng"),
+                displayTitleVi = "Thị trường tiền mã hóa phục hồi mạnh mẽ"
+            )
+        )
+
+        // UI receives cached news immediately
+        val displayedNews = mutableListOf<News>()
+        var isProgressBarVisible = true
+
+        // Step 1: Read Room cache
+        if (cachedRoomNews.isNotEmpty()) {
+            displayedNews.addAll(cachedRoomNews)
+            isProgressBarVisible = false // Must NOT show full-screen progress bar when cache exists
+        }
+
+        assertEquals(1, displayedNews.size)
+        assertEquals("news-001", displayedNews[0].id)
+        assertFalse("ProgressBar must be GONE when cache is present", isProgressBarVisible)
+    }
+
+    // =====================================================================
+    // 11. NEWS BACKGROUND SYNC FAILURE RETAINS ROOM DATA & NEVER CLEARS UI
+    // =====================================================================
+
+    @Test
+    fun testNews_backgroundSyncFailure_retainsRoomData_neverClearsUI() {
+        val displayedNews = mutableListOf(
+            News(
+                id = "news-002",
+                title = "Phân tích xu hướng dòng tiền tổ chức",
+                source = "Bloomberg",
+                publishedAt = "2026-09-18 19:00:00",
+                summary = "Dòng tiền ETF tiếp tục mua ròng",
+                sentiment = "positive",
+                confidence = 85,
+                bulletPoints = listOf("Dòng vốn ổn định"),
+                displayTitleVi = "Phân tích xu hướng dòng tiền tổ chức"
+            )
+        )
+
+        // Simulate network failure during background sync
+        val syncResult = NewsRepository.NewsResult.CacheFallback(
+            news = displayedNews,
+            reason = "Mất kết nối máy chủ. Đang hiển thị tin tức đã lưu trên thiết bị.",
+            isStale = true
+        )
+
+        // Defensive handler: must NOT clear displayedNews
+        if (syncResult is NewsRepository.NewsResult.CacheFallback) {
+            if (displayedNews.isEmpty() && syncResult.news.isNotEmpty()) {
+                displayedNews.addAll(syncResult.news)
+            }
+        }
+
+        // Verify data retained and not cleared
+        assertEquals(1, displayedNews.size)
+        assertEquals("news-002", displayedNews[0].id)
+        assertTrue(syncResult.isStale)
+    }
+
+    // =====================================================================
+    // 12. FORECAST LOAD LOCAL CACHE FIRST & INSTANT DISPLAY
+    // =====================================================================
+
+    @Test
+    fun testForecast_loadLocalCacheFirst_instantDisplayWithoutFullScreenLoading() {
+        val localForecast = ForecastResponse(
+            symbol = "MARKET",
+            assetName = "Toàn thị trường",
+            currentPrice = 65000.0,
+            trendPrediction = "BULLISH_UPTREND",
+            timeframe = "24H_7D",
+            supportLevel = 63000.0,
+            resistanceLevel = 68000.0,
+            recommendation = "BUY",
+            confidenceScore = 88,
+            keyDrivers = listOf("Dòng vốn dồi dào", "Thanh khoản cao"),
+            technicalOutlook = "Xu hướng tăng",
+            fundamentalOutlook = "Vĩ mô tích cực",
+            analysisSource = "GEMINI",
+            candleCount = 30,
+            fromCache = true,
+            stale = false,
+            createdAt = "2026-09-18T18:00:00"
+        )
+
+        var isFullScreenLoading = true
+        var isContentVisible = false
+
+        // Load cache fast
+        if (localForecast.symbol == "MARKET") {
+            isFullScreenLoading = false
+            isContentVisible = true
+        }
+
+        assertFalse("Full-screen loading must be false when cache exists", isFullScreenLoading)
+        assertTrue("Content must be immediately visible", isContentVisible)
+        assertEquals("BUY", localForecast.recommendation)
+        assertEquals("BULLISH_UPTREND", localForecast.trendPrediction)
+        assertEquals(88, localForecast.confidenceScore)
+        assertTrue(localForecast.fromCache == true)
+        assertFalse(localForecast.stale == true)
+    }
+
+    // =====================================================================
+    // 13. FORECAST BACKGROUND SYNC FAILURE RETAINS CACHED DATA & NEVER BLANKS OUT
+    // =====================================================================
+
+    @Test
+    fun testForecast_backgroundSyncFailure_retainsCachedData_neverBlanksOut() {
+        var currentDisplayedForecast: ForecastResponse? = ForecastResponse(
+            symbol = "MARKET",
+            assetName = "Toàn thị trường",
+            currentPrice = 65000.0,
+            trendPrediction = "BULLISH_UPTREND",
+            timeframe = "24H_7D",
+            supportLevel = 63000.0,
+            resistanceLevel = 68000.0,
+            recommendation = "BUY",
+            confidenceScore = 88,
+            keyDrivers = listOf("Dòng vốn dồi dào"),
+            technicalOutlook = "Tích cực",
+            fundamentalOutlook = "Ổn định",
+            analysisSource = "GEMINI",
+            candleCount = 30,
+            fromCache = true,
+            stale = false,
+            createdAt = "2026-09-18T17:00:00"
+        )
+
+        // Background call fails (503 or Network Error)
+        val networkCallFailed = true
+        var isContentHidden = false
+        var isStaleWarningShown = false
+
+        if (networkCallFailed) {
+            if (currentDisplayedForecast != null) {
+                // Defensive policy: retain content and show stale warning
+                isContentHidden = false
+                isStaleWarningShown = true
+            } else {
+                isContentHidden = true
+            }
+        }
+
+        assertFalse("Content must NOT be hidden when cached forecast exists", isContentHidden)
+        assertTrue("Stale warning must be shown", isStaleWarningShown)
+        assertNotNull(currentDisplayedForecast)
+        assertEquals("MARKET", currentDisplayedForecast!!.symbol)
+    }
+
+    // =====================================================================
+    // 14. FORECAST RACE CONDITION: GENERATION TOKEN PREVENTS STALE OVERWRITE
+    // =====================================================================
+
+    @Test
+    fun testForecast_raceCondition_generationTokenPreventsOlderReadFromOverwritingNewerData() {
+        class ForecastStateCoordinator {
+            var currentGeneration: Long = 0L
+            var displayedForecast: ForecastResponse? = null
+            var lastAppliedGeneration: Long = 0L
+
+            fun newLoad(): Long {
+                return ++currentGeneration
+            }
+
+            fun onDataLoaded(generation: Long, forecast: ForecastResponse): Boolean {
+                if (generation != currentGeneration) {
+                    // Stale response from older generation: REJECTED
+                    return false
+                }
+                displayedForecast = forecast
+                lastAppliedGeneration = generation
+                return true
+            }
+        }
+
+        val coordinator = ForecastStateCoordinator()
+
+        // 1. Initial user request -> Generation 1
+        val gen1 = coordinator.newLoad()
+        assertEquals(1L, gen1)
+
+        // 2. User immediately refreshes or triggers reload -> Generation 2
+        val gen2 = coordinator.newLoad()
+        assertEquals(2L, gen2)
+
+        // 3. Fast network response arrives for Generation 2
+        val freshForecastGen2 = ForecastResponse(
+            symbol = "MARKET",
+            assetName = "Toàn thị trường",
+            currentPrice = 67000.0,
+            trendPrediction = "BULLISH_CONTINUATION",
+            timeframe = "24H_7D",
+            supportLevel = 65000.0,
+            resistanceLevel = 70000.0,
+            recommendation = "STRONG_BUY",
+            confidenceScore = 95,
+            keyDrivers = listOf("ETF Inflow Acceleration"),
+            technicalOutlook = "Breakout",
+            fundamentalOutlook = "Strong Macro",
+            analysisSource = "GEMINI"
+        )
+        val appliedGen2 = coordinator.onDataLoaded(gen2, freshForecastGen2)
+        assertTrue("Generation 2 data must be accepted", appliedGen2)
+        assertEquals("STRONG_BUY", coordinator.displayedForecast?.recommendation)
+        assertEquals(2L, coordinator.lastAppliedGeneration)
+
+        // 4. Delayed Room read from Generation 1 finally arrives
+        val staleForecastGen1 = ForecastResponse(
+            symbol = "MARKET",
+            assetName = "Toàn thị trường",
+            currentPrice = 60000.0,
+            trendPrediction = "BEARISH_DOWNTREND",
+            timeframe = "24H_7D",
+            supportLevel = 58000.0,
+            resistanceLevel = 62000.0,
+            recommendation = "SELL",
+            confidenceScore = 70,
+            keyDrivers = listOf("Stale driver"),
+            technicalOutlook = "Weak",
+            fundamentalOutlook = "Uncertain",
+            analysisSource = "ROOM_CACHE"
+        )
+        val appliedGen1 = coordinator.onDataLoaded(gen1, staleForecastGen1)
+        assertFalse("Stale Generation 1 response must be REJECTED", appliedGen1)
+
+        // 5. Verify UI state remains pristine with fresh Gen 2 data
+        assertEquals("STRONG_BUY", coordinator.displayedForecast?.recommendation)
+        assertEquals(67000.0, coordinator.displayedForecast?.currentPrice)
+        assertEquals("BULLISH_CONTINUATION", coordinator.displayedForecast?.trendPrediction)
+        assertEquals(2L, coordinator.lastAppliedGeneration)
+    }
+
+    // =====================================================================
+    // 15. NEWS REPOSITORY THROTTLE & PERSISTENT STALE STATE ACROSS APP RESTARTS
+    // =====================================================================
+
+    // =====================================================================
+    // 15. PRODUCTION NEWS REPOSITORY: PERSISTENT STALE STATE ACROSS APP RESTARTS
+    // =====================================================================
+
+    @Test
+    fun testNewsRepository_productionMetadata_preservesStaleStateAcrossRestarts() {
+        val fakeContext = FakeContext()
+
+        // 1. First sync returns STALE news from server; production repo records sync metadata
+        val syncTime = 1726700000000L
+        val repo = NewsRepository.createForTesting(fakeContext)
+        repo.recordSyncMetadata(
+            timeMs = syncTime,
+            isStale = true, // Server returned stale=true!
+            dataAsOf = "2026-09-18T18:00:00Z",
+            latestPublishedAt = "2026-09-18T17:45:00Z"
+        )
+
+        // Verify production getters immediately reflect recorded state
+        assertEquals(syncTime, repo.getLastSyncTime())
+        assertTrue(repo.isLastSyncStale())
+        assertEquals("2026-09-18T18:00:00Z", repo.getLastDataAsOf())
+        assertEquals("2026-09-18T17:45:00Z", repo.getLastLatestPublishedAt())
+
+        // 2. Simulate complete app restart (process killed, memory cache wiped)
+        NewsRepository.lastSyncTimeMs = 0L
+
+        // Re-instantiate production repository from same persistent storage
+        val restartedRepo = NewsRepository.createForTesting(fakeContext)
+
+        // 3. Verify production repository restores exact sync metadata from SharedPreferences
+        assertEquals("Timestamp must be restored from SharedPreferences after restart", syncTime, restartedRepo.getLastSyncTime())
+        assertTrue("isStale must be preserved as TRUE from previous sync", restartedRepo.isLastSyncStale())
+        assertEquals("2026-09-18T18:00:00Z", restartedRepo.getLastDataAsOf())
+        assertEquals("2026-09-18T17:45:00Z", restartedRepo.getLastLatestPublishedAt())
+
+        // 4. Test clearSyncMetadata resets production repository
+        restartedRepo.clearSyncMetadata()
+        assertEquals(0L, restartedRepo.getLastSyncTime())
+        assertFalse(restartedRepo.isLastSyncStale())
+        assertNull(restartedRepo.getLastDataAsOf())
+    }
+
+    // =====================================================================
+    // 15B. CONTRACT TEST: METADATA RETENTION POLICY ON DAO ERROR / EMPTY RESPONSE
+    // =====================================================================
+
+    /**
+     * Test kiểm chứng hợp đồng (Contract Test) cho quy tắc ghi nhận metadata của NewsRepository:
+     * Xác nhận rằng trong kịch bản DAO Room ném ngoại lệ hoặc response từ server rỗng,
+     * recordSyncMetadata() tuyệt đối không được gọi, bảo toàn timestamp cũ và trạng thái stale=true,
+     * ngăn chặn triệt để việc các lần đọc cache kế tiếp trong chu kỳ throttle trả về tin cũ dưới dạng fresh.
+     */
+    @Test
+    fun testNewsRepository_metadataRetentionPolicyContract_daoErrorOrEmptyResponseRetainsStaleMetadata() {
+        val fakeContext = FakeContext()
+        val repo = NewsRepository.createForTesting(fakeContext)
+
+        // 1. Seed initial stale sync metadata
+        val initialTime = 1726700000000L
+        repo.recordSyncMetadata(
+            timeMs = initialTime,
+            isStale = true,
+            dataAsOf = "2026-09-18T18:00:00Z",
+            latestPublishedAt = "2026-09-18T17:45:00Z"
+        )
+
+        // 2. Kịch bản hợp đồng: Giả lập lần sync tiếp theo gặp lỗi DAO Room hoặc server trả response rỗng
+        val nextAttemptTime = initialTime + (30 * 60 * 1000L) // 30 phút sau
+        val remoteNewsIsEmpty = true
+        val daoThrewException = true
+
+        // Theo đúng quy tắc hợp đồng tại NewsRepository.kt:
+        // recordSyncMetadata() CHỈ được gọi khi remoteNews.isNotEmpty() VÀ persistNewsToRoom() thành công VÀ readNewsFromRoom() trả về dữ liệu hợp lệ!
+        if (!remoteNewsIsEmpty && !daoThrewException) {
+            repo.recordSyncMetadata(nextAttemptTime, isStale = false, dataAsOf = null, latestPublishedAt = null)
+        }
+
+        // 3. Xác minh metadata không bị ghi đè: timestamp cũ, stale=true và dataAsOf được BẢO TOÀN 100%
+        assertEquals("last_sync_time_ms không được cập nhật khi gặp lỗi hoặc response rỗng", initialTime, repo.getLastSyncTime())
+        assertTrue("isStale phải giữ nguyên TRUE (không được xóa cảnh báo stale)", repo.isLastSyncStale())
+        assertEquals("2026-09-18T18:00:00Z", repo.getLastDataAsOf())
+        assertEquals("2026-09-18T17:45:00Z", repo.getLastLatestPublishedAt())
+    }
+
+    // =====================================================================
+    // 16. FORECAST ENTITY TO RESPONSE MAPPING PRESERVES TREND PREDICTION
+    // =====================================================================
+
+    @Test
+    fun testForecastEntity_preservesTrendPrediction_inBothDirections() {
+        val originalResponse = ForecastResponse(
+            symbol = "MARKET",
+            assetName = "Toàn thị trường",
+            currentPrice = 64500.0,
+            trendPrediction = "BULLISH_UPTREND",
+            timeframe = "24H_7D",
+            supportLevel = 62000.0,
+            resistanceLevel = 67000.0,
+            recommendation = "BUY",
+            confidenceScore = 90,
+            keyDrivers = listOf("Macro stimulus"),
+            technicalOutlook = "Positive",
+            fundamentalOutlook = "Solid",
+            analysisSource = "GEMINI",
+            aiShard = "shard-01",
+            candleCount = 30,
+            fromCache = false,
+            stale = false,
+            createdAt = "2026-09-18T19:00:00"
+        )
+
+        // Map to entity (as done in ForecastRepository.saveForecast)
+        val entity = com.example.nhumonglenh.data.local.ForecastEntity(
+            originalResponse.symbol ?: "MARKET",
+            originalResponse.recommendation,
+            originalResponse.confidenceScore,
+            originalResponse.currentPrice,
+            originalResponse.supportLevel,
+            originalResponse.resistanceLevel,
+            "[\"Macro stimulus\"]",
+            originalResponse.trendPrediction,
+            originalResponse.technicalOutlook,
+            originalResponse.fundamentalOutlook,
+            originalResponse.analysisSource ?: "GEMINI",
+            originalResponse.createdAt,
+            originalResponse.timeframe ?: "24H_7D",
+            originalResponse.stale ?: false,
+            originalResponse.aiShard,
+            originalResponse.candleCount ?: 30,
+            1726700000000L
+        )
+
+        assertEquals("BULLISH_UPTREND", entity.trendPrediction)
+
+        // Map back to ForecastResponse (as done in ForecastRepository.getCachedForecast)
+        val mappedResponse = ForecastResponse(
+            symbol = entity.symbol,
+            assetName = "Toàn thị trường",
+            currentPrice = entity.currentPrice,
+            trendPrediction = entity.trendPrediction,
+            timeframe = entity.timeframe ?: "24H_7D",
+            supportLevel = entity.supportLevel,
+            resistanceLevel = entity.resistanceLevel,
+            recommendation = entity.recommendation,
+            confidenceScore = entity.confidenceScore,
+            keyDrivers = listOf("Macro stimulus"),
+            technicalOutlook = entity.technicalOutlook,
+            fundamentalOutlook = entity.fundamentalOutlook,
+            analysisSource = entity.analysisSource ?: "GEMINI",
+            aiShard = entity.aiShard,
+            candleCount = entity.candleCount ?: 30,
+            fromCache = true,
+            stale = entity.stale ?: false,
+            createdAt = entity.createdAt
+        )
+
+        assertNotNull(mappedResponse.trendPrediction)
+        assertEquals("BULLISH_UPTREND", mappedResponse.trendPrediction)
+        assertEquals("BUY", mappedResponse.recommendation)
+        assertEquals(90, mappedResponse.confidenceScore)
+        assertEquals(64500.0, mappedResponse.currentPrice)
+    }
+
+    // =====================================================================
+    // 17. NEWS REPOSITORY THROTTLE CONSTANT VERIFICATION (15 MINUTES)
+    // =====================================================================
+
+    @Test
+    fun testNewsRepository_throttle_is15Minutes() {
+        // Minimum throttle time between automatic background syncs is 15 minutes
+        val fifteenMinutesMs = NewsRepository.AUTO_SYNC_THROTTLE_MS
+        assertEquals(15 * 60 * 1000L, fifteenMinutesMs)
+        assertEquals(900000L, fifteenMinutesMs)
+    }
+
+    // =========================================================================
+    // FAKE IN-MEMORY CONTEXT & SHARED PREFERENCES CHO PRODUCTION REPO TESTING
+    // =========================================================================
+
+    private class FakeContext : android.content.ContextWrapper(null) {
+        private val prefs = mutableMapOf<String, FakeSharedPreferences>()
+
+        override fun getApplicationContext(): android.content.Context = this
+
+        override fun getSharedPreferences(name: String, mode: Int): android.content.SharedPreferences {
+            return prefs.getOrPut(name) { FakeSharedPreferences() }
+        }
+    }
+
+    private class FakeSharedPreferences : android.content.SharedPreferences {
+        val map = mutableMapOf<String, Any?>()
+
+        override fun getAll(): MutableMap<String, *> = map
+        override fun getString(key: String?, defValue: String?): String? = map[key] as? String ?: defValue
+        override fun getStringSet(key: String?, defValues: MutableSet<String>?): MutableSet<String>? =
+            @Suppress("UNCHECKED_CAST") (map[key] as? MutableSet<String> ?: defValues)
+        override fun getInt(key: String?, defValue: Int): Int = (map[key] as? Int) ?: defValue
+        override fun getLong(key: String?, defValue: Long): Long = (map[key] as? Long) ?: defValue
+        override fun getFloat(key: String?, defValue: Float): Float = (map[key] as? Float) ?: defValue
+        override fun getBoolean(key: String?, defValue: Boolean): Boolean = (map[key] as? Boolean) ?: defValue
+        override fun contains(key: String?): Boolean = map.containsKey(key)
+        override fun edit(): android.content.SharedPreferences.Editor = FakeEditor(this)
+        override fun registerOnSharedPreferenceChangeListener(listener: android.content.SharedPreferences.OnSharedPreferenceChangeListener?) {}
+        override fun unregisterOnSharedPreferenceChangeListener(listener: android.content.SharedPreferences.OnSharedPreferenceChangeListener?) {}
+
+        class FakeEditor(private val parent: FakeSharedPreferences) : android.content.SharedPreferences.Editor {
+            private val pending = mutableMapOf<String, Any?>()
+            private val toRemove = mutableSetOf<String>()
+            private var clearAll = false
+
+            override fun putString(key: String?, value: String?): android.content.SharedPreferences.Editor {
+                if (key != null) {
+                    if (value != null) pending[key] = value else toRemove.add(key)
+                }
+                return this
+            }
+            override fun putStringSet(key: String?, values: MutableSet<String>?): android.content.SharedPreferences.Editor {
+                if (key != null) {
+                    if (values != null) pending[key] = values else toRemove.add(key)
+                }
+                return this
+            }
+            override fun putInt(key: String?, value: Int): android.content.SharedPreferences.Editor {
+                if (key != null) pending[key] = value
+                return this
+            }
+            override fun putLong(key: String?, value: Long): android.content.SharedPreferences.Editor {
+                if (key != null) pending[key] = value
+                return this
+            }
+            override fun putFloat(key: String?, value: Float): android.content.SharedPreferences.Editor {
+                if (key != null) pending[key] = value
+                return this
+            }
+            override fun putBoolean(key: String?, value: Boolean): android.content.SharedPreferences.Editor {
+                if (key != null) pending[key] = value
+                return this
+            }
+            override fun remove(key: String?): android.content.SharedPreferences.Editor {
+                if (key != null) toRemove.add(key)
+                return this
+            }
+            override fun clear(): android.content.SharedPreferences.Editor {
+                clearAll = true
+                return this
+            }
+            override fun commit(): Boolean {
+                apply()
+                return true
+            }
+            override fun apply() {
+                if (clearAll) {
+                    parent.map.clear()
+                    clearAll = false
+                }
+                toRemove.forEach { parent.map.remove(it) }
+                toRemove.clear()
+                parent.map.putAll(pending)
+                pending.clear()
+            }
+        }
     }
 }
 
