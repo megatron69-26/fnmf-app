@@ -18,3 +18,6 @@ local.properties
 *.jks
 *.keystore
 *.key
+
+# Root preview GIFs
+/*.gif

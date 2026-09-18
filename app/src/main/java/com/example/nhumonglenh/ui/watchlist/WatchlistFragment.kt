@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.nhumonglenh.Activity2
 import com.example.nhumonglenh.R
+import com.example.nhumonglenh.ui.common.FiniLoadingView
 import com.example.nhumonglenh.data.local.AppDatabase
 import com.example.nhumonglenh.data.local.WatchlistItem
 import com.example.nhumonglenh.data.local.AuthSessionManager
@@ -40,7 +41,7 @@ import java.util.Locale
 class WatchlistFragment : Fragment() {
 
     private var rvWatchlist: RecyclerView? = null
-    private var pbWatchlist: ProgressBar? = null
+    private var pbWatchlist: FiniLoadingView? = null
     private var tvEmptyWatchlist: TextView? = null
     private var tvOfflineNotice: TextView? = null
     private var tvWatchlistStatus: TextView? = null
@@ -100,8 +101,9 @@ class WatchlistFragment : Fragment() {
         activeDeleteCall?.cancel()
         activeDeleteCall = null
 
-        rvWatchlist = null
+        pbWatchlist?.cleanup()
         pbWatchlist = null
+        rvWatchlist = null
         tvEmptyWatchlist = null
         tvOfflineNotice = null
         tvWatchlistStatus = null
@@ -153,7 +155,7 @@ class WatchlistFragment : Fragment() {
             return
         }
 
-        pbWatchlist?.visibility = View.VISIBLE
+        pbWatchlist?.show()
         tvEmptyWatchlist?.visibility = View.GONE
         tvOfflineNotice?.visibility = View.GONE
 
@@ -171,7 +173,7 @@ class WatchlistFragment : Fragment() {
             ) {
                 activeWatchlistCall = null
                 if (call.isCanceled || !isAdded || view == null) return
-                pbWatchlist?.visibility = View.GONE
+                pbWatchlist?.hide()
 
                 if (response.code() == 401 || response.code() == 403) {
                     AuthSessionManager.handleUnauthorized(activity)
@@ -304,7 +306,7 @@ class WatchlistFragment : Fragment() {
             override fun onFailure(call: Call<List<WatchlistItemDto>>, t: Throwable) {
                 activeWatchlistCall = null
                 if (call.isCanceled || !isAdded || view == null) return
-                pbWatchlist?.visibility = View.GONE
+                pbWatchlist?.hide()
                 val networkDecision = WatchlistRoomSyncPolicy.evaluateNetworkFailure(t)
                 loadFromRoomCache(appContext, userEmail, networkDecision.reason)
             }

@@ -7,6 +7,7 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -18,9 +19,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DecodeFormat
+import com.bumptech.glide.request.RequestOptions
 import com.example.nhumonglenh.data.local.AuthSessionManager
 import com.example.nhumonglenh.data.remote.NetworkConfig
 import com.example.nhumonglenh.data.remote.RetrofitClient
+import com.example.nhumonglenh.ui.common.FiniCropTransformation
 import com.example.nhumonglenh.ui.news.NewsFeedFragment
 import com.example.nhumonglenh.ui.portfolio.PortfolioFragment
 import com.example.nhumonglenh.ui.ticker.MarketTickerAdapter
@@ -76,6 +81,22 @@ class Activity2 : AppCompatActivity() {
         SystemBarInsets.apply(this, findViewById(android.R.id.content))
 
         bottomNav = findViewById(R.id.bottom_navigation)
+
+        val ivHeaderLogo = findViewById<ImageView>(R.id.iv_header_logo)
+        if (ivHeaderLogo != null) {
+            try {
+                Glide.with(this)
+                    .asGif()
+                    .load(R.drawable.fini_loading_preview)
+                    .apply(
+                        RequestOptions()
+                            .format(DecodeFormat.PREFER_ARGB_8888)
+                            .transform(FiniCropTransformation(cropLeft = 56, cropTop = 58, cropWidth = 110, cropHeight = 80))
+                    )
+                    .into(ivHeaderLogo)
+            } catch (_: Exception) {
+            }
+        }
 
         val btnProfileAvatar = findViewById<View>(R.id.btn_profile_avatar)
         btnProfileAvatar?.setOnClickListener {
@@ -343,6 +364,13 @@ class Activity2 : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        val ivHeaderLogo = findViewById<ImageView>(R.id.iv_header_logo)
+        if (ivHeaderLogo != null) {
+            try {
+                Glide.with(this).clear(ivHeaderLogo)
+            } catch (_: Exception) {
+            }
+        }
         tickerAutoScrollController?.destroy()
         tickerAutoScrollController = null
     }

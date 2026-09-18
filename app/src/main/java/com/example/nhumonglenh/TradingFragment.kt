@@ -293,6 +293,8 @@ class TradingFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        _binding?.pbLoading?.cleanup()
+        _binding?.pbStockCatalogLoading?.cleanup()
         isFragmentVisible = false
         disconnectWebSocket()
         stopStockPolling()

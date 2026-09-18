@@ -134,6 +134,8 @@ class WalletFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        _binding?.finiPaymentsLoading?.cleanup()
+        _binding?.finiLoadingWallet?.cleanup()
         super.onDestroyView()
         historyCall?.cancel()
         historyCall = null
@@ -217,30 +219,36 @@ class WalletFragment : Fragment() {
                     val b = binding ?: return@collect
                     when (state) {
                         is WalletProfileUiState.Idle -> {
+                            b.finiLoadingWallet.hide()
                             b.layoutLoading.visibility = View.GONE
                             b.layoutError.visibility = View.GONE
                         }
                         is WalletProfileUiState.Loading -> {
                             b.layoutLoading.visibility = View.VISIBLE
+                            b.finiLoadingWallet.show()
                             b.layoutError.visibility = View.GONE
                         }
                         is WalletProfileUiState.Success -> {
+                            b.finiLoadingWallet.hide()
                             b.layoutLoading.visibility = View.GONE
                             b.layoutError.visibility = View.GONE
                             b.layoutContent.visibility = View.VISIBLE
                             renderSuccessData(b, state.data, state.isOffline, state.lastUpdatedFormatted)
                         }
                         is WalletProfileUiState.Empty -> {
+                            b.finiLoadingWallet.hide()
                             b.layoutLoading.visibility = View.GONE
                             b.layoutError.visibility = View.GONE
                             b.layoutContent.visibility = View.VISIBLE
                             renderEmptyData(b)
                         }
                         is WalletProfileUiState.Unauthorized -> {
+                            b.finiLoadingWallet.hide()
                             b.layoutLoading.visibility = View.GONE
                             handleUnauthorized()
                         }
                         is WalletProfileUiState.NetworkError -> {
+                            b.finiLoadingWallet.hide()
                             b.layoutLoading.visibility = View.GONE
                             b.layoutError.visibility = View.VISIBLE
                             b.tvErrorMessage.text = getString(R.string.network_error_msg)
@@ -251,6 +259,7 @@ class WalletFragment : Fragment() {
                             }
                         }
                         is WalletProfileUiState.ServerError -> {
+                            b.finiLoadingWallet.hide()
                             b.layoutLoading.visibility = View.GONE
                             b.layoutError.visibility = View.VISIBLE
                             b.tvErrorMessage.text = getString(R.string.server_error_msg)
@@ -311,14 +320,14 @@ class WalletFragment : Fragment() {
         val authHeader = AuthSessionManager.getAuthHeader(currentActivity) ?: return
 
         historyCall?.cancel()
-        b.pbPaymentsLoading.visibility = View.VISIBLE
+        b.finiPaymentsLoading.show()
         val call = RetrofitClient.apiService.getPaymentHistory(authHeader)
         historyCall = call
         call.enqueue(object : Callback<List<PaymentOrderDto>> {
             override fun onResponse(call: Call<List<PaymentOrderDto>>, response: Response<List<PaymentOrderDto>>) {
                 if (historyCall !== call) return
                 if (!isAdded) return
-                b.pbPaymentsLoading.visibility = View.GONE
+                b.finiPaymentsLoading.hide()
                 if (response.isSuccessful && response.body() != null) {
                     val list = response.body()!!
                     if (list.isEmpty()) {
@@ -337,7 +346,7 @@ class WalletFragment : Fragment() {
             override fun onFailure(call: Call<List<PaymentOrderDto>>, t: Throwable) {
                 if (historyCall !== call) return
                 if (!isAdded) return
-                b.pbPaymentsLoading.visibility = View.GONE
+                b.finiPaymentsLoading.hide()
             }
         })
     }

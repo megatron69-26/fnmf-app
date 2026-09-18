@@ -6,7 +6,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
-import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
@@ -20,8 +19,13 @@ import com.example.nhumonglenh.data.remote.RetrofitClient
 import com.example.nhumonglenh.data.repository.ForecastRepository
 import com.example.nhumonglenh.data.repository.RefreshQuotaManager
 import com.example.nhumonglenh.ui.UiTextLocalizer
+import com.example.nhumonglenh.ui.common.FiniLoadingView
 import com.example.nhumonglenh.ui.forecast.ForecastDateTimeFormatter
+import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -34,13 +38,21 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class ForecastFragment : Fragment() {
 
+    companion object {
+        const val FORECAST_CYCLE_MS = 24 * 60 * 60 * 1000L
+    }
+
     private var swipeRefreshForecast: SwipeRefreshLayout? = null
     private var scrollForecast: ScrollView? = null
     private var tvForecastQuota: TextView? = null
+    private var tvForecastTitle: TextView? = null
+    private var tvForecastCountdown: TextView? = null
+    private var btnForecastRefresh: MaterialButton? = null
     private var tvForecastSymbol: TextView? = null
     private var tvForecastTimestamp: TextView? = null
     private var tvResult: TextView? = null
-    private var pbLoading: ProgressBar? = null
+    private var finiLoadingForecast: FiniLoadingView? = null
+    private var finiInlineForecast: FiniLoadingView? = null
     private var llContent: LinearLayout? = null
     private var tvRecommendation: TextView? = null
     private var tvConfidence: TextView? = null
@@ -50,12 +62,13 @@ class ForecastFragment : Fragment() {
     private var tvFundOutlook: TextView? = null
     private var tvKeyDrivers: TextView? = null
     private var tvForecastStaleWarning: TextView? = null
-    private var pbForecastSyncing: ProgressBar? = null
 
     private var activeCall: Call<ForecastResponse>? = null
     private var activeRefreshCall: Call<ForecastResponse>? = null
     private val isRefreshingInProgress = AtomicBoolean(false)
+    private val isAutoRevalidationInProgress = AtomicBoolean(false)
     private var currentLoadGeneration: Long = 0L
+    private var countdownJob: Job? = null
 
     private var currentSymbol: String = "MARKET"
 
@@ -71,10 +84,13 @@ class ForecastFragment : Fragment() {
         swipeRefreshForecast = view.findViewById(R.id.swipeRefreshForecast)
         scrollForecast = view.findViewById(R.id.scrollForecast)
         tvForecastQuota = view.findViewById(R.id.tvForecastQuota)
+        tvForecastTitle = view.findViewById(R.id.tvForecastTitle)
+        tvForecastCountdown = view.findViewById(R.id.tvForecastCountdown)
+        btnForecastRefresh = view.findViewById(R.id.btnForecastRefresh)
         tvForecastSymbol = view.findViewById(R.id.tvForecastSymbol)
         tvResult = view.findViewById(R.id.tvForecastResult)
-        pbLoading = view.findViewById(R.id.pbForecastLoading)
-        pbForecastSyncing = view.findViewById(R.id.pbForecastSyncing)
+        finiLoadingForecast = view.findViewById(R.id.finiLoadingForecast)
+        finiInlineForecast = view.findViewById(R.id.finiInlineForecast)
         llContent = view.findViewById(R.id.llForecastContent)
         tvForecastTimestamp = view.findViewById(R.id.tvForecastTimestamp)
         tvForecastStaleWarning = view.findViewById(R.id.tvForecastStaleWarning)
@@ -87,10 +103,23 @@ class ForecastFragment : Fragment() {
         tvKeyDrivers = view.findViewById(R.id.tvKeyDrivers)
 
         setupPullToRefresh()
+        setupRefreshButton()
         updateQuotaLabel(RefreshQuotaManager.getRemaining())
         syncQuotaInBackground()
 
+        startCountdownTimer()
         loadForecast("MARKET")
+    }
+
+    private fun setupRefreshButton() {
+        btnForecastRefresh?.setOnClickListener {
+            performManualRefresh()
+        }
+    }
+
+    private fun performManualRefresh() {
+        btnForecastRefresh?.isEnabled = false
+        performPullToRefresh()
     }
 
     private fun setupPullToRefresh() {
@@ -116,9 +145,14 @@ class ForecastFragment : Fragment() {
         if (authHeader.isNullOrBlank()) {
             isRefreshingInProgress.set(false)
             swipeRefreshForecast?.isRefreshing = false
+            btnForecastRefresh?.isEnabled = true
             Toast.makeText(context, getString(R.string.refresh_auth_required), Toast.LENGTH_SHORT).show()
             return
         }
+
+        finiInlineForecast?.show()
+        btnForecastRefresh?.isEnabled = false
+        swipeRefreshForecast?.isRefreshing = false
 
         val clientRequestId = UUID.randomUUID().toString()
         val request = ForecastRefreshRequest(
@@ -127,6 +161,8 @@ class ForecastFragment : Fragment() {
             clientRequestId = clientRequestId
         )
 
+        activeCall?.cancel()
+        isAutoRevalidationInProgress.set(false)
         activeRefreshCall?.cancel()
         val call = RetrofitClient.apiService.refreshMarketForecast(authHeader, clientRequestId, request)
         activeRefreshCall = call
@@ -136,6 +172,8 @@ class ForecastFragment : Fragment() {
                 if (call.isCanceled || !isAdded || view == null) return
                 isRefreshingInProgress.set(false)
                 swipeRefreshForecast?.isRefreshing = false
+                btnForecastRefresh?.isEnabled = true
+                finiInlineForecast?.hide()
 
                 when {
                     response.code() == 401 || response.code() == 403 -> {
@@ -157,16 +195,24 @@ class ForecastFragment : Fragment() {
                     }
                     response.isSuccessful && response.body() != null -> {
                         val forecast = response.body()!!
+                        val repo = ForecastRepository.getInstance(context)
+                        if (forecast.stale == true) {
+                            repo.recordAutoAttemptFailure("MARKET")
+                        } else {
+                            repo.recordAutoAttemptSuccess("MARKET")
+                        }
                         forecast.remainingRefreshes?.let {
                             RefreshQuotaManager.setRemaining(it)
                             updateQuotaLabel(it)
                         }
                         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                            ForecastRepository.getInstance(context).saveForecast(forecast)
+                            repo.saveForecast(forecast)
                         }
                         displayForecastData(forecast)
+                        startCountdownTimer()
                     }
                     response.code() == 503 -> {
+                        ForecastRepository.getInstance(context).recordAutoAttemptFailure("MARKET")
                         Toast.makeText(
                             requireContext(),
                             getString(R.string.refresh_forecast_error),
@@ -187,6 +233,7 @@ class ForecastFragment : Fragment() {
                         }
                     }
                     else -> {
+                        ForecastRepository.getInstance(context).recordAutoAttemptFailure("MARKET")
                         val errorMsg = when (response.code()) {
                             422 -> getString(R.string.refresh_forecast_unsupported, currentSymbol)
                             else -> getString(R.string.refresh_forecast_error)
@@ -210,9 +257,12 @@ class ForecastFragment : Fragment() {
             }
 
             override fun onFailure(call: Call<ForecastResponse>, t: Throwable) {
-                if (call.isCanceled || !isAdded || view == null) return
                 isRefreshingInProgress.set(false)
                 swipeRefreshForecast?.isRefreshing = false
+                btnForecastRefresh?.isEnabled = true
+                finiInlineForecast?.hide()
+                if (call.isCanceled || !isAdded || view == null) return
+                context?.let { ForecastRepository.getInstance(it).recordAutoAttemptFailure("MARKET") }
                 Toast.makeText(
                     requireContext(),
                     getString(R.string.refresh_network_error),
@@ -220,6 +270,36 @@ class ForecastFragment : Fragment() {
                 ).show()
             }
         })
+    }
+
+    private fun startCountdownTimer() {
+        countdownJob?.cancel()
+        countdownJob = viewLifecycleOwner.lifecycleScope.launch {
+            val appContext = context?.applicationContext ?: return@launch
+            val repo = ForecastRepository.getInstance(appContext)
+
+            while (isActive) {
+                val now = System.currentTimeMillis()
+                val nextAttempt = repo.getOrInitNextAutoAttemptAt("MARKET", now)
+                val remainingMs = (nextAttempt - now).coerceAtLeast(0L)
+
+                val hours = (remainingMs / 1000) / 3600
+                val minutes = ((remainingMs / 1000) % 3600) / 60
+                val seconds = (remainingMs / 1000) % 60
+
+                val timeStr = String.format(Locale.US, "%02d:%02d:%02d", hours, minutes, seconds)
+                tvForecastCountdown?.text = getString(R.string.auto_update_countdown, timeStr)
+
+                if (remainingMs <= 0L) {
+                    if (isAutoRevalidationInProgress.compareAndSet(false, true)) {
+                        // Tự động revalidation qua GET (cache-first), tuyệt đối KHÔNG gọi POST refresh tiêu hao quota
+                        loadForecast("MARKET", isAutoRefresh = true)
+                    }
+                }
+
+                delay(1000L)
+            }
+        }
     }
 
     private fun displayForecastData(forecast: ForecastResponse) {
@@ -294,12 +374,12 @@ class ForecastFragment : Fragment() {
 
     fun setSymbol(symbol: String) {
         // Compatibility hook for Activity2 navigation; loads market forecast
-        if (isAdded && view != null && llContent?.visibility != View.VISIBLE && pbLoading?.visibility != View.VISIBLE) {
+        if (isAdded && view != null && llContent?.visibility != View.VISIBLE && finiLoadingForecast?.isLoading() != true) {
             loadForecast("MARKET")
         }
     }
 
-    fun loadForecast(symbol: String = "MARKET") {
+    fun loadForecast(symbol: String = "MARKET", isAutoRefresh: Boolean = false) {
         currentSymbol = "MARKET"
         tvForecastSymbol?.text = "TOÀN THỊ TRƯỜNG"
         val appContext = context?.applicationContext ?: return
@@ -312,10 +392,12 @@ class ForecastFragment : Fragment() {
         val fastCache = repo.getCachedForecastFast("MARKET")
         if (fastCache != null) {
             displayForecastData(fastCache)
-            pbLoading?.visibility = View.GONE
+            finiLoadingForecast?.hide()
             tvResult?.visibility = View.GONE
-            pbForecastSyncing?.visibility = View.VISIBLE
-            startNetworkRevalidation(generation, repo)
+            if (!isAutoRefresh) {
+                finiInlineForecast?.show()
+            }
+            startNetworkRevalidation(generation, repo, isAutoRefresh)
         } else {
             // Đọc Room DB hoàn tất trước, tuyệt đối không chạy đua ghi đè network
             viewLifecycleOwner.lifecycleScope.launch {
@@ -324,25 +406,28 @@ class ForecastFragment : Fragment() {
 
                 if (dbCache != null) {
                     displayForecastData(dbCache)
-                    pbLoading?.visibility = View.GONE
+                    finiLoadingForecast?.hide()
                     tvResult?.visibility = View.GONE
-                    pbForecastSyncing?.visibility = View.VISIBLE
+                    if (!isAutoRefresh) {
+                        finiInlineForecast?.show()
+                    }
                 } else {
                     // Cold start thực sự (chưa từng có cache)
                     if (llContent?.visibility != View.VISIBLE) {
-                        pbLoading?.visibility = View.VISIBLE
+                        finiLoadingForecast?.show()
+                        finiInlineForecast?.hide()
                         llContent?.visibility = View.GONE
                         tvResult?.visibility = View.GONE
                     }
                 }
 
                 // Bắt đầu background revalidation sau khi đã nạp xong local state
-                startNetworkRevalidation(generation, repo)
+                startNetworkRevalidation(generation, repo, isAutoRefresh)
             }
         }
     }
 
-    private fun startNetworkRevalidation(generation: Long, repo: ForecastRepository) {
+    private fun startNetworkRevalidation(generation: Long, repo: ForecastRepository, isAutoRefresh: Boolean) {
         if (generation != currentLoadGeneration || !isAdded || view == null) return
 
         activeCall?.cancel()
@@ -351,17 +436,44 @@ class ForecastFragment : Fragment() {
 
         call.enqueue(object : Callback<ForecastResponse> {
             override fun onResponse(call: Call<ForecastResponse>, response: Response<ForecastResponse>) {
-                if (generation != currentLoadGeneration || call.isCanceled || !isAdded || view == null) return
-                pbLoading?.visibility = View.GONE
-                pbForecastSyncing?.visibility = View.GONE
+                isAutoRevalidationInProgress.set(false)
+                if (call.isCanceled || generation != currentLoadGeneration || !isAdded || view == null) return
+                finiLoadingForecast?.hide()
+                finiInlineForecast?.hide()
 
                 val forecast = response.body()
                 if (response.isSuccessful && forecast != null) {
+                    val previousSavedTs = repo.getLastSavedTimestamp("MARKET")
+                    val newForecastTs = ForecastDateTimeFormatter.parseToVietnamTime(forecast.createdAt)?.toInstant()?.toEpochMilli() ?: 0L
+                    val isNewerData = previousSavedTs == 0L || (newForecastTs > 0L && newForecastTs > previousSavedTs)
+
+                    if (isAutoRefresh) {
+                        // Tự động làm mới khi countdown về 0:
+                        if (forecast.stale == true || (!isNewerData && previousSavedTs > 0L)) {
+                            // Server vẫn trả cache cũ chưa cập nhật: lùi lịch qua backoff, tránh bão request 30s
+                            repo.recordAutoAttemptFailure("MARKET")
+                        } else {
+                            // Nhận được bản dự báo mới thực sự: đặt lịch 24h
+                            repo.recordAutoAttemptSuccess("MARKET")
+                        }
+                    } else {
+                        // Cache-first revalidation khi mở màn hình/recreate:
+                        // CHỈ cập nhật scheduler khi server có bản dự báo mới hơn cache hiện có
+                        // Tuyệt đối không reset 24h nếu dữ liệu trả về chỉ là cache hit trùng khớp
+                        if (isNewerData && forecast.stale != true && previousSavedTs > 0L) {
+                            repo.recordAutoAttemptSuccess("MARKET")
+                        }
+                    }
+
                     viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                         repo.saveForecast(forecast)
                     }
                     displayForecastData(forecast)
+                    startCountdownTimer()
                 } else {
+                    if (isAutoRefresh) {
+                        repo.recordAutoAttemptFailure("MARKET")
+                    }
                     // Nếu đã có dữ liệu hiển thị từ cache, tuyệt đối KHÔNG làm trắng màn hình
                     if (llContent?.visibility == View.VISIBLE) {
                         tvForecastStaleWarning?.visibility = View.VISIBLE
@@ -381,9 +493,14 @@ class ForecastFragment : Fragment() {
             }
 
             override fun onFailure(call: Call<ForecastResponse>, t: Throwable) {
-                if (generation != currentLoadGeneration || call.isCanceled || !isAdded || view == null) return
-                pbLoading?.visibility = View.GONE
-                pbForecastSyncing?.visibility = View.GONE
+                isAutoRevalidationInProgress.set(false)
+                if (call.isCanceled || generation != currentLoadGeneration || !isAdded || view == null) return
+                finiLoadingForecast?.hide()
+                finiInlineForecast?.hide()
+
+                if (isAutoRefresh) {
+                    repo.recordAutoAttemptFailure("MARKET")
+                }
 
                 // Nếu đã có dữ liệu hiển thị từ cache, giữ nguyên màn hình và hiện cảnh báo stale
                 if (llContent?.visibility == View.VISIBLE) {
@@ -409,22 +526,30 @@ class ForecastFragment : Fragment() {
         if (!hidden && isAdded && view != null) {
             updateQuotaLabel(RefreshQuotaManager.getRemaining())
             syncQuotaInBackground()
+            startCountdownTimer()
         }
     }
 
     override fun onDestroyView() {
+        countdownJob?.cancel()
+        countdownJob = null
         activeCall?.cancel()
         activeCall = null
         activeRefreshCall?.cancel()
         activeRefreshCall = null
         isRefreshingInProgress.set(false)
+        finiLoadingForecast?.cleanup()
+        finiLoadingForecast = null
+        finiInlineForecast?.cleanup()
+        finiInlineForecast = null
         swipeRefreshForecast = null
         scrollForecast = null
         tvForecastQuota = null
+        tvForecastTitle = null
+        tvForecastCountdown = null
+        btnForecastRefresh = null
         tvForecastSymbol = null
         tvResult = null
-        pbLoading = null
-        pbForecastSyncing = null
         llContent = null
         tvForecastStaleWarning = null
         tvRecommendation = null

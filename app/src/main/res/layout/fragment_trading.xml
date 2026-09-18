@@ -232,11 +232,13 @@
                     android:layout_height="match_parent" />
 
                 <!-- Loading State -->
-                <ProgressBar
+                <com.example.nhumonglenh.ui.common.FiniLoadingView
                     android:id="@+id/pbLoading"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
+                    app:finiSize="full"
+                    app:loadingText="Đang tải biểu đồ..."
                     android:visibility="gone" />
 
                 <!-- Error / Empty State Message -->
@@ -449,10 +451,11 @@
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
-            <ProgressBar
+            <com.example.nhumonglenh.ui.common.FiniLoadingView
                 android:id="@+id/pbStockCatalogLoading"
-                android:layout_width="22dp"
-                android:layout_height="22dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:finiSize="inline"
                 android:visibility="gone" />
         </LinearLayout>
 

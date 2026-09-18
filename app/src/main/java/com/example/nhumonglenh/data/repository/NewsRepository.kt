@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.nhumonglenh.data.local.AiAnalysisEntity
 import com.example.nhumonglenh.data.local.AppDatabase
 import com.example.nhumonglenh.data.local.NewsEntity
+import com.example.nhumonglenh.ui.common.AutoRefreshScheduler
 import com.example.nhumonglenh.ui.news.ApiClient
 import com.example.nhumonglenh.ui.news.News
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,12 @@ class NewsRepository internal constructor(private val context: Context) {
 
     sealed class NewsResult {
         data class SyncSuccess(
+            val news: List<News>,
+            val isStale: Boolean = false,
+            val dataAsOf: String? = null,
+            val latestPublishedAt: String? = null
+        ) : NewsResult()
+        data class CacheHit(
             val news: List<News>,
             val isStale: Boolean = false,
             val dataAsOf: String? = null,
@@ -92,6 +99,30 @@ class NewsRepository internal constructor(private val context: Context) {
         syncPrefs.edit().clear().apply()
     }
 
+    fun getScheduler(): AutoRefreshScheduler {
+        return AutoRefreshScheduler(
+            prefs = syncPrefs,
+            keyNextAttempt = KEY_NEXT_AUTO_ATTEMPT_AT,
+            keyFailures = KEY_AUTO_SYNC_FAILURES,
+            cycleMs = AUTO_SYNC_THROTTLE_MS,
+            baseBackoffMs = AUTO_SYNC_BASE_BACKOFF_MS,
+            maxBackoffMs = AUTO_SYNC_MAX_BACKOFF_MS
+        )
+    }
+
+    fun getOrInitNextAutoAttemptAt(now: Long = System.currentTimeMillis()): Long {
+        val lastSync = getLastSyncTime()
+        return getScheduler().getOrInitNextAttemptAt(now, lastSync)
+    }
+
+    fun recordAutoAttemptSuccess(now: Long = System.currentTimeMillis()): Long {
+        return getScheduler().recordSuccess(now)
+    }
+
+    fun recordAutoAttemptFailure(now: Long = System.currentTimeMillis()): Long {
+        return getScheduler().recordFailure(now)
+    }
+
     /**
      * Đọc ngay tức thì toàn bộ tin tức đã lưu trong Room Database.
      */
@@ -112,7 +143,7 @@ class NewsRepository internal constructor(private val context: Context) {
         if (!force && (now - lastSync < AUTO_SYNC_THROTTLE_MS)) {
             val cached = readNewsFromRoom(newsDao)
             if (cached.isNotEmpty()) {
-                return@withContext NewsResult.SyncSuccess(
+                return@withContext NewsResult.CacheHit(
                     news = cached,
                     isStale = isLastSyncStale(),
                     dataAsOf = getLastDataAsOf(),
@@ -127,7 +158,7 @@ class NewsRepository internal constructor(private val context: Context) {
             if (!force && (nowLocked - lastSyncLocked < AUTO_SYNC_THROTTLE_MS)) {
                 val cached = readNewsFromRoom(newsDao)
                 if (cached.isNotEmpty()) {
-                    return@withContext NewsResult.SyncSuccess(
+                    return@withContext NewsResult.CacheHit(
                         news = cached,
                         isStale = isLastSyncStale(),
                         dataAsOf = getLastDataAsOf(),
@@ -520,8 +551,12 @@ class NewsRepository internal constructor(private val context: Context) {
         const val KEY_LAST_SYNC_STALE = "last_sync_stale"
         const val KEY_LAST_DATA_AS_OF = "last_data_as_of"
         const val KEY_LAST_LATEST_PUBLISHED_AT = "last_latest_published_at"
+        const val KEY_NEXT_AUTO_ATTEMPT_AT = "next_auto_attempt_at_ms"
+        const val KEY_AUTO_SYNC_FAILURES = "auto_sync_failures"
 
         const val AUTO_SYNC_THROTTLE_MS = 15 * 60 * 1000L // 15 phút
+        const val AUTO_SYNC_BASE_BACKOFF_MS = 60 * 1000L // 1 phút
+        const val AUTO_SYNC_MAX_BACKOFF_MS = 5 * 60 * 1000L // 5 phút
         @Volatile
         var lastSyncTimeMs: Long = 0L
         val syncMutex = Mutex()

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/tv_bg"
@@ -118,12 +119,14 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <!-- ProgressBar Loading -->
-        <ProgressBar
+        <!-- Mascot Loading -->
+        <com.example.nhumonglenh.ui.common.FiniLoadingView
             android:id="@+id/pbWatchlist"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
+            app:finiSize="full"
+            app:loadingText="@string/fini_loading_text"
             android:visibility="gone" />
 
         <!-- Empty / Error Message -->

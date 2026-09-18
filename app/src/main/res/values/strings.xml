@@ -231,4 +231,12 @@
     <string name="wallet_btn_withdraw">- RÚT TIỀN</string>
     <string name="market_ticker_item_desc">%1$s: %2$s, %3$s</string>
     <string name="market_ticker_stale_hint">Dữ liệu có thể trễ</string>
+
+    <!-- Fini Loading, Countdown & Logo Strings -->
+    <string name="fini_loading_text">Đang tải...</string>
+    <string name="btn_refresh_caps">LÀM MỚI</string>
+    <string name="auto_update_countdown">Tự cập nhật sau: %1$s</string>
+    <string name="fini_loading_content_desc">Fini đang tải dữ liệu...</string>
+    <string name="header_fini_logo_desc">Fini — trợ lý FNMF</string>
+    <string name="news_header_title">Tin tức thị trường</string>
 </resources>

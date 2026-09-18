@@ -292,18 +292,12 @@
         android:orientation="vertical"
         android:visibility="gone">
 
-        <ProgressBar
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:indeterminateTint="@color/tv_green" />
-
-        <TextView
+        <com.example.nhumonglenh.ui.common.FiniLoadingView
+            android:id="@+id/fini_loading_portfolio"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/loading_data"
-            android:textColor="@color/tv_text_primary"
-            android:textSize="13sp" />
+            app:finiSize="full"
+            app:loadingText="@string/loading_data" />
     </LinearLayout>
 
     <!-- Overlay Error -->

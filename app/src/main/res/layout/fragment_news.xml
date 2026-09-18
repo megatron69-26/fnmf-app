@@ -1,10 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/tv_bg">
+
+    <!-- Header Bar giống Danh mục -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:background="@color/tv_surface"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="4dp">
+
+        <TextView
+            android:id="@+id/tvNewsTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/news_header_title"
+            android:textColor="@color/tv_text_primary"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvNewsCountdown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/tv_text_secondary"
+            android:textSize="11sp"
+            android:layout_marginEnd="8dp"
+            android:accessibilityLiveRegion="none"
+            tools:text="Tự cập nhật sau: 14:59" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnNewsRefresh"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:text="@string/btn_refresh_caps"
+            android:textSize="11sp"
+            android:textColor="@color/tv_blue"
+            app:strokeColor="@color/tv_blue"
+            app:strokeWidth="1dp"
+            app:cornerRadius="6dp"
+            android:backgroundTint="@color/tv_surface"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="0dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/tvNewsQuota"
@@ -16,7 +67,7 @@
         android:textSize="13sp"
         android:textAlignment="center"
         android:gravity="center"
-        android:paddingTop="12dp"
+        android:paddingTop="8dp"
         android:paddingBottom="4dp" />
 
     <TextView
@@ -29,6 +80,16 @@
         android:textAlignment="center"
         android:gravity="center"
         android:paddingVertical="4dp"
+        android:visibility="gone" />
+
+    <!-- Inline Fini Loading khi đồng bộ nền / làm mới trong khi danh sách hiển thị -->
+    <com.example.nhumonglenh.ui.common.FiniLoadingView
+        android:id="@+id/finiInlineNews"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginVertical="4dp"
+        app:finiSize="inline"
         android:visibility="gone" />
 
     <FrameLayout
@@ -50,12 +111,13 @@
                 android:paddingVertical="8dp" />
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-        <ProgressBar
-            android:id="@+id/pbNewsLoading"
+        <!-- Full Fini Loading khi cold start -->
+        <com.example.nhumonglenh.ui.common.FiniLoadingView
+            android:id="@+id/finiLoadingNews"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:indeterminateTint="@color/tv_blue"
+            app:finiSize="full"
             android:visibility="gone" />
 
         <TextView

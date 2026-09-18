@@ -5,6 +5,7 @@ import android.util.Log
 import com.example.nhumonglenh.data.local.AppDatabase
 import com.example.nhumonglenh.data.local.ForecastEntity
 import com.example.nhumonglenh.data.remote.ForecastResponse
+import com.example.nhumonglenh.ui.common.AutoRefreshScheduler
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
@@ -138,15 +139,33 @@ class ForecastRepository private constructor(private val context: Context) {
     private fun saveToSharedPreferences(symbol: String, forecast: ForecastResponse) {
         try {
             val json = gson.toJson(forecast)
-            prefs.edit().putString(KEY_FORECAST_PREFIX + symbol, json).apply()
+            val now = System.currentTimeMillis()
+            prefs.edit()
+                .putString(KEY_FORECAST_PREFIX + symbol, json)
+                .putLong(KEY_FORECAST_TIMESTAMP_PREFIX + symbol, now)
+                .apply()
         } catch (e: Exception) {
             Log.w(TAG, "Lỗi ghi SharedPreferences cho $symbol: ${e.message}")
         }
     }
 
+    fun getLastSavedTimestamp(symbol: String = "MARKET"): Long {
+        val cached = getCachedForecastFast(symbol)
+        if (cached != null) {
+            val parsed = com.example.nhumonglenh.ui.forecast.ForecastDateTimeFormatter.parseToVietnamTime(cached.createdAt)
+            if (parsed != null) {
+                return parsed.toInstant().toEpochMilli()
+            }
+        }
+        return prefs.getLong(KEY_FORECAST_TIMESTAMP_PREFIX + symbol, 0L)
+    }
+
     fun clearCache(symbol: String = "MARKET") {
         memoryCache = null
-        prefs.edit().remove(KEY_FORECAST_PREFIX + symbol).apply()
+        prefs.edit()
+            .remove(KEY_FORECAST_PREFIX + symbol)
+            .remove(KEY_FORECAST_TIMESTAMP_PREFIX + symbol)
+            .apply()
         try {
             kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
                 try {
@@ -162,7 +181,10 @@ class ForecastRepository private constructor(private val context: Context) {
 
     suspend fun clearCacheSync(symbol: String = "MARKET") = withContext(Dispatchers.IO) {
         memoryCache = null
-        prefs.edit().remove(KEY_FORECAST_PREFIX + symbol).apply()
+        prefs.edit()
+            .remove(KEY_FORECAST_PREFIX + symbol)
+            .remove(KEY_FORECAST_TIMESTAMP_PREFIX + symbol)
+            .apply()
         try {
             AppDatabase.getInstance(context).forecastDao().deleteForecast(symbol)
         } catch (e: Exception) {
@@ -170,10 +192,41 @@ class ForecastRepository private constructor(private val context: Context) {
         }
     }
 
+    fun getScheduler(symbol: String = "MARKET"): AutoRefreshScheduler {
+        return AutoRefreshScheduler(
+            prefs = prefs,
+            keyNextAttempt = KEY_FORECAST_NEXT_ATTEMPT_PREFIX + symbol,
+            keyFailures = KEY_FORECAST_FAILURES_PREFIX + symbol,
+            cycleMs = FORECAST_CYCLE_MS,
+            baseBackoffMs = FORECAST_BASE_BACKOFF_MS,
+            maxBackoffMs = FORECAST_MAX_BACKOFF_MS
+        )
+    }
+
+    fun getOrInitNextAutoAttemptAt(symbol: String = "MARKET", now: Long = System.currentTimeMillis()): Long {
+        val lastSaved = getLastSavedTimestamp(symbol)
+        return getScheduler(symbol).getOrInitNextAttemptAt(now, lastSaved)
+    }
+
+    fun recordAutoAttemptSuccess(symbol: String = "MARKET", now: Long = System.currentTimeMillis()): Long {
+        return getScheduler(symbol).recordSuccess(now)
+    }
+
+    fun recordAutoAttemptFailure(symbol: String = "MARKET", now: Long = System.currentTimeMillis()): Long {
+        return getScheduler(symbol).recordFailure(now)
+    }
+
     companion object {
         private const val TAG = "ForecastRepository"
         private const val PREFS_NAME = "fnmf_forecast_cache_prefs"
         private const val KEY_FORECAST_PREFIX = "cache_forecast_"
+        private const val KEY_FORECAST_TIMESTAMP_PREFIX = "cache_forecast_ts_"
+        const val KEY_FORECAST_NEXT_ATTEMPT_PREFIX = "forecast_next_attempt_"
+        const val KEY_FORECAST_FAILURES_PREFIX = "forecast_failures_"
+
+        const val FORECAST_CYCLE_MS = 24 * 60 * 60 * 1000L // 24 giờ
+        const val FORECAST_BASE_BACKOFF_MS = 2 * 60 * 1000L // 2 phút
+        const val FORECAST_MAX_BACKOFF_MS = 30 * 60 * 1000L // 30 phút
 
         @Volatile
         private var INSTANCE: ForecastRepository? = null

@@ -78,6 +78,7 @@ class PortfolioFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        _binding?.finiLoadingPortfolio?.cleanup()
         super.onDestroyView()
         _binding = null
     }
@@ -122,35 +123,42 @@ class PortfolioFragment : Fragment() {
                     val b = binding ?: return@collect
                     when (state) {
                         is WalletProfileUiState.Idle -> {
+                            b.finiLoadingPortfolio.hide()
                             b.layoutLoading.visibility = View.GONE
                             b.layoutError.visibility = View.GONE
                         }
                         is WalletProfileUiState.Loading -> {
                             b.layoutLoading.visibility = View.VISIBLE
+                            b.finiLoadingPortfolio.show()
                             b.layoutError.visibility = View.GONE
                         }
                         is WalletProfileUiState.Success -> {
+                            b.finiLoadingPortfolio.hide()
                             b.layoutLoading.visibility = View.GONE
                             b.layoutError.visibility = View.GONE
                             b.layoutContent.visibility = View.VISIBLE
                             renderSuccessData(b, state.data, state.isOffline, state.lastUpdatedFormatted)
                         }
                         is WalletProfileUiState.Empty -> {
+                            b.finiLoadingPortfolio.hide()
                             b.layoutLoading.visibility = View.GONE
                             b.layoutError.visibility = View.GONE
                             b.layoutContent.visibility = View.VISIBLE
                             renderEmptyData(b)
                         }
                         is WalletProfileUiState.Unauthorized -> {
+                            b.finiLoadingPortfolio.hide()
                             b.layoutLoading.visibility = View.GONE
                             handleUnauthorized()
                         }
                         is WalletProfileUiState.NetworkError -> {
+                            b.finiLoadingPortfolio.hide()
                             b.layoutLoading.visibility = View.GONE
                             b.layoutError.visibility = View.VISIBLE
                             b.tvErrorMessage.text = getString(R.string.network_error_msg)
                         }
                         is WalletProfileUiState.ServerError -> {
+                            b.finiLoadingPortfolio.hide()
                             b.layoutLoading.visibility = View.GONE
                             b.layoutError.visibility = View.VISIBLE
                             b.tvErrorMessage.text = getString(R.string.server_error_msg)

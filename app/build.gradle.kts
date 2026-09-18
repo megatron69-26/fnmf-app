@@ -33,8 +33,8 @@ android {
         applicationId = "com.example.nhumonglenh"
         minSdk = 24
         targetSdk = 35
-        versionCode = 28
-        versionName = "1.1.28"
+        versionCode = 29
+        versionName = "1.1.29"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -112,6 +112,9 @@ dependencies {
 
     // 4. Coroutines hỗ trợ xử lý luồng ngầm
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // 5. Glide hỗ trợ render GIF hoạt hình trong suốt minSdk 24+
+    implementation("com.github.bumptech.glide:glide:4.16.0")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")

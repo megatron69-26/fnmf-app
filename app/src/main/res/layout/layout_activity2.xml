@@ -16,17 +16,20 @@
         android:gravity="center_vertical"
         android:paddingHorizontal="14dp">
 
-        <TextView
-            android:id="@+id/tv_app_title"
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/app_name"
-            android:textColor="@color/tv_text_primary"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:maxLines="1"
-            android:ellipsize="end" />
+            android:layout_weight="1">
+
+            <ImageView
+                android:id="@+id/iv_header_logo"
+                android:layout_width="52dp"
+                android:layout_height="38dp"
+                android:layout_gravity="start|center_vertical"
+                android:scaleType="fitCenter"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/header_fini_logo_desc" />
+        </FrameLayout>
 
         <TextView
             android:id="@+id/tv_header_user"

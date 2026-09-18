@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.swiperefreshlayout.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/swipeRefreshForecast"
     android:layout_width="match_parent"
@@ -17,6 +18,57 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <!-- Header Bar giống Danh mục -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:background="@color/tv_surface"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:id="@+id/tvForecastTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/forecast_market_title"
+                    android:textColor="@color/tv_text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvForecastCountdown"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/tv_text_secondary"
+                    android:textSize="11sp"
+                    android:layout_marginEnd="8dp"
+                    android:accessibilityLiveRegion="none"
+                    tools:text="Tự cập nhật sau: 23:59:59" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnForecastRefresh"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:minWidth="48dp"
+                    android:minHeight="48dp"
+                    android:text="@string/btn_refresh_caps"
+                    android:textSize="11sp"
+                    android:textColor="@color/tv_blue"
+                    app:strokeColor="@color/tv_blue"
+                    app:strokeWidth="1dp"
+                    app:cornerRadius="6dp"
+                    android:backgroundTint="@color/tv_surface"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="0dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp" />
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/tvForecastQuota"
                 android:layout_width="match_parent"
@@ -27,45 +79,39 @@
                 android:textSize="13sp"
                 android:textAlignment="center"
                 android:gravity="center"
-                android:layout_marginBottom="12dp"/>
+                android:layout_marginBottom="8dp"/>
 
             <TextView
-                android:id="@+id/tvForecastTitle"
+                android:id="@+id/tvForecastSymbol"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/forecast_market_title"
-                android:textColor="#FFFFFF"
-                android:textSize="20sp"
+                android:text="TOÀN THỊ TRƯỜNG"
+                tools:text="TOÀN THỊ TRƯỜNG"
+                android:textColor="#2962FF"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 android:textAlignment="center"
-                android:layout_marginBottom="4dp"/>
-        <TextView
-            android:id="@+id/tvForecastSymbol"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="TOÀN THỊ TRƯỜNG"
-            tools:text="TOÀN THỊ TRƯỜNG"
-            android:textColor="#2962FF"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textAlignment="center"
-            android:layout_marginBottom="8dp"/>
-        <ProgressBar
-            android:id="@+id/pbForecastSyncing"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:indeterminate="true"
-            android:layout_width="120dp"
-            android:layout_height="4dp"
-            android:layout_gravity="center"
-            android:indeterminateTint="#2962FF"
-            android:layout_marginBottom="12dp"
-            android:visibility="gone"/>
-        <ProgressBar
-            android:id="@+id/pbForecastLoading"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:visibility="gone"/>
+                android:layout_marginBottom="8dp"/>
+
+            <!-- Inline Fini Loading khi revalidate hoặc manual refresh trong khi có cache -->
+            <com.example.nhumonglenh.ui.common.FiniLoadingView
+                android:id="@+id/finiInlineForecast"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginVertical="8dp"
+                app:finiSize="inline"
+                android:visibility="gone" />
+
+            <!-- Full Fini Loading khi cold start chưa có dữ liệu -->
+            <com.example.nhumonglenh.ui.common.FiniLoadingView
+                android:id="@+id/finiLoadingForecast"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginVertical="24dp"
+                app:finiSize="full"
+                android:visibility="gone" />
         <TextView
             android:id="@+id/tvForecastResult"
             android:layout_width="match_parent"

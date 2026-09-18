@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="FiniLoadingView">
+        <attr name="finiSize" format="enum">
+            <enum name="full" value="0" />
+            <enum name="inline" value="1" />
+        </attr>
+        <attr name="loadingText" format="string" />
+    </declare-styleable>
+</resources>
