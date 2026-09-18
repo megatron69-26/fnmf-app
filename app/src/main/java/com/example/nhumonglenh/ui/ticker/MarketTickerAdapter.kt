@@ -12,6 +12,13 @@ class MarketTickerAdapter(
     private val onItemClick: (String) -> Unit
 ) : RecyclerView.Adapter<MarketTickerAdapter.TickerViewHolder>() {
 
+    companion object {
+        const val DEFAULT_REPEAT_FACTOR = 4
+    }
+
+    private var infiniteLoop: Boolean = true
+    private var repeatFactor: Int = DEFAULT_REPEAT_FACTOR
+
     inner class TickerViewHolder(val binding: ItemMarketTickerBinding) : RecyclerView.ViewHolder(binding.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TickerViewHolder {
@@ -20,7 +27,9 @@ class MarketTickerAdapter(
     }
 
     override fun onBindViewHolder(holder: TickerViewHolder, position: Int) {
-        val item = items[position]
+        if (items.isEmpty()) return
+        val realPosition = position % items.size
+        val item = items[realPosition]
         val context = holder.itemView.context
         val b = holder.binding
 
@@ -46,9 +55,36 @@ class MarketTickerAdapter(
         }
     }
 
-    override fun getItemCount(): Int = items.size
+    override fun getItemCount(): Int {
+        if (items.isEmpty()) return 0
+        return if (infiniteLoop) items.size * repeatFactor else items.size
+    }
+
+    fun getBaseItemCount(): Int = items.size
 
     fun getItems(): List<MarketTickerUiModel> = items
+
+    fun getItem(position: Int): MarketTickerUiModel? {
+        if (items.isEmpty()) return null
+        return items[position % items.size]
+    }
+
+    fun isInfiniteLoopEnabled(): Boolean = infiniteLoop
+
+    fun setInfiniteLoopEnabled(enabled: Boolean) {
+        if (this.infiniteLoop != enabled) {
+            this.infiniteLoop = enabled
+            notifyDataSetChanged()
+        }
+    }
+
+    fun setRepeatFactor(factor: Int) {
+        val safeFactor = if (factor < 1) 1 else factor
+        if (this.repeatFactor != safeFactor) {
+            this.repeatFactor = safeFactor
+            notifyDataSetChanged()
+        }
+    }
 
     fun submitList(newItems: List<MarketTickerUiModel>) {
         this.items = newItems

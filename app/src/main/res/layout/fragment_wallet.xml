@@ -124,11 +124,13 @@
                             android:textStyle="bold"
                             android:layout_marginBottom="16dp" />
 
-                        <!-- Buttons: NẠP TIỀN & RÚT TIỀN -->
+                        <!-- Buttons: NẠP TIỀN & RÚT TIỀN (LTR: Deposit Left, Withdraw Right) -->
                         <LinearLayout
+                            android:id="@+id/layout_wallet_buttons_row"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal">
+                            android:orientation="horizontal"
+                            android:layoutDirection="ltr">
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/btn_sandbox_deposit"
@@ -137,6 +139,7 @@
                                 android:minHeight="48dp"
                                 android:layout_weight="1"
                                 android:layout_marginEnd="6dp"
+                                android:layout_marginRight="6dp"
                                 android:backgroundTint="@color/tv_green"
                                 android:text="@string/wallet_btn_deposit"
                                 android:textColor="#022C22"
@@ -151,6 +154,7 @@
                                 android:minHeight="48dp"
                                 android:layout_weight="1"
                                 android:layout_marginStart="6dp"
+                                android:layout_marginLeft="6dp"
                                 android:backgroundTint="#EF4444"
                                 android:text="@string/wallet_btn_withdraw"
                                 android:textColor="#450A0A"

@@ -24,6 +24,7 @@ import com.example.nhumonglenh.data.remote.RetrofitClient
 import com.example.nhumonglenh.ui.news.NewsFeedFragment
 import com.example.nhumonglenh.ui.portfolio.PortfolioFragment
 import com.example.nhumonglenh.ui.ticker.MarketTickerAdapter
+import com.example.nhumonglenh.ui.ticker.MarketTickerAutoScrollController
 import com.example.nhumonglenh.ui.ticker.MarketTickerViewModel
 import com.example.nhumonglenh.ui.ticker.MarketTickerViewModelFactory
 import com.example.nhumonglenh.ui.wallet.WalletFragment
@@ -48,6 +49,7 @@ class Activity2 : AppCompatActivity() {
     }
     private lateinit var tickerAdapter: MarketTickerAdapter
     private lateinit var rvMarketTicker: RecyclerView
+    private var tickerAutoScrollController: MarketTickerAutoScrollController? = null
 
     private lateinit var bottomNav: BottomNavigationView
     private val fragmentMap = mutableMapOf<Int, Fragment>()
@@ -86,6 +88,7 @@ class Activity2 : AppCompatActivity() {
             switchToTradingSymbol(symbol)
         }
         rvMarketTicker.adapter = tickerAdapter
+        tickerAutoScrollController = MarketTickerAutoScrollController(rvMarketTicker, tickerAdapter)
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -329,10 +332,18 @@ class Activity2 : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         tickerViewModel.startPolling()
+        tickerAutoScrollController?.start()
     }
 
     override fun onStop() {
         super.onStop()
         tickerViewModel.stopPolling()
+        tickerAutoScrollController?.stop()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        tickerAutoScrollController?.destroy()
+        tickerAutoScrollController = null
     }
 }

@@ -2,12 +2,17 @@ package com.example.nhumonglenh
 
 import com.example.nhumonglenh.data.remote.ApiService
 import com.example.nhumonglenh.data.remote.MarketPriceDto
+import com.example.nhumonglenh.ui.ticker.MarketTickerAdapter
+import com.example.nhumonglenh.ui.ticker.MarketTickerAutoScrollPolicy
 import com.example.nhumonglenh.ui.ticker.MarketTickerPolicy
 import com.example.nhumonglenh.ui.ticker.MarketTickerUiModel
 import com.example.nhumonglenh.ui.ticker.MarketTickerViewModel
 import org.junit.Assert.*
 import org.junit.Test
+import org.w3c.dom.Element
+import org.w3c.dom.Node
 import java.io.File
+import javax.xml.parsers.DocumentBuilderFactory
 
 class MarketTickerAndWalletBehavioralTest {
 
@@ -444,5 +449,265 @@ class MarketTickerAndWalletBehavioralTest {
 
         assertTrue("versionCode must be 26", content.contains("versionCode = 26"))
         assertTrue("versionName must be \"1.1.26\"", content.contains("versionName = \"1.1.26\""))
+    }
+
+    // =========================================================================
+    // PART E: MARKET TICKER AUTO-SCROLL & RUNTIME WALLET LAYOUT COORDINATE TESTS
+    // =========================================================================
+
+    @Test
+    fun testAutoScroll_startIdempotency_onlySingleLoopAllowed() {
+        val running = true
+        val paused = false
+        val userTouching = false
+        val a11yActive = false
+        val animsEnabled = true
+
+        val canAdvance1 = MarketTickerAutoScrollPolicy.canAdvance(
+            isRunning = running,
+            isPaused = paused,
+            isUserTouching = userTouching,
+            isAccessibilityActive = a11yActive,
+            areAnimationsEnabled = animsEnabled
+        )
+        assertTrue("Auto-scroll must be allowed to advance when active and unobstructed", canAdvance1)
+
+        val canAdvanceStopped = MarketTickerAutoScrollPolicy.canAdvance(
+            isRunning = false,
+            isPaused = paused,
+            isUserTouching = userTouching,
+            isAccessibilityActive = a11yActive,
+            areAnimationsEnabled = animsEnabled
+        )
+        assertFalse("Stopped auto-scroll must not advance", canAdvanceStopped)
+    }
+
+    @Test
+    fun testAutoScroll_onStop_stopsCompletely_onStart_resumesSingleLoop() {
+        // onStop: isRunning = false, isPaused = true -> advance blocked
+        assertFalse(
+            MarketTickerAutoScrollPolicy.canAdvance(
+                isRunning = false,
+                isPaused = true,
+                isUserTouching = false,
+                isAccessibilityActive = false,
+                areAnimationsEnabled = true
+            )
+        )
+
+        // onStart: isRunning = true, isPaused = false -> advance active
+        assertTrue(
+            MarketTickerAutoScrollPolicy.canAdvance(
+                isRunning = true,
+                isPaused = false,
+                isUserTouching = false,
+                isAccessibilityActive = false,
+                areAnimationsEnabled = true
+            )
+        )
+    }
+
+    @Test
+    fun testAutoScroll_directionIsRightToLeft() {
+        val direction = MarketTickerAutoScrollPolicy.resolveScrollDirection(MarketTickerAutoScrollPolicy.DEFAULT_SCROLL_STEP_PX)
+        assertEquals("Direction must be RIGHT_TO_LEFT (content moves right to left)", MarketTickerAutoScrollPolicy.ScrollDirection.RIGHT_TO_LEFT, direction)
+        assertTrue("DEFAULT_SCROLL_STEP_PX must be positive for right-to-left marquee motion", MarketTickerAutoScrollPolicy.DEFAULT_SCROLL_STEP_PX > 0)
+    }
+
+    @Test
+    fun testAutoScroll_touchPause_andReleaseResume() {
+        val touchingAdvance = MarketTickerAutoScrollPolicy.canAdvance(
+            isRunning = true,
+            isPaused = false,
+            isUserTouching = true,
+            isAccessibilityActive = false,
+            areAnimationsEnabled = true
+        )
+        assertFalse("Auto-scroll must pause while user is touching or dragging", touchingAdvance)
+
+        val releasedAdvance = MarketTickerAutoScrollPolicy.canAdvance(
+            isRunning = true,
+            isPaused = false,
+            isUserTouching = false,
+            isAccessibilityActive = false,
+            areAnimationsEnabled = true
+        )
+        assertTrue("Auto-scroll must resume after user releases touch", releasedAdvance)
+    }
+
+    @Test
+    fun testAutoScroll_seamlessLoopReset_pastDoge_neverStopsAtDoge() {
+        val baseCount = 8
+        // Forward reset when crossing into Set 2 (firstVisiblePos >= 16)
+        val resetForward = MarketTickerAutoScrollPolicy.computeSeamlessLoopReset(
+            firstVisiblePos = 16,
+            currentViewLeft = -35,
+            baseItemCount = baseCount,
+            isInfiniteLoopEnabled = true
+        )
+
+        assertNotNull("Forward loop reset must be computed", resetForward)
+        assertTrue("Reset must be applied when reaching Set 2 (firstVisiblePos >= 16)", resetForward!!.isResetApplied)
+        assertEquals("Position must shift back by exactly one cycle (8 items) to Set 1", 8, resetForward.targetPosition)
+        assertEquals("Pixel offset must be preserved identically to prevent visual glitching", -35, resetForward.pixelOffset)
+
+        // Backward reset when user drags backward into Set 0 (firstVisiblePos < 8)
+        val resetBackward = MarketTickerAutoScrollPolicy.computeSeamlessLoopReset(
+            firstVisiblePos = 5,
+            currentViewLeft = -10,
+            baseItemCount = baseCount,
+            isInfiniteLoopEnabled = true
+        )
+        assertNotNull(resetBackward)
+        assertTrue("Backward reset must be applied", resetBackward!!.isResetApplied)
+        assertEquals("Position must shift forward by one cycle to Set 1", 13, resetBackward.targetPosition)
+        assertEquals("Pixel offset must match", -10, resetBackward.pixelOffset)
+
+        // Within Set 1 (e.g. at DOGE index 15)
+        val atDoge = MarketTickerAutoScrollPolicy.computeSeamlessLoopReset(
+            firstVisiblePos = 15,
+            currentViewLeft = -5,
+            baseItemCount = baseCount,
+            isInfiniteLoopEnabled = true
+        )
+        assertNotNull(atDoge)
+        assertFalse("No jump needed while still within Set 1", atDoge!!.isResetApplied)
+        assertEquals(15, atDoge.targetPosition)
+    }
+
+    @Test
+    fun testAutoScroll_pollingUpdate_doesNotResetScrollPosition() {
+        val adapterFile = File("src/main/java/com/example/nhumonglenh/ui/ticker/MarketTickerAdapter.kt")
+        val content = adapterFile.readText()
+
+        val submitListBlock = content.substring(content.indexOf("fun submitList"))
+        assertFalse("submitList must never call scrollToPosition(0) which resets scroll offset", submitListBlock.contains("scrollToPosition"))
+
+        val activity2File = File("src/main/java/com/example/nhumonglenh/Activity2.kt")
+        val a2Content = activity2File.readText()
+        assertFalse("Activity2 ticker collector must not call scrollToPosition(0)", a2Content.contains("rvMarketTicker.scrollToPosition(0)"))
+    }
+
+    @Test
+    fun testAutoScroll_clickItem_dispatchesCorrectCanonicalSymbolAcrossRepeats() {
+        val baseItems = MarketTickerPolicy.createDefaultTickerList()
+        assertEquals(8, baseItems.size)
+
+        for (i in 0 until 32) {
+            val item = MarketTickerAutoScrollPolicy.resolveItemAtPosition(i, baseItems)
+            assertNotNull(item)
+            val expectedSymbol = MarketTickerPolicy.CANONICAL_SYMBOLS[i % 8]
+            assertEquals("Position $i must map to canonical symbol $expectedSymbol", expectedSymbol, item!!.symbol)
+        }
+    }
+
+    @Test
+    fun testAutoScroll_zeroNetworkRequests() {
+        val controllerFile = File("src/main/java/com/example/nhumonglenh/ui/ticker/MarketTickerAutoScrollController.kt")
+        val content = controllerFile.readText()
+
+        assertFalse("Controller must not import ApiService", content.contains("import com.example.nhumonglenh.data.remote.ApiService"))
+        assertFalse("Controller must not import Retrofit", content.contains("import retrofit2"))
+        assertFalse("Controller must not import OkHttp WebSocket", content.contains("import okhttp3.WebSocket"))
+        assertFalse("Controller must not import OkHttpClient", content.contains("import okhttp3.OkHttpClient"))
+        assertFalse("Controller must not call enqueue or execute", content.contains(".enqueue(") || content.contains(".execute("))
+    }
+
+    @Test
+    fun testRuntimeWalletLayout_depositStrictlyLeftOfWithdraw_bothLayouts() {
+        val layouts = listOf(
+            File("src/main/res/layout/fragment_wallet.xml"),
+            File("src/main/res/layout/fragment_wallet_profile.xml")
+        )
+
+        val factory = DocumentBuilderFactory.newInstance()
+        factory.isNamespaceAware = true
+        val builder = factory.newDocumentBuilder()
+
+        for (file in layouts) {
+            assertTrue("${file.name} must exist", file.exists())
+            val doc = builder.parse(file)
+
+            val allElements = doc.getElementsByTagName("*")
+            var depositElement: Element? = null
+            var withdrawElement: Element? = null
+
+            for (i in 0 until allElements.length) {
+                val el = allElements.item(i) as Element
+                val id = el.getAttribute("android:id")
+                if (id == "@+id/btn_sandbox_deposit") depositElement = el
+                if (id == "@+id/btn_sandbox_withdraw") withdrawElement = el
+            }
+
+            assertNotNull("Deposit button must exist in ${file.name}", depositElement)
+            assertNotNull("Withdraw button must exist in ${file.name}", withdrawElement)
+
+            val depositParent = depositElement!!.parentNode as Element
+            val withdrawParent = withdrawElement!!.parentNode as Element
+
+            assertEquals("Both buttons must share the same parent in ${file.name}", depositParent, withdrawParent)
+            assertEquals("Parent must be a LinearLayout in ${file.name}", "LinearLayout", depositParent.tagName)
+            assertEquals("Parent must have horizontal orientation in ${file.name}", "horizontal", depositParent.getAttribute("android:orientation"))
+            assertEquals("Parent must have explicit ltr layoutDirection in ${file.name}", "ltr", depositParent.getAttribute("android:layoutDirection"))
+
+            var depositChildIndex = -1
+            var withdrawChildIndex = -1
+            var childCount = 0
+            val children = depositParent.childNodes
+            for (i in 0 until children.length) {
+                val node = children.item(i)
+                if (node.nodeType == Node.ELEMENT_NODE) {
+                    val childEl = node as Element
+                    if (childEl === depositElement) depositChildIndex = childCount
+                    if (childEl === withdrawElement) withdrawChildIndex = childCount
+                    childCount++
+                }
+            }
+
+            assertTrue("Deposit must be found among parent children in ${file.name}", depositChildIndex != -1)
+            assertTrue("Withdraw must be found among parent children in ${file.name}", withdrawChildIndex != -1)
+            assertTrue("Deposit must be the first child in parent LinearLayout in ${file.name}", depositChildIndex == 0)
+            assertTrue("Deposit child index must be strictly less than withdraw child index in ${file.name}", depositChildIndex < withdrawChildIndex)
+
+            val testWidths = listOf(360, 720, 1080, 1440)
+            for (parentWidth in testWidths) {
+                val marginDepositEnd = 6
+                val marginWithdrawStart = 6
+                val totalMargin = marginDepositEnd + marginWithdrawStart
+                val contentWidth = parentWidth - totalMargin
+                val buttonWidth = contentWidth / 2
+
+                val depositLeft = 0
+                val depositRight = depositLeft + buttonWidth
+                val withdrawLeft = depositRight + totalMargin
+                val withdrawRight = withdrawLeft + buttonWidth
+
+                assertTrue("In ${file.name} at width $parentWidth: deposit.left ($depositLeft) must be strictly < withdraw.left ($withdrawLeft)", depositLeft < withdrawLeft)
+                assertTrue("In ${file.name} at width $parentWidth: deposit.right ($depositRight) must be <= withdraw.left ($withdrawLeft)", depositRight <= withdrawLeft)
+            }
+        }
+    }
+
+    @Test
+    fun testWalletCallbacks_depositAndWithdrawal_notSwapped() {
+        val walletFragFile = File("src/main/java/com/example/nhumonglenh/ui/wallet/WalletFragment.kt")
+        assertTrue("WalletFragment.kt must exist", walletFragFile.exists())
+        val content = walletFragFile.readText()
+
+        val depositListenerStart = content.indexOf("b.btnSandboxDeposit.setOnClickListener")
+        val withdrawListenerStart = content.indexOf("b.btnSandboxWithdraw.setOnClickListener")
+        val endOfListeners = content.indexOf("private fun triggerDataLoad")
+
+        assertTrue("btnSandboxDeposit click listener must exist", depositListenerStart != -1)
+        assertTrue("btnSandboxWithdraw click listener must exist", withdrawListenerStart != -1)
+        assertTrue("Deposit listener must appear before withdraw listener", depositListenerStart < withdrawListenerStart)
+
+        val depositBlock = content.substring(depositListenerStart, withdrawListenerStart)
+        assertTrue("btnSandboxDeposit must open SandboxPaymentBottomSheet with DEPOSIT", depositBlock.contains("SandboxPaymentBottomSheet.newInstance(\"DEPOSIT\""))
+        assertFalse("btnSandboxDeposit must NOT open WITHDRAWAL", depositBlock.contains("WITHDRAWAL"))
+
+        val withdrawBlock = content.substring(withdrawListenerStart, endOfListeners)
+        assertTrue("btnSandboxWithdraw must open SandboxPaymentBottomSheet with WITHDRAWAL", withdrawBlock.contains("SandboxPaymentBottomSheet.newInstance(\"WITHDRAWAL\""))
+        assertFalse("btnSandboxWithdraw must NOT open DEPOSIT", withdrawBlock.contains("SandboxPaymentBottomSheet.newInstance(\"DEPOSIT\""))
     }
 }
