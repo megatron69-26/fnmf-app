@@ -440,15 +440,15 @@ class MarketTickerAndWalletBehavioralTest {
     // =========================================================================
 
     @Test
-    fun testVersionBump_v1_1_26() {
+    fun testVersionBump_v1_1_27() {
         val buildGradleFile = File("build.gradle.kts")
         val appBuildGradleFile = File("app/build.gradle.kts")
         val target = if (appBuildGradleFile.exists()) appBuildGradleFile else buildGradleFile
         assertTrue("app/build.gradle.kts must exist", target.exists())
         val content = target.readText()
 
-        assertTrue("versionCode must be 26", content.contains("versionCode = 26"))
-        assertTrue("versionName must be \"1.1.26\"", content.contains("versionName = \"1.1.26\""))
+        assertTrue("versionCode must be 27", content.contains("versionCode = 27"))
+        assertTrue("versionName must be \"1.1.27\"", content.contains("versionName = \"1.1.27\""))
     }
 
     // =========================================================================

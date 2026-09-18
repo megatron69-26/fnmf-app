@@ -318,8 +318,8 @@ class SecureTokenStoreUnitTest {
         assertTrue("build.gradle.kts phải tồn tại", target.exists())
         val content = target.readText()
 
-        assertTrue("versionCode phải là 20, 21, 22, 23, 24, 25 hoặc 26", content.contains("versionCode = 20") || content.contains("versionCode = 21") || content.contains("versionCode = 22") || content.contains("versionCode = 23") || content.contains("versionCode = 24") || content.contains("versionCode = 25") || content.contains("versionCode = 26"))
-        assertTrue("versionName phải là 1.1.20, 1.1.21, 1.1.22, 1.1.23, 1.1.24, 1.1.25 hoặc 1.1.26", content.contains("versionName = \"1.1.20\"") || content.contains("versionName = \"1.1.21\"") || content.contains("versionName = \"1.1.22\"") || content.contains("versionName = \"1.1.23\"") || content.contains("versionName = \"1.1.24\"") || content.contains("versionName = \"1.1.25\"") || content.contains("versionName = \"1.1.26\""))
+        assertTrue("versionCode phải là 20, 21, 22, 23, 24, 25, 26 hoặc 27", content.contains("versionCode = 20") || content.contains("versionCode = 21") || content.contains("versionCode = 22") || content.contains("versionCode = 23") || content.contains("versionCode = 24") || content.contains("versionCode = 25") || content.contains("versionCode = 26") || content.contains("versionCode = 27"))
+        assertTrue("versionName phải là 1.1.20, 1.1.21, 1.1.22, 1.1.23, 1.1.24, 1.1.25, 1.1.26 hoặc 1.1.27", content.contains("versionName = \"1.1.20\"") || content.contains("versionName = \"1.1.21\"") || content.contains("versionName = \"1.1.22\"") || content.contains("versionName = \"1.1.23\"") || content.contains("versionName = \"1.1.24\"") || content.contains("versionName = \"1.1.25\"") || content.contains("versionName = \"1.1.26\"") || content.contains("versionName = \"1.1.27\""))
         assertTrue("buildConfig phải được kích hoạt", content.contains("buildConfig = true"))
     }
 

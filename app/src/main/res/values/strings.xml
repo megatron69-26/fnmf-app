@@ -219,6 +219,7 @@
     <string name="provider_twelve_data">Twelve Data</string>
     <string name="provider_alpha_vantage">Alpha Vantage</string>
     <string name="timeframe_1m">1m</string>
+    <string name="timeframe_1s">1s</string>
 
     <!-- Forecast Date/Time Formatting -->
     <string name="forecast_updated_at">Cập nhật lúc %1$s, %2$s</string>

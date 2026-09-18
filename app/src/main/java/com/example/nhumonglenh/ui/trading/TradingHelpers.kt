@@ -30,14 +30,14 @@ object MarketStreamHelper {
     fun resolveWebSocketStream(symbol: String): String? {
         val sym = symbol.uppercase().trim()
         return when {
-            sym == "BTCUSDT" || sym == "BTC" -> "btcusdt@kline_1m"
-            sym == "ETHUSDT" || sym == "ETH" -> "ethusdt@kline_1m"
-            sym == "XAUUSD" || sym == "XAU" || sym == "PAXGUSDT" -> "paxgusdt@kline_1m"
-            sym == "BNBUSDT" || sym == "BNB" -> "bnbusdt@kline_1m"
-            sym == "SOLUSDT" || sym == "SOL" -> "solusdt@kline_1m"
-            sym == "XRPUSDT" || sym == "XRP" -> "xrpusdt@kline_1m"
-            sym == "ADAUSDT" || sym == "ADA" -> "adausdt@kline_1m"
-            sym == "DOGEUSDT" || sym == "DOGE" -> "dogeusdt@kline_1m"
+            sym == "BTCUSDT" || sym == "BTC" -> "btcusdt@kline_1s"
+            sym == "ETHUSDT" || sym == "ETH" -> "ethusdt@kline_1s"
+            sym == "XAUUSD" || sym == "XAU" || sym == "PAXGUSDT" -> "paxgusdt@kline_1s"
+            sym == "BNBUSDT" || sym == "BNB" -> "bnbusdt@kline_1s"
+            sym == "SOLUSDT" || sym == "SOL" -> "solusdt@kline_1s"
+            sym == "XRPUSDT" || sym == "XRP" -> "xrpusdt@kline_1s"
+            sym == "ADAUSDT" || sym == "ADA" -> "adausdt@kline_1s"
+            sym == "DOGEUSDT" || sym == "DOGE" -> "dogeusdt@kline_1s"
             else -> null
         }
     }
@@ -204,12 +204,12 @@ object ChartLabelFormatter {
         return "$symbol • 1D"
     }
 
-    fun formatChartDatasetLabel(symbol: String, interval: String = "1m"): String {
+    fun formatChartDatasetLabel(symbol: String, interval: String = "1s"): String {
         val norm = interval.trim().lowercase()
-        return if (norm == "daily" || norm == "1d") {
-            "$symbol • 1D"
-        } else {
-            "$symbol • 1m"
+        return when (norm) {
+            "daily", "1d" -> "$symbol • 1D"
+            "1m" -> "$symbol • 1m"
+            else -> "$symbol • 1s"
         }
     }
 }

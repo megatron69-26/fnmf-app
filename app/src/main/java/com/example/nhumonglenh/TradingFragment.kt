@@ -861,7 +861,7 @@ class TradingFragment : Fragment() {
             getFriendlyName(sym)
         }
         b.tvProviderBadge.text = MarketDataProviderPolicy.resolveProviderName(sym)
-        b.tvTimeframeBadge.text = "1m"
+        b.tvTimeframeBadge.text = "1s"
 
         // 2. Xóa giá hiển thị cũ, đưa về trạng thái chờ
         currentAssetPrice = null
@@ -1072,7 +1072,7 @@ class TradingFragment : Fragment() {
 
         activeCandleCall?.cancel()
         val isStock = StockTradePolicy.isStock(symbol)
-        val interval = "1m"
+        val interval = "1s"
         val call = RetrofitClient.apiService.getCandles(symbol, interval)
         activeCandleCall = call
 
@@ -1168,7 +1168,7 @@ class TradingFragment : Fragment() {
         for (i in candles.indices) {
             val c = candles[i]
             candleEntries.add(CandleEntry(i.toFloat(), c.high.toFloat(), c.low.toFloat(), c.open.toFloat(), c.close.toFloat()))
-            timeLabels.add(c.time)
+            timeLabels.add(CandleTimeFormatter.formatCandleAxisLabel(c))
         }
 
         b.pbLoading.visibility = View.GONE
@@ -1187,14 +1187,13 @@ class TradingFragment : Fragment() {
             override fun getFormattedValue(value: Float): String {
                 val index = value.toInt()
                 if (index in timeLabels.indices) {
-                    val raw = timeLabels[index]
-                    return CandleTimeFormatter.formatChartAxisLabel(raw)
+                    return timeLabels[index]
                 }
                 return ""
             }
         }
 
-        val datasetLabel = ChartLabelFormatter.formatChartDatasetLabel(symbol, "1m")
+        val datasetLabel = ChartLabelFormatter.formatChartDatasetLabel(symbol, "1s")
         val dataSet = CandleDataSet(candleEntries, datasetLabel).apply {
             setDrawIcons(false)
             shadowColor = ContextCompat.getColor(ctx, R.color.tv_text_secondary)
@@ -1437,11 +1436,11 @@ class TradingFragment : Fragment() {
                 c.open.toFloat(),
                 c.close.toFloat()
             ))
-            timeLabels.add(CandleTimeFormatter.formatChartAxisLabel(c.time))
+            timeLabels.add(CandleTimeFormatter.formatCandleAxisLabel(c))
         }
 
         // Rebuild dataset
-        val dataSet = CandleDataSet(candleEntries, ChartLabelFormatter.formatChartDatasetLabel(currentSymbol, "1m")).apply {
+        val dataSet = CandleDataSet(candleEntries, ChartLabelFormatter.formatChartDatasetLabel(currentSymbol, "1s")).apply {
             color = ContextCompat.getColor(requireContext(), R.color.tv_text_secondary)
             shadowColor = ContextCompat.getColor(requireContext(), R.color.tv_text_secondary)
             shadowWidth = 0.7f

@@ -38,9 +38,9 @@ class BinanceRealtimeKlineUnitTest {
               "s": "BTCUSDT",
               "k": {
                 "t": 1789503660000,
-                "T": 1789503719999,
+                "T": 1789503660999,
                 "s": "BTCUSDT",
-                "i": "1m",
+                "i": "1s",
                 "o": "65000.00",
                 "c": "65050.50",
                 "h": "65100.00",
@@ -54,9 +54,9 @@ class BinanceRealtimeKlineUnitTest {
         val event = BinanceKlineParser.parse(json)
         assertNotNull(event)
         assertEquals(1789503660000L, event!!.openTime)
-        assertEquals(1789503719999L, event.closeTime)
+        assertEquals(1789503660999L, event.closeTime)
         assertEquals("BTCUSDT", event.symbol)
-        assertEquals("1m", event.interval)
+        assertEquals("1s", event.interval)
         assertEquals(65000.00, event.open, 0.001)
         assertEquals(65050.50, event.close, 0.001)
         assertEquals(65100.00, event.high, 0.001)
@@ -77,9 +77,9 @@ class BinanceRealtimeKlineUnitTest {
               "s": "PAXGUSDT",
               "k": {
                 "t": 1789503660000,
-                "T": 1789503719999,
+                "T": 1789503660999,
                 "s": "PAXGUSDT",
-                "i": "1m",
+                "i": "1s",
                 "o": "2650.10",
                 "c": "2655.40",
                 "h": "2658.00",
@@ -103,10 +103,10 @@ class BinanceRealtimeKlineUnitTest {
         assertFalse(MarketSymbolMatcher.matches(event.symbol, "BTCUSDT"))
         assertFalse(MarketSymbolMatcher.matches(event.symbol, "ETHUSDT"))
 
-        // Stream helper ánh xạ đúng stream kline_1m
-        assertEquals("paxgusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("XAUUSD"))
-        assertEquals("btcusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("BTCUSDT"))
-        assertEquals("ethusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("ETHUSDT"))
+        // Stream helper ánh xạ đúng stream kline_1s
+        assertEquals("paxgusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("XAUUSD"))
+        assertEquals("btcusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("BTCUSDT"))
+        assertEquals("ethusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("ETHUSDT"))
         assertNull(MarketStreamHelper.resolveWebSocketStream("USOIL"))
         assertNull(MarketStreamHelper.resolveWebSocketStream("AAPL"))
     }
@@ -122,27 +122,27 @@ class BinanceRealtimeKlineUnitTest {
         assertNull(BinanceKlineParser.parse(null))
 
         // Thiếu open
-        val missingOpen = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1m","h":"100","l":"90","c":"95","v":"1"}}"""
+        val missingOpen = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1s","h":"100","l":"90","c":"95","v":"1"}}"""
         assertNull(BinanceKlineParser.parse(missingOpen))
 
         // Thiếu high
-        val missingHigh = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1m","o":"90","l":"90","c":"95","v":"1"}}"""
+        val missingHigh = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1s","o":"90","l":"90","c":"95","v":"1"}}"""
         assertNull(BinanceKlineParser.parse(missingHigh))
 
         // Thiếu low
-        val missingLow = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1m","o":"90","h":"100","c":"95","v":"1"}}"""
+        val missingLow = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1s","o":"90","h":"100","c":"95","v":"1"}}"""
         assertNull(BinanceKlineParser.parse(missingLow))
 
         // Thiếu close
-        val missingClose = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1m","o":"90","h":"100","l":"90","v":"1"}}"""
+        val missingClose = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1s","o":"90","h":"100","l":"90","v":"1"}}"""
         assertNull(BinanceKlineParser.parse(missingClose))
 
         // Sai định dạng số (string không phải số)
-        val notNumber = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1m","o":"NaN","h":"100","l":"90","c":"95","v":"1"}}"""
+        val notNumber = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1s","o":"NaN","h":"100","l":"90","c":"95","v":"1"}}"""
         assertNull(BinanceKlineParser.parse(notNumber))
 
         // openTime không hợp lệ
-        val invalidTime = """{"k":{"t":-1,"T":2000,"s":"BTCUSDT","i":"1m","o":"90","h":"100","l":"85","c":"95","v":"1"}}"""
+        val invalidTime = """{"k":{"t":-1,"T":2000,"s":"BTCUSDT","i":"1s","o":"90","h":"100","l":"85","c":"95","v":"1"}}"""
         assertNull(BinanceKlineParser.parse(invalidTime))
     }
 
@@ -152,34 +152,34 @@ class BinanceRealtimeKlineUnitTest {
     @Test
     fun testBinanceKlineParser_rejectInvalidOhlcvInvariants() {
         // Giá <= 0
-        val zeroPrice = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1m","o":"0","h":"100","l":"0","c":"50","v":"1"}}"""
+        val zeroPrice = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1s","o":"0","h":"100","l":"0","c":"50","v":"1"}}"""
         assertNull(BinanceKlineParser.parse(zeroPrice))
 
-        val negativePrice = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1m","o":"-50","h":"100","l":"-50","c":"50","v":"1"}}"""
+        val negativePrice = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1s","o":"-50","h":"100","l":"-50","c":"50","v":"1"}}"""
         assertNull(BinanceKlineParser.parse(negativePrice))
 
         // high < low
-        val highLessThanLow = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1m","o":"100","h":"80","l":"90","c":"85","v":"1"}}"""
+        val highLessThanLow = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1s","o":"100","h":"80","l":"90","c":"85","v":"1"}}"""
         assertNull(BinanceKlineParser.parse(highLessThanLow))
 
         // high < open
-        val highLessThanOpen = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1m","o":"120","h":"100","l":"90","c":"95","v":"1"}}"""
+        val highLessThanOpen = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1s","o":"120","h":"100","l":"90","c":"95","v":"1"}}"""
         assertNull(BinanceKlineParser.parse(highLessThanOpen))
 
         // high < close
-        val highLessThanClose = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1m","o":"90","h":"100","l":"80","c":"110","v":"1"}}"""
+        val highLessThanClose = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1s","o":"90","h":"100","l":"80","c":"110","v":"1"}}"""
         assertNull(BinanceKlineParser.parse(highLessThanClose))
 
         // low > open
-        val lowGreaterThanOpen = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1m","o":"80","h":"120","l":"90","c":"100","v":"1"}}"""
+        val lowGreaterThanOpen = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1s","o":"80","h":"120","l":"90","c":"100","v":"1"}}"""
         assertNull(BinanceKlineParser.parse(lowGreaterThanOpen))
 
         // low > close
-        val lowGreaterThanClose = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1m","o":"100","h":"120","l":"90","c":"80","v":"1"}}"""
+        val lowGreaterThanClose = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1s","o":"100","h":"120","l":"90","c":"80","v":"1"}}"""
         assertNull(BinanceKlineParser.parse(lowGreaterThanClose))
 
         // volume âm
-        val negativeVolume = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1m","o":"90","h":"120","l":"85","c":"100","v":"-1"}}"""
+        val negativeVolume = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1s","o":"90","h":"120","l":"85","c":"100","v":"-1"}}"""
         assertNull(BinanceKlineParser.parse(negativeVolume))
     }
 
@@ -196,9 +196,9 @@ class BinanceRealtimeKlineUnitTest {
         // Event cùng phút 14:01:00 nhưng có giá mới (giá nhảy lên 64250)
         val tickEvent = BinanceKlineEvent(
             openTime = 1789503660000L,
-            closeTime = 1789503719999L,
+            closeTime = 1789503660999L,
             symbol = "BTCUSDT",
-            interval = "1m",
+            interval = "1s",
             open = 64100.0,
             high = 64300.0,
             low = 64050.0,
@@ -235,9 +235,9 @@ class BinanceRealtimeKlineUnitTest {
         // Event sang phút tiếp theo 14:02:00
         val nextMinuteEvent = BinanceKlineEvent(
             openTime = 1789503720000L,
-            closeTime = 1789503779999L,
+            closeTime = 1789503720999L,
             symbol = "BTCUSDT",
-            interval = "1m",
+            interval = "1s",
             open = 64120.0,
             high = 64200.0,
             low = 64110.0,
@@ -267,9 +267,9 @@ class BinanceRealtimeKlineUnitTest {
         // Event thuộc phút cũ (14:00:00)
         val oldEvent = BinanceKlineEvent(
             openTime = 1789503600000L,
-            closeTime = 1789503659999L,
+            closeTime = 1789503600999L,
             symbol = "BTCUSDT",
-            interval = "1m",
+            interval = "1s",
             open = 63000.0,
             high = 63100.0,
             low = 62900.0,
@@ -294,17 +294,17 @@ class BinanceRealtimeKlineUnitTest {
         val candles = ArrayList<CandleDto>()
         val baseTime = 1789500000000L
         for (i in 0 until 30) {
-            val t = baseTime + (i * 60_000L)
+            val t = baseTime + (i * 1_000L)
             candles.add(CandleDto("time_$i", 60000.0, 60100.0, 59900.0, 60050.0, 1.0, t))
         }
         assertEquals(30, candles.size)
 
         // Thêm cây thứ 31
         val newEvent = BinanceKlineEvent(
-            openTime = baseTime + (30 * 60_000L),
-            closeTime = baseTime + (30 * 60_000L) + 59_999L,
+            openTime = baseTime + (30 * 1_000L),
+            closeTime = baseTime + (30 * 1_000L) + 999L,
             symbol = "BTCUSDT",
-            interval = "1m",
+            interval = "1s",
             open = 60050.0,
             high = 60200.0,
             low = 60040.0,
@@ -317,9 +317,9 @@ class BinanceRealtimeKlineUnitTest {
 
         assertEquals(30, result.size)
         // Cây đầu tiên cũ nhất đã bị loại bỏ (bắt đầu từ index 1)
-        assertEquals(baseTime + 60_000L, result.first().openTime)
+        assertEquals(baseTime + 1_000L, result.first().openTime)
         // Cây cuối cùng là cây thứ 31 mới thêm
-        assertEquals(baseTime + (30 * 60_000L), result.last().openTime)
+        assertEquals(baseTime + (30 * 1_000L), result.last().openTime)
     }
 
     // =========================================================================
@@ -355,9 +355,9 @@ class BinanceRealtimeKlineUnitTest {
 
         val formingTick = BinanceKlineEvent(
             openTime = 1789503600000L,
-            closeTime = 1789503659999L,
+            closeTime = 1789503600999L,
             symbol = "BTCUSDT",
-            interval = "1m",
+            interval = "1s",
             open = 65000.0,
             high = 65080.0,
             low = 64950.0,
@@ -384,9 +384,9 @@ class BinanceRealtimeKlineUnitTest {
 
         val closingTick = BinanceKlineEvent(
             openTime = 1789503600000L,
-            closeTime = 1789503659999L,
+            closeTime = 1789503600999L,
             symbol = "BTCUSDT",
-            interval = "1m",
+            interval = "1s",
             open = 65000.0,
             high = 65120.0,
             low = 64950.0,
@@ -434,8 +434,8 @@ class BinanceRealtimeKlineUnitTest {
     // =========================================================================
     @Test
     fun testCandleTimeFormatter_labelsAndParsing() {
-        // 1m candle datetime: "2026-09-16 14:35:20" -> "14:35"
-        assertEquals("14:35", CandleTimeFormatter.formatChartAxisLabel("2026-09-16 14:35:20"))
+        // 1s candle datetime: "2026-09-16 14:35:20" -> "14:35:20"
+        assertEquals("14:35:20", CandleTimeFormatter.formatChartAxisLabel("2026-09-16 14:35:20"))
         // Daily candle date: "2026-09-16" -> "09-16"
         assertEquals("09-16", CandleTimeFormatter.formatChartAxisLabel("2026-09-16"))
 
@@ -444,11 +444,74 @@ class BinanceRealtimeKlineUnitTest {
         assertTrue(ms > 0L)
     }
 
+    @Test
+    fun testCandleTimeFormatter_epochAxisLabelConsistency_eliminatesTimezoneDiscrepancy() {
+        val fixedTz = java.util.TimeZone.getTimeZone("Asia/Ho_Chi_Minh") // UTC+7
+
+        // Giả sử Backend chạy UTC trên Railway:
+        // epochMs1 = 1789723800000L tương ứng UTC 09:30:00, nhưng tại UTC+7 là 16:30:00
+        val epochMs1 = 1789723800000L
+        val epochMs2 = 1789723801000L // 1 giây sau (16:30:01)
+
+        // Nến 1 từ REST response (chứa openTime epoch)
+        val restCandle = CandleDto(
+            time = "2026-09-18 09:30:00",
+            open = 65000.0, high = 65010.0, low = 64990.0, close = 65005.0,
+            volume = 1.5, openTime = epochMs1
+        )
+
+        // Nến 2 từ WebSocket real-time event
+        val wsCandle = CandleDto(
+            time = "2026-09-18 16:30:01",
+            open = 65005.0, high = 65020.0, low = 65000.0, close = 65015.0,
+            volume = 2.0, openTime = epochMs2
+        )
+
+        // Dựng nhãn trực tiếp từ openTime epoch theo múi giờ thiết bị cố định
+        val label1 = CandleTimeFormatter.formatCandleAxisLabel(restCandle, timeZone = fixedTz)
+        val label2 = CandleTimeFormatter.formatCandleAxisLabel(wsCandle, timeZone = fixedTz)
+
+        assertEquals("16:30:00", label1)
+        assertEquals("16:30:01", label2)
+
+        // Không bị nhảy 7 giờ giữa REST và WebSocket
+        org.junit.Assert.assertNotEquals("09:30:00", label1)
+    }
+
+    @Test
+    fun testCandleTimeFormatter_fallbackWhenOpenTimeNull_parsesUtcAndFormatsInDeviceTimezone() {
+        val fixedTz = java.util.TimeZone.getTimeZone("Asia/Ho_Chi_Minh") // UTC+7
+
+        // Nến REST chỉ có chuỗi time "2026-09-18 09:30:00" do Backend format bằng UTC, openTime = null
+        val restCandleWithoutOpenTime = CandleDto(
+            time = "2026-09-18 09:30:00",
+            open = 65000.0, high = 65010.0, low = 64990.0, close = 65005.0,
+            volume = 1.5, openTime = null
+        )
+
+        // Nến WebSocket kế tiếp tại giây tiếp theo (16:30:01 giờ địa phương)
+        val wsCandle = CandleDto(
+            time = "2026-09-18 16:30:01",
+            open = 65005.0, high = 65020.0, low = 65000.0, close = 65015.0,
+            volume = 2.0, openTime = 1789723801000L
+        )
+
+        // Fallback phải parse chuỗi backend "09:30:00" bằng UTC, sau đó format sang UTC+7 thành "16:30:00"
+        val label1 = CandleTimeFormatter.formatCandleAxisLabel(restCandleWithoutOpenTime, timeZone = fixedTz)
+        val label2 = CandleTimeFormatter.formatCandleAxisLabel(wsCandle, timeZone = fixedTz)
+
+        assertEquals("16:30:00", label1)
+        assertEquals("16:30:01", label2)
+
+        // Tuyệt đối không được giữ nguyên "09:30:00" khi hiển thị trên thiết bị UTC+7
+        org.junit.Assert.assertNotEquals("09:30:00", label1)
+    }
+
     // =========================================================================
-    // 14. Parser bắt buộc interval == "1m", từ chối bất kỳ interval nào khác
+    // 14. Parser bắt buộc interval == "1s", từ chối bất kỳ interval nào khác
     // =========================================================================
     @Test
-    fun testBinanceKlineParser_rejectIntervalNot1m() {
+    fun testBinanceKlineParser_rejectIntervalNot1s() {
         // Payload interval "5m"
         val payload5m = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"5m","o":"90","h":"100","l":"85","c":"95","v":"1"}}"""
         assertNull(BinanceKlineParser.parse(payload5m))
@@ -465,19 +528,24 @@ class BinanceRealtimeKlineUnitTest {
         val payloadDaily = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"daily","o":"90","h":"100","l":"85","c":"95","v":"1"}}"""
         assertNull(BinanceKlineParser.parse(payloadDaily))
 
-        // Payload interval "1m" hợp lệ
+        // Payload interval "1m" (trước đây hợp lệ nhưng nay phải bị từ chối vì đã đổi sang 1s)
         val payload1m = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1m","o":"90","h":"100","l":"85","c":"95","v":"1"}}"""
-        assertNotNull(BinanceKlineParser.parse(payload1m))
+        assertNull(BinanceKlineParser.parse(payload1m))
+
+        // Payload interval "1s" hợp lệ
+        val payload1s = """{"k":{"t":1000,"T":2000,"s":"BTCUSDT","i":"1s","o":"90","h":"100","l":"85","c":"95","v":"1"}}"""
+        assertNotNull(BinanceKlineParser.parse(payload1s))
     }
 
     // =========================================================================
-    // 15. ChartLabelFormatter format nhãn 1m cho Crypto/Gold và 1D cho Cổ phiếu
+    // 15. ChartLabelFormatter format nhãn 1s cho Crypto/Gold và 1D cho Cổ phiếu
     // =========================================================================
     @Test
-    fun testChartLabelFormatter_dailyVs1m() {
-        assertEquals("BTCUSDT • 1m", ChartLabelFormatter.formatChartDatasetLabel("BTCUSDT", "1m"))
-        assertEquals("ETHUSDT • 1m", ChartLabelFormatter.formatChartDatasetLabel("ETHUSDT", "1m"))
-        assertEquals("XAUUSD • 1m", ChartLabelFormatter.formatChartDatasetLabel("XAUUSD", "1m"))
+    fun testChartLabelFormatter_dailyVs1s() {
+        assertEquals("BTCUSDT • 1s", ChartLabelFormatter.formatChartDatasetLabel("BTCUSDT"))
+        assertEquals("BTCUSDT • 1s", ChartLabelFormatter.formatChartDatasetLabel("BTCUSDT", "1s"))
+        assertEquals("ETHUSDT • 1s", ChartLabelFormatter.formatChartDatasetLabel("ETHUSDT", "1s"))
+        assertEquals("XAUUSD • 1s", ChartLabelFormatter.formatChartDatasetLabel("XAUUSD", "1s"))
         assertEquals("AAPL • 1D", ChartLabelFormatter.formatChartDatasetLabel("AAPL", "daily"))
         assertEquals("MSFT • 1D", ChartLabelFormatter.formatChartDatasetLabel("MSFT", "1d"))
     }
@@ -511,9 +579,9 @@ class BinanceRealtimeKlineUnitTest {
         // Sự kiện nến phút thứ 31 (openTime > lastOpenTime)
         val eventMinute31 = BinanceKlineEvent(
             openTime = baseTime + (30 * 60_000L),
-            closeTime = baseTime + (30 * 60_000L) + 59_999L,
+            closeTime = baseTime + (30 * 60_000L) + 999L,
             symbol = "BTCUSDT",
-            interval = "1m",
+            interval = "1s",
             open = 60080.0,
             high = 60250.0,
             low = 60070.0,
@@ -562,9 +630,9 @@ class BinanceRealtimeKlineUnitTest {
         // Sau đó cùng phút 31 nhận tiếp một tick mới (giá nhảy lên 60240)
         val tickInMinute31 = BinanceKlineEvent(
             openTime = baseTime + (30 * 60_000L),
-            closeTime = baseTime + (30 * 60_000L) + 59_999L,
+            closeTime = baseTime + (30 * 60_000L) + 999L,
             symbol = "BTCUSDT",
-            interval = "1m",
+            interval = "1s",
             open = 60080.0,
             high = 60260.0,
             low = 60070.0,

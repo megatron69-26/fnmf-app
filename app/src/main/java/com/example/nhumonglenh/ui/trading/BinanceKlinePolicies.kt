@@ -8,7 +8,7 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * Event nến kline thời gian thực từ Binance WebSocket (kline_1m).
+ * Event nến kline thời gian thực từ Binance WebSocket (kline_1s).
  */
 data class BinanceKlineEvent(
     val openTime: Long,
@@ -46,7 +46,7 @@ object BinanceKlineParser {
             val interval = k.optString("i")
             val isClosed = k.optBoolean("x", false)
 
-            if (openTime <= 0L || closeTime < openTime || symbol.isNullOrBlank() || interval != "1m") {
+            if (openTime <= 0L || closeTime < openTime || symbol.isNullOrBlank() || interval != "1s") {
                 return null
             }
 
@@ -326,20 +326,32 @@ object SocketReconnectPolicy {
  */
 object CandleTimeFormatter {
 
-    fun formatDateTime(millis: Long): String {
+    // Múi giờ chuẩn hóa cố định trên Android cho toàn bộ nhãn biểu đồ:
+    // Dựng toàn bộ nhãn từ openTime epoch millis theo cùng một TimeZone thiết bị,
+    // loại bỏ hoàn toàn việc phụ thuộc vào chuỗi `time` do backend định dạng.
+    val CHART_TIME_ZONE: TimeZone = TimeZone.getDefault()
+
+    fun formatDateTime(millis: Long, timeZone: TimeZone = CHART_TIME_ZONE): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
-        sdf.timeZone = TimeZone.getDefault()
+        sdf.timeZone = timeZone
         return sdf.format(Date(millis))
     }
 
-    fun parseTimeToMillis(timeStr: String): Long {
+    val UTC_TIME_ZONE: TimeZone = TimeZone.getTimeZone("UTC")
+
+    /**
+     * Parse chuỗi thời gian trả về từ backend (được backend định dạng theo chuẩn UTC)
+     * sang epoch millis tuyệt đối.
+     * Mặc định sử dụng UTC_TIME_ZONE để bảo đảm tính chuẩn xác của mốc thời gian epoch.
+     */
+    fun parseTimeToMillis(timeStr: String, timeZone: TimeZone = UTC_TIME_ZONE): Long {
         val direct = timeStr.toLongOrNull()
         if (direct != null && direct > 100000000000L) return direct
         val formats = listOf("yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd")
         for (pattern in formats) {
             try {
                 val sdf = SimpleDateFormat(pattern, Locale.US)
-                sdf.timeZone = TimeZone.getDefault()
+                sdf.timeZone = timeZone
                 val d = sdf.parse(timeStr)
                 if (d != null) return d.time
             } catch (_: Exception) {}
@@ -347,9 +359,39 @@ object CandleTimeFormatter {
         return 0L
     }
 
+    /**
+     * Dựng nhãn trục X trực tiếp từ epoch millis (openTime) theo cùng một múi giờ cố định.
+     * Hoàn toàn không phụ thuộc vào chuỗi text do server backend định dạng.
+     */
+    fun formatChartAxisLabelFromEpoch(
+        openTimeMs: Long,
+        isSubDaily: Boolean = true,
+        timeZone: TimeZone = CHART_TIME_ZONE
+    ): String {
+        val pattern = if (isSubDaily) "HH:mm:ss" else "MM-dd"
+        val sdf = SimpleDateFormat(pattern, Locale.US)
+        sdf.timeZone = timeZone
+        return sdf.format(Date(openTimeMs))
+    }
+
+    /**
+     * Định dạng nhãn trục tọa độ cho CandleDto:
+     * - Ưu tiên tuyệt đối openTime epoch để bảo đảm đồng bộ múi giờ giữa REST và WebSocket.
+     * - Khi openTime == null: Parse chuỗi candle.time (do backend format bằng UTC) bằng UTC_TIME_ZONE
+     *   để có epoch millis chính xác, sau đó format epoch theo timeZone hiển thị (CHART_TIME_ZONE).
+     */
+    fun formatCandleAxisLabel(candle: CandleDto, timeZone: TimeZone = CHART_TIME_ZONE): String {
+        val epoch = candle.openTime ?: parseTimeToMillis(candle.time, UTC_TIME_ZONE)
+        if (epoch > 0L) {
+            val isSubDaily = candle.openTime != null || candle.time.contains(":")
+            return formatChartAxisLabelFromEpoch(epoch, isSubDaily, timeZone)
+        }
+        return formatChartAxisLabel(candle.time)
+    }
+
     fun formatChartAxisLabel(timeStr: String): String {
         if (timeStr.length >= 19 && timeStr.contains(" ")) {
-            return timeStr.substring(11, 16)
+            return timeStr.substring(11, 19)
         }
         if (timeStr.length >= 10 && timeStr.contains("-")) {
             return timeStr.substring(5, 10)

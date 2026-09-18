@@ -122,7 +122,7 @@
                         android:background="@drawable/bg_pill_badge"
                         android:paddingHorizontal="6dp"
                         android:paddingVertical="4dp"
-                        android:text="@string/timeframe_1m"
+                        android:text="@string/timeframe_1s"
                         android:textColor="@color/tv_text_secondary"
                         android:textSize="10sp"
                         android:textStyle="bold" />

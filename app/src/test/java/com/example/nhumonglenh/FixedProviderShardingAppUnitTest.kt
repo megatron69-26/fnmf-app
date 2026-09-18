@@ -250,12 +250,14 @@ class FixedProviderShardingAppUnitTest {
     }
 
     // =========================================================================
-    // 6. Nhãn nến 1m cho cả Cổ phiếu và Crypto
+    // 6. Nhãn nến 1s và 1m cho cả Cổ phiếu và Crypto
     // =========================================================================
     @Test
     fun testChartLabelFormatter_1mForBothCryptoAndStocks() {
+        assertEquals("BTCUSDT • 1s", ChartLabelFormatter.formatChartDatasetLabel("BTCUSDT"))
+        assertEquals("BTCUSDT • 1s", ChartLabelFormatter.formatChartDatasetLabel("BTCUSDT", "1s"))
         assertEquals("BTCUSDT • 1m", ChartLabelFormatter.formatChartDatasetLabel("BTCUSDT", "1m"))
-        assertEquals("AAPL • 1m", ChartLabelFormatter.formatChartDatasetLabel("AAPL", "1m"))
-        assertEquals("TSLA • 1m", ChartLabelFormatter.formatChartDatasetLabel("TSLA", "1m"))
+        assertEquals("AAPL • 1s", ChartLabelFormatter.formatChartDatasetLabel("AAPL", "1s"))
+        assertEquals("TSLA • 1s", ChartLabelFormatter.formatChartDatasetLabel("TSLA", "1s"))
     }
 }

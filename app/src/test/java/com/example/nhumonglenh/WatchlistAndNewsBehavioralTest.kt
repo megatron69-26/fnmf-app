@@ -155,20 +155,20 @@ class WatchlistAndNewsBehavioralTest {
 
     @Test
     fun testBinanceWebSocket_mapsAll5NewSymbols_toCorrectKlineStreams() {
-        assertEquals("bnbusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("BNBUSDT"))
-        assertEquals("bnbusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("BNB"))
+        assertEquals("bnbusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("BNBUSDT"))
+        assertEquals("bnbusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("BNB"))
 
-        assertEquals("solusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("SOLUSDT"))
-        assertEquals("solusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("SOL"))
+        assertEquals("solusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("SOLUSDT"))
+        assertEquals("solusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("SOL"))
 
-        assertEquals("xrpusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("XRPUSDT"))
-        assertEquals("xrpusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("XRP"))
+        assertEquals("xrpusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("XRPUSDT"))
+        assertEquals("xrpusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("XRP"))
 
-        assertEquals("adausdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("ADAUSDT"))
-        assertEquals("adausdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("ADA"))
+        assertEquals("adausdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("ADAUSDT"))
+        assertEquals("adausdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("ADA"))
 
-        assertEquals("dogeusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("DOGEUSDT"))
-        assertEquals("dogeusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("DOGE"))
+        assertEquals("dogeusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("DOGEUSDT"))
+        assertEquals("dogeusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("DOGE"))
 
         // Verify MarketSymbolMatcher
         assertTrue(MarketSymbolMatcher.matches("BNBUSDT", "BNBUSDT"))
@@ -196,8 +196,8 @@ class WatchlistAndNewsBehavioralTest {
                 CandleDto(time = "2026-09-17 10:00:00", open = price, high = price * 1.02, low = price * 0.98, close = price, volume = 100.0, openTime = openTime)
             )
             val tick = BinanceKlineEvent(
-                openTime = openTime, closeTime = openTime + 59999,
-                symbol = sym, interval = "1m",
+                openTime = openTime, closeTime = openTime + 999,
+                symbol = sym, interval = "1s",
                 open = price, high = price * 1.05, low = price * 0.97, close = price * 1.03,
                 volume = 250.0, isClosed = false
             )
@@ -343,9 +343,9 @@ class WatchlistAndNewsBehavioralTest {
                 "s": "BNBUSDT",
                 "k": {
                     "t": 1695000000000,
-                    "T": 1695000059999,
+                    "T": 1695000000999,
                     "s": "BNBUSDT",
-                    "i": "1m",
+                    "i": "1s",
                     "o": "600.00",
                     "c": "605.50",
                     "h": "608.00",
@@ -359,7 +359,7 @@ class WatchlistAndNewsBehavioralTest {
         val event = BinanceKlineParser.parse(validJson)
         assertNotNull(event)
         assertEquals("BNBUSDT", event!!.symbol)
-        assertEquals("1m", event.interval)
+        assertEquals("1s", event.interval)
         assertEquals(600.0, event.open, 0.001)
         assertEquals(605.5, event.close, 0.001)
         assertEquals(608.0, event.high, 0.001)
@@ -374,8 +374,11 @@ class WatchlistAndNewsBehavioralTest {
         val invalidNegative = validJson.replace("\"o\": \"600.00\"", "\"o\": \"-10.00\"") // negative price
         assertNull(BinanceKlineParser.parse(invalidNegative))
 
-        val invalidInterval = validJson.replace("\"i\": \"1m\"", "\"i\": \"5m\"") // not 1m
-        assertNull(BinanceKlineParser.parse(invalidInterval))
+        val invalidInterval5m = validJson.replace("\"i\": \"1s\"", "\"i\": \"5m\"") // not 1s
+        assertNull(BinanceKlineParser.parse(invalidInterval5m))
+
+        val invalidInterval1m = validJson.replace("\"i\": \"1s\"", "\"i\": \"1m\"") // not 1s (must reject 1m)
+        assertNull(BinanceKlineParser.parse(invalidInterval1m))
     }
 
     // =====================================================================

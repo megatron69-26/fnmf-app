@@ -30,33 +30,33 @@ class MarketExpansionAndForecastUnitTest {
     @Test
     fun testMarketStreamHelper_resolvesAllEightAssets() {
         // BTC
-        assertEquals("btcusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("BTCUSDT"))
-        assertEquals("btcusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("BTC"))
+        assertEquals("btcusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("BTCUSDT"))
+        assertEquals("btcusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("BTC"))
 
         // ETH
-        assertEquals("ethusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("ETHUSDT"))
-        assertEquals("ethusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("ETH"))
+        assertEquals("ethusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("ETHUSDT"))
+        assertEquals("ethusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("ETH"))
 
         // XAU (PAXG reference)
-        assertEquals("paxgusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("XAUUSD"))
-        assertEquals("paxgusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("XAU"))
-        assertEquals("paxgusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("PAXGUSDT"))
+        assertEquals("paxgusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("XAUUSD"))
+        assertEquals("paxgusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("XAU"))
+        assertEquals("paxgusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("PAXGUSDT"))
 
         // 5 New Binance Pairs
-        assertEquals("bnbusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("BNBUSDT"))
-        assertEquals("bnbusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("BNB"))
+        assertEquals("bnbusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("BNBUSDT"))
+        assertEquals("bnbusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("BNB"))
 
-        assertEquals("solusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("SOLUSDT"))
-        assertEquals("solusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("SOL"))
+        assertEquals("solusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("SOLUSDT"))
+        assertEquals("solusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("SOL"))
 
-        assertEquals("xrpusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("XRPUSDT"))
-        assertEquals("xrpusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("XRP"))
+        assertEquals("xrpusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("XRPUSDT"))
+        assertEquals("xrpusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("XRP"))
 
-        assertEquals("adausdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("ADAUSDT"))
-        assertEquals("adausdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("ADA"))
+        assertEquals("adausdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("ADAUSDT"))
+        assertEquals("adausdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("ADA"))
 
-        assertEquals("dogeusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("DOGEUSDT"))
-        assertEquals("dogeusdt@kline_1m", MarketStreamHelper.resolveWebSocketStream("DOGE"))
+        assertEquals("dogeusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("DOGEUSDT"))
+        assertEquals("dogeusdt@kline_1s", MarketStreamHelper.resolveWebSocketStream("DOGE"))
 
         // Unsupported / Legacy symbols
         assertNull(MarketStreamHelper.resolveWebSocketStream("AAPL"))
