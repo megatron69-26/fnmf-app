@@ -8,12 +8,12 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Singleton Retrofit Client quản lý kết nối mạng tập trung.
- * Hỗ trợ chuyển đổi linh hoạt giữa Localhost (USB), LAN IP và Cloudflare Tunnel 24/7.
+ * Sử dụng gateway HTTPS đã cấu hình cho backend trên Note 10+.
  */
 object RetrofitClient {
 
     /**
-     * Cấu hình Base URL mặc định trỏ đến Railway Cloud Backend
+     * URL .invalid mặc định không thể kết nối trước khi người vận hành cấu hình HTTPS.
      */
     var BASE_URL = NetworkConfig.DEFAULT_SERVER_URL
         private set
@@ -27,6 +27,7 @@ object RetrofitClient {
     }
 
     internal val okHttpClient = OkHttpClient.Builder()
+        .addInterceptor(NgrokBrowserWarningInterceptor)
         .addInterceptor(loggingInterceptor)
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(55, TimeUnit.SECONDS)

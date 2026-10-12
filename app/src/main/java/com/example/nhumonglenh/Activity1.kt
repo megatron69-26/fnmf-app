@@ -24,7 +24,7 @@ import retrofit2.Response
  * =====================================================================
  * 1. ĐĂNG NHẬP (LOGIN): Dùng Email & Password
  * 2. ĐĂNG KÝ (REGISTER): Mở màn hình đăng ký riêng
- * 3. KẾT NỐI: Luôn sử dụng Railway Cloud Backend của bản production
+ * 3. KẾT NỐI: Chỉ sử dụng gateway HTTPS được cấu hình cho Note 10+.
  * =====================================================================
  */
 class Activity1 : AppCompatActivity() {
@@ -45,7 +45,7 @@ class Activity1 : AppCompatActivity() {
         val btnServerConfig = findViewById<Button>(R.id.btnServerConfig)
         val tvServerStatus = findViewById<TextView>(R.id.tvServerStatus)
 
-        // 1. Khóa ứng dụng vào Railway Cloud và dọn URL LAN/custom đã lưu từ bản cũ.
+        // 1. Đọc URL gateway HTTPS; không tự kết nối Railway hay địa chỉ localhost cũ.
         val prefs = getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
         fun updateServerStatus() {
             val configuredUrl = NetworkConfig.getOrMigrateServerUrl(prefs)

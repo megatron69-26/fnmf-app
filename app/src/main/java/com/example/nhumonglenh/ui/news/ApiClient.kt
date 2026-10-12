@@ -2,6 +2,7 @@ package com.example.nhumonglenh.ui.news
 
 import android.content.Context
 import com.example.nhumonglenh.data.remote.NetworkConfig
+import com.example.nhumonglenh.data.remote.NgrokBrowserWarningInterceptor
 import com.example.nhumonglenh.data.remote.RetrofitClient
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -16,6 +17,7 @@ object ApiClient {
     }
 
     private val client = OkHttpClient.Builder()
+        .addInterceptor(NgrokBrowserWarningInterceptor)
         .addInterceptor(logging)
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)

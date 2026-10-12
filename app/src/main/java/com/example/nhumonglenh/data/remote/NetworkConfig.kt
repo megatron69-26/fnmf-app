@@ -6,7 +6,7 @@ import android.util.Log
 
 /**
  * Nguồn cấu hình mạng tập trung cho toàn bộ ứng dụng FNMF.
- * Mặc định trỏ đến Railway Cloud Backend (HTTPS).
+ * Mặc định dùng URL không thể kết nối; người vận hành cần cấu hình gateway HTTPS của Note 10+.
  * Đảm bảo RetrofitClient, News ApiClient và Activity1 dùng chung 1 nguồn cấu hình duy nhất.
  */
 object NetworkConfig {
@@ -75,8 +75,8 @@ object NetworkConfig {
     }
 
     /**
-     * Bản production chỉ sử dụng Railway Cloud. Mọi URL đã lưu từ các bản cũ,
-     * bao gồm URL LAN và URL tuỳ chỉnh, đều được thay bằng URL chính thức.
+     * Chỉ giữ URL HTTPS hợp lệ; URL Railway, tunnel tạm và địa chỉ nội bộ cũ
+     * bị thay bằng URL .invalid để không vô tình gửi thông tin đăng nhập sai nơi.
      */
     fun decideServerUrl(savedUrl: String?, savedConfigVersion: Int): Pair<String, Int> {
         return Pair(if (isAllowedServerUrl(savedUrl)) normalizeUrl(savedUrl!!) else DEFAULT_SERVER_URL, SERVER_CONFIG_VERSION)
