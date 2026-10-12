@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.EditText
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.nhumonglenh.ui.SystemBarInsets
@@ -42,42 +41,9 @@ class Activity1 : AppCompatActivity() {
         val etPassword = findViewById<EditText>(R.id.etPassword)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
         val btnRegister = findViewById<Button>(R.id.btnRegister)
-        val btnServerConfig = findViewById<Button>(R.id.btnServerConfig)
-        val tvServerStatus = findViewById<TextView>(R.id.tvServerStatus)
-
-        // 1. Đọc URL gateway HTTPS; không tự kết nối Railway hay địa chỉ localhost cũ.
         val prefs = getSharedPreferences(NetworkConfig.PREFS_NAME, Context.MODE_PRIVATE)
-        fun updateServerStatus() {
-            val configuredUrl = NetworkConfig.getOrMigrateServerUrl(prefs)
-            val configured = NetworkConfig.isAllowedServerUrl(configuredUrl)
-            tvServerStatus.text = if (configured) "Đã lưu URL (chưa kiểm tra kết nối): $configuredUrl" else "Chưa cấu hình máy chủ HTTPS"
-            tvServerStatus.setTextColor(android.graphics.Color.parseColor(if (configured) "#B0B6C5" else "#FFA726"))
-            RetrofitClient.updateBaseUrl(configuredUrl)
-        }
-        fun showServerConfigDialog() {
-            val input = EditText(this).apply {
-                hint = "https://ten-mien-co-dinh.example/"
-                setSingleLine(true)
-                setText(prefs.getString(NetworkConfig.KEY_SERVER_URL, "")?.takeUnless { it == NetworkConfig.DEFAULT_SERVER_URL } ?: "")
-            }
-            androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Máy chủ Note 10+")
-                .setMessage("Nhập địa chỉ HTTPS cố định của gateway trên Note 10+. Không dùng URL tunnel tạm hoặc Railway.")
-                .setView(input)
-                .setPositiveButton("Lưu") { _, _ ->
-                    val url = input.text.toString().trim()
-                    if (!NetworkConfig.isAllowedServerUrl(url)) {
-                        Toast.makeText(this, "Cần URL HTTPS hợp lệ, không phải Railway hay địa chỉ nội bộ.", Toast.LENGTH_LONG).show()
-                    } else {
-                        prefs.edit().putString(NetworkConfig.KEY_SERVER_URL, NetworkConfig.normalizeUrl(url)).apply()
-                        updateServerStatus()
-                    }
-                }
-                .setNegativeButton("Hủy", null)
-                .show()
-        }
-        btnServerConfig.setOnClickListener { showServerConfigDialog() }
-        updateServerStatus()
+        // Production dùng duy nhất gateway HTTPS đã phát hành; không yêu cầu người dùng cấu hình.
+        RetrofitClient.updateBaseUrl(NetworkConfig.getOrMigrateServerUrl(prefs))
 
         // Di chuyển SharedPreferences từ saved_username sang saved_email (chạy đúng 1 lần)
         when (val migration = NetworkConfig.migrateSavedAccount(prefs)) {
@@ -116,11 +82,6 @@ class Activity1 : AppCompatActivity() {
         // 2. Xử lý ĐĂNG NHẬP
         btnLogin.setOnClickListener {
             if (loginCall != null) return@setOnClickListener
-            if (!NetworkConfig.isAllowedServerUrl(NetworkConfig.getOrMigrateServerUrl(prefs))) {
-                showServerConfigDialog()
-                return@setOnClickListener
-            }
-
             val rawEmail = etEmail.text.toString().trim()
             val password = etPassword.text.toString() // Không trim mật khẩu
 
@@ -138,8 +99,6 @@ class Activity1 : AppCompatActivity() {
             }
 
             val normalizedEmail = NetworkConfig.normalizeEmail(rawEmail)
-            prefs.edit().putString(NetworkConfig.KEY_SAVED_EMAIL, normalizedEmail).apply()
-
             btnLogin.isEnabled = false
             btnLogin.text = getString(R.string.auth_logging_in)
 
@@ -161,6 +120,7 @@ class Activity1 : AppCompatActivity() {
                         )
                         when (outcome) {
                             is com.example.nhumonglenh.data.local.AuthFlowCoordinator.PersistenceOutcome.NavigateToMain -> {
+                                prefs.edit().putString(NetworkConfig.KEY_SAVED_EMAIL, normalizedEmail).apply()
                                 Toast.makeText(this@Activity1, getString(R.string.auth_login_success), Toast.LENGTH_SHORT).show()
                                 navigateToTradingScreen()
                             }
@@ -189,10 +149,6 @@ class Activity1 : AppCompatActivity() {
 
         // 3. Mở màn hình đăng ký riêng.
         btnRegister.setOnClickListener {
-            if (!NetworkConfig.isAllowedServerUrl(NetworkConfig.getOrMigrateServerUrl(prefs))) {
-                showServerConfigDialog()
-                return@setOnClickListener
-            }
             startActivity(Intent(this, RegisterActivity::class.java))
         }
     }

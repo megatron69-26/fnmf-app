@@ -447,8 +447,8 @@ class MarketTickerAndWalletBehavioralTest {
         assertTrue("app/build.gradle.kts must exist", target.exists())
         val content = target.readText()
 
-        assertTrue("versionCode must be 33", content.contains("versionCode = 33"))
-        assertTrue("versionName must be 1.1.33", content.contains("versionName = \"1.1.33\""))
+        assertTrue("versionCode must be 34", content.contains("versionCode = 34"))
+        assertTrue("versionName must be 1.1.34", content.contains("versionName = \"1.1.34\""))
     }
 
     // =========================================================================

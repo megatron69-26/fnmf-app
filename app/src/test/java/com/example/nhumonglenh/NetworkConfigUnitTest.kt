@@ -11,22 +11,22 @@ class NetworkConfigUnitTest {
     @Test
     fun testDefaultServerUrl() {
         assertEquals("https://trading-concave-await.ngrok-free.dev/", NetworkConfig.DEFAULT_SERVER_URL)
-        assertEquals(5, NetworkConfig.SERVER_CONFIG_VERSION)
+        assertEquals(6, NetworkConfig.SERVER_CONFIG_VERSION)
     }
 
     @Test
     fun testDecideServerUrl_nullOrBlank() {
         val (url1, ver1) = NetworkConfig.decideServerUrl(null, 0)
         assertEquals(NetworkConfig.DEFAULT_SERVER_URL, url1)
-        assertEquals(5, ver1)
+        assertEquals(6, ver1)
 
         val (url2, ver2) = NetworkConfig.decideServerUrl("", 0)
         assertEquals(NetworkConfig.DEFAULT_SERVER_URL, url2)
-        assertEquals(5, ver2)
+        assertEquals(6, ver2)
 
         val (url3, ver3) = NetworkConfig.decideServerUrl("   ", 1)
         assertEquals(NetworkConfig.DEFAULT_SERVER_URL, url3)
-        assertEquals(5, ver3)
+        assertEquals(6, ver3)
     }
 
     @Test
@@ -47,29 +47,29 @@ class NetworkConfigUnitTest {
         for (legacy in legacyUrls) {
             val (resolved, ver) = NetworkConfig.decideServerUrl(legacy, 0)
             assertEquals(NetworkConfig.DEFAULT_SERVER_URL, resolved)
-            assertEquals(5, ver)
+            assertEquals(6, ver)
         }
     }
 
     @Test
-    fun testDecideServerUrl_customHttpsIsPreserved() {
+    fun testDecideServerUrl_customHttpsIsReplacedInProduction() {
         val custom1 = "https://custom-domain.example.com/"
         val (url1, ver1) = NetworkConfig.decideServerUrl(custom1, 0)
-        assertEquals(custom1, url1)
-        assertEquals(5, ver1)
+        assertEquals(NetworkConfig.DEFAULT_SERVER_URL, url1)
+        assertEquals(6, ver1)
 
         val custom2 = "https://custom-domain.example.com"
         val (url2, ver2) = NetworkConfig.decideServerUrl(custom2, 0)
-        assertEquals("$custom2/", url2)
-        assertEquals(5, ver2)
+        assertEquals(NetworkConfig.DEFAULT_SERVER_URL, url2)
+        assertEquals(6, ver2)
     }
 
     @Test
-    fun testDecideServerUrl_oldConfiguredVersionKeepsValidHttps() {
+    fun testDecideServerUrl_oldConfiguredVersionUsesProductionGateway() {
         val custom = "https://my-cloud-api.org/"
         val (url, ver) = NetworkConfig.decideServerUrl(custom, 2)
-        assertEquals(custom, url)
-        assertEquals(5, ver)
+        assertEquals(NetworkConfig.DEFAULT_SERVER_URL, url)
+        assertEquals(6, ver)
     }
 
     @Test
@@ -84,7 +84,7 @@ class NetworkConfigUnitTest {
         for (invalid in invalidInputs) {
             val (resolved, ver) = NetworkConfig.decideServerUrl(invalid, 0)
             assertEquals(NetworkConfig.DEFAULT_SERVER_URL, resolved)
-            assertEquals(5, ver)
+            assertEquals(6, ver)
         }
     }
 

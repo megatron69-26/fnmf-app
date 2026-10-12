@@ -12,9 +12,7 @@ import java.util.concurrent.TimeUnit
  */
 object RetrofitClient {
 
-    /**
-     * URL .invalid mặc định không thể kết nối trước khi người vận hành cấu hình HTTPS.
-     */
+    /** Gateway HTTPS cố định của bản phát hành. */
     var BASE_URL = NetworkConfig.DEFAULT_SERVER_URL
         private set
 
