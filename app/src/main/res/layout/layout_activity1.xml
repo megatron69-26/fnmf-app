@@ -91,5 +91,25 @@
         android:text="@string/auth_btn_register"
         android:backgroundTint="#089981"
         android:textStyle="bold"
-        android:textColor="#FFFFFF"/>
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="16dp"/>
+
+    <Button
+        android:id="@+id/btnServerConfig"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:text="Cấu hình máy chủ Note 10+"
+        android:backgroundTint="#4E5467"
+        android:textSize="12sp"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="6dp"/>
+
+    <TextView
+        android:id="@+id/tvServerStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Chưa cấu hình máy chủ HTTPS"
+        android:textColor="#FFA726"
+        android:textSize="11sp"
+        android:gravity="center"/>
 </LinearLayout>

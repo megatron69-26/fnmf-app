@@ -16,8 +16,10 @@ object NetworkConfig {
     const val KEY_SERVER_URL = "server_url"
     const val KEY_CONFIG_VERSION = "server_config_version"
 
-    const val DEFAULT_SERVER_URL = "https://fnmf-backend-production.up.railway.app/"
-    const val SERVER_CONFIG_VERSION = 3
+    // .invalid is reserved and cannot resolve to a live service. A stable Note 10+ HTTPS URL
+    // must be configured explicitly before the app can make authenticated requests.
+    const val DEFAULT_SERVER_URL = "https://note10.invalid/"
+    const val SERVER_CONFIG_VERSION = 4
 
     val LEGACY_HOSTS = listOf(
         "172.18.97.109",
@@ -36,6 +38,20 @@ object NetworkConfig {
         val trimmed = url.trim()
         if (trimmed.isEmpty()) return DEFAULT_SERVER_URL
         return if (trimmed.endsWith("/")) trimmed else "$trimmed/"
+    }
+
+    fun isAllowedServerUrl(url: String?): Boolean {
+        if (url.isNullOrBlank()) return false
+        val uri = try { java.net.URI(url.trim()) } catch (_: Exception) { return false }
+        val host = uri.host?.lowercase(java.util.Locale.ROOT) ?: return false
+        return uri.scheme.equals("https", ignoreCase = true) &&
+            uri.userInfo == null && uri.fragment == null && uri.rawQuery == null &&
+            (uri.path.isNullOrEmpty() || uri.path == "/") &&
+            (uri.port == -1 || uri.port == 443) && host.contains(".") &&
+            !host.matches(Regex("[0-9.]+")) && !host.endsWith(".local") &&
+            host != "note10.invalid" && host != "fnmf-backend-production.up.railway.app" &&
+            !host.endsWith(".railway.app") && !host.endsWith(".trycloudflare.com") &&
+            !isLegacyUrl(url)
     }
 
     /**
@@ -63,7 +79,7 @@ object NetworkConfig {
      * bao gồm URL LAN và URL tuỳ chỉnh, đều được thay bằng URL chính thức.
      */
     fun decideServerUrl(savedUrl: String?, savedConfigVersion: Int): Pair<String, Int> {
-        return Pair(DEFAULT_SERVER_URL, SERVER_CONFIG_VERSION)
+        return Pair(if (isAllowedServerUrl(savedUrl)) normalizeUrl(savedUrl!!) else DEFAULT_SERVER_URL, SERVER_CONFIG_VERSION)
     }
 
     /**
