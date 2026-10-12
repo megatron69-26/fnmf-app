@@ -16,10 +16,9 @@ object NetworkConfig {
     const val KEY_SERVER_URL = "server_url"
     const val KEY_CONFIG_VERSION = "server_config_version"
 
-    // .invalid is reserved and cannot resolve to a live service. A stable Note 10+ HTTPS URL
-    // must be configured explicitly before the app can make authenticated requests.
-    const val DEFAULT_SERVER_URL = "https://note10.invalid/"
-    const val SERVER_CONFIG_VERSION = 4
+    // The public gateway on Note 10+ is the only built-in server target.
+    const val DEFAULT_SERVER_URL = "https://trading-concave-await.ngrok-free.dev/"
+    const val SERVER_CONFIG_VERSION = 5
 
     val LEGACY_HOSTS = listOf(
         "172.18.97.109",

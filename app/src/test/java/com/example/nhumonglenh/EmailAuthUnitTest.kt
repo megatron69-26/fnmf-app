@@ -186,12 +186,12 @@ class EmailAuthUnitTest {
     }
 
     // -------------------------------------------------------------
-    // 5. TEST RAILWAY DEFAULT SERVER URL
+    // 5. TEST NOTE 10+ DEFAULT SERVER URL
     // -------------------------------------------------------------
     @Test
-    fun testDefaultServerUrl_isFailClosedUntilConfigured() {
+    fun testDefaultServerUrl_targetsNote10Gateway() {
         assertEquals(
-            "https://note10.invalid/",
+            "https://trading-concave-await.ngrok-free.dev/",
             NetworkConfig.DEFAULT_SERVER_URL
         )
     }
