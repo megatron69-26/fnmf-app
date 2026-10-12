@@ -318,8 +318,8 @@ class SecureTokenStoreUnitTest {
         assertTrue("build.gradle.kts phải tồn tại", target.exists())
         val content = target.readText()
 
-        assertTrue("versionCode phải là 20..29", content.contains("versionCode = 20") || content.contains("versionCode = 21") || content.contains("versionCode = 22") || content.contains("versionCode = 23") || content.contains("versionCode = 24") || content.contains("versionCode = 25") || content.contains("versionCode = 26") || content.contains("versionCode = 27") || content.contains("versionCode = 28") || content.contains("versionCode = 29"))
-        assertTrue("versionName phải là 1.1.20..1.1.29", content.contains("versionName = \"1.1.20\"") || content.contains("versionName = \"1.1.21\"") || content.contains("versionName = \"1.1.22\"") || content.contains("versionName = \"1.1.23\"") || content.contains("versionName = \"1.1.24\"") || content.contains("versionName = \"1.1.25\"") || content.contains("versionName = \"1.1.26\"") || content.contains("versionName = \"1.1.27\"") || content.contains("versionName = \"1.1.28\"") || content.contains("versionName = \"1.1.29\""))
+        assertTrue("versionCode phải là 33", content.contains("versionCode = 33"))
+        assertTrue("versionName phải là 1.1.33", content.contains("versionName = \"1.1.33\""))
         assertTrue("buildConfig phải được kích hoạt", content.contains("buildConfig = true"))
     }
 
