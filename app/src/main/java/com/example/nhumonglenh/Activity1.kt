@@ -50,8 +50,8 @@ class Activity1 : AppCompatActivity() {
         fun updateServerStatus() {
             val configuredUrl = NetworkConfig.getOrMigrateServerUrl(prefs)
             val configured = NetworkConfig.isAllowedServerUrl(configuredUrl)
-            tvServerStatus.text = if (configured) "Máy chủ: $configuredUrl" else "Chưa cấu hình máy chủ HTTPS"
-            tvServerStatus.setTextColor(android.graphics.Color.parseColor(if (configured) "#4CAF50" else "#FFA726"))
+            tvServerStatus.text = if (configured) "Đã lưu URL (chưa kiểm tra kết nối): $configuredUrl" else "Chưa cấu hình máy chủ HTTPS"
+            tvServerStatus.setTextColor(android.graphics.Color.parseColor(if (configured) "#B0B6C5" else "#FFA726"))
             RetrofitClient.updateBaseUrl(configuredUrl)
         }
         fun showServerConfigDialog() {
